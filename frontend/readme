@@ -1,0 +1,8 @@
+cd frontend
+npm install
+docker compose up -d
+connect to the pgadmin interface and create add a server with the credentials in the .env file (and docker-compose.yml)
+node server/schema.js
+npm run server
+npm run dev
+

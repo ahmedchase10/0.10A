@@ -38,7 +38,8 @@ const schema = `
     name       VARCHAR(100) NOT NULL,
     behavior   VARCHAR(50)  DEFAULT 'Good',
     notes      TEXT         DEFAULT '',
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    parent_email VARCHAR(150) 
   );
 
   -- ── Attendance ────────────────────────────
