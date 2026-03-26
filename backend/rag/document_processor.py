@@ -28,7 +28,8 @@ class DocumentProcessor:
 
         self.model = ColQwen2_5.from_pretrained(
             COLQWEN_MODEL,
-            torch_dtype=torch.float32 if self.device == "cpu" else torch.bfloat16,
+            torch_dtype=torch.float32 if self.device == "cpu" else torch.float16,
+            #flaot16 turned out to be way faster then bfloat16 on the T4 GPU
             device_map=self.device,
             attn_implementation=self.attn_implementation,  # ← add here
         ).eval()

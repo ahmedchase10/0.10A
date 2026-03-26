@@ -20,7 +20,8 @@ WEAVIATE_VERSION = "1.31.0"  # ← add this, needed for connect_to_embedded
 POSTGRES_URL = os.getenv("POSTGRES_URL", "postgresql://postgres:password@localhost:5432/teacher_agent")
 
 # ── Google APIs ───────────────────────────────────────────────────────────
-GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", os.path.join(BASE_DIR, "client_secret.json"))
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.compose"]
 CLASSROOM_SCOPES = ["https://www.googleapis.com/auth/classroom.courses"]
 
