@@ -28,3 +28,5 @@ CLASSROOM_SCOPES = ["https://www.googleapis.com/auth/classroom.courses"]
 # ── RAG ───────────────────────────────────────────────────────────────────
 TOP_K_RETRIEVAL = 5
 TOP_K_RERANK = 3  # ← keep for now even though we removed reranking, might use later
+
+JWS_AI_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibmFtZSI6ImFkbWluIiwiZW1haWwiOiJhZG1pbjEyM0BzY2hvb2wudG4iLCJpYXQiOjE3NzQ4MjQ2MTgsImV4cCI6MTc3NTQyOTQxOH0.s4YT8nJg7o5Rh66ZO-8M_lyJZvvJgaZ46Naz6Kz3xiU"
