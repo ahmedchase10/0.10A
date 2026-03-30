@@ -11,6 +11,9 @@ import studentsRouter from './routes/students.js';
 import classesRouter  from './routes/classes.js';
 import attendanceRouter from './routes/attendance.js';
 import gradesRouter   from './routes/grades.js';
+import aiRouter from "./routes/ai.js";
+
+
 import {
   flaggedRouter,
   notifRouter,
@@ -45,6 +48,7 @@ app.use('/api/notifications', notifRouter);
 app.use('/api/voice',         voiceRouter);
 app.use('/api/lessons',       lessonsRouter);
 app.use('/api/homework',      homeworkRouter);
+app.use("/api/ai",            aiRouter);
 
 // ─── Health check ────────────────────────────
 
