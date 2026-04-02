@@ -4,19 +4,17 @@ from weaviate.classes.query import MetadataQuery, Filter
 from weaviate.util import generate_uuid5
 from backend.models import Page, Document, SearchResult
 from backend.config import (
-    WEAVIATE_PERSISTENCE_PATH,
-    WEAVIATE_COLLECTION,
-    WEAVIATE_VERSION
+    WEAVIATE_COLLECTION
 )
 
 
 class VectorStore:
     def __init__(self):
-        self.client = weaviate.connect_to_embedded(
-            persistence_data_path=WEAVIATE_PERSISTENCE_PATH,
-            version=WEAVIATE_VERSION
-
+        self.client = weaviate.connect_to_local(
+            host="localhost",
+            port=8081,
         )
+        print(self.client.is_ready())
         self.collection = self._get_or_create_collection()
 
     # ─── Collection setup ─────────────────────────────────────────────────
