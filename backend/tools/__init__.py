@@ -30,3 +30,17 @@ all_tools = [
     update_attendance,
     get_attendance_report,
 ]
+
+from .attendance_tools import (
+    mark_attendance,
+    get_students_for_class,
+    get_today_attendance,
+    flag_student,
+)
+ 
+__all__ = [
+    "mark_attendance",
+    "get_students_for_class",
+    "get_today_attendance",
+    "flag_student",
+]
