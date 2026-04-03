@@ -113,4 +113,8 @@ export const api = {
     create:   (data)          => post('/homework', data),
     complete: (id)            => put(`/homework/${id}/complete`),
   },
+  // ─── Agent ───────────────────────────
+  agent: {
+    run: (message) => post('/agent/run', { message }),
+  },
 };
