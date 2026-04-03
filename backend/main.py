@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends ,HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
@@ -32,21 +32,20 @@ async def run_agent(
 ):
     try:
         if not data.message:
-            return {"reply": "No message provided"}
-        if not credentials:
-            return {"reply": "Unauthorized"}
+            raise HTTPException(status_code=400, detail="No message provided")
+
         token = credentials.credentials
 
 
         # 3. YOUR LOGIC HERE (LLM, DB, etc.)
-        result = run_agent(token, data)
-        #!!!run_agent should return in a dataclass type ApiMessage
+        result = agent(token, data)
+        #!!!agent should return in a pydantic object type ApiMessage
         # and its to be changed to the real run agent function that will be implemented
 
         # 4. SEND response back to Node
-        return {"reply": result}
+        return result  # Fastapi will convert pydantic object to JSON automatically instead of dump_json
     except Exception as e:
-        return {"reply": "server error"}
+        return {"reply": "server error", "error": str(e)}
 
 
 # ─── Global error handler (in case) ────────────────────
