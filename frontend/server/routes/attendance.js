@@ -69,6 +69,42 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ─── GET /api/attendance/absences ─────────────────────
+
+router.get('/absences', async (req, res) => {
+  const { classId, threshold } = req.query;
+
+  if (!classId || !threshold) {
+    return res.status(400).json({
+      message: 'classId and threshold are required.'
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT 
+        student_id,
+        COUNT(*)::int AS absences
+      FROM attendance
+      WHERE class_id = $1
+        AND status = 'A'
+      GROUP BY student_id
+      HAVING COUNT(*) >= $2
+      ORDER BY absences DESC
+      `,
+      [classId, threshold]
+    );
+    return res.json({
+      classId: Number(classId),
+      students: result.rows
+    });
+
+  } catch (err) {
+    console.error('[Attendance] ALERT error:', err.message);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
 // ─── POST /api/attendance ────────────────────
 
 router.post('/', async (req, res) => {
