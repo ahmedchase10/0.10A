@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Any, Literal
 from datetime import datetime, date
-from pydantic import BaseModel
+from pydantic import BaseModel ,Field
 
 
 # ─── Existing RAG models (unchanged) ─────────
@@ -63,7 +63,14 @@ class ChatSession:
         return [{"role": m.role, "content": m.content} for m in self.messages]
 
 
-# ─── Agent request/response (Pydantic — used by FastAPI) ─────
+class ApiMessage(BaseModel):
+    """Message format for API communication (Node.js ↔ FastAPI)"""
+
+    message: str
+    role: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+# ─── Agent internals ─────
 
 class TeacherContext(BaseModel):
     """Teacher info forwarded from Node.js"""
