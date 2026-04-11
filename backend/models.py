@@ -49,15 +49,6 @@ class Message:
     timestamp: datetime = field(default_factory=datetime.now)
 
 
-
-class ApiMessage(BaseModel):
-    """Message format for API communication (Node.js ↔ FastAPI)"""
-
-    message: str
-    role: str
-    timestamp: datetime = Field(default_factory=datetime.now)
-
-
 @dataclass
 class AppError(Exception):
     """Shared API exception shape used across backend modules."""

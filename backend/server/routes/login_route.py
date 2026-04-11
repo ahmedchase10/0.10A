@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlmodel import Session
 
 from backend.login.main import create_account, login
@@ -12,13 +12,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class RegisterRequest(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     password: str
     initials: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 
@@ -30,7 +30,7 @@ def register_route(
     return create_account(
         session,
         name=payload.name,
-        email=payload.email,
+        email=str(payload.email),
         password=payload.password,
         initials=payload.initials,
     )
@@ -43,6 +43,6 @@ def login_route(
 ):
     return login(
         session,
-        email=payload.email,
+        email=str(payload.email),
         password=payload.password,
     )
