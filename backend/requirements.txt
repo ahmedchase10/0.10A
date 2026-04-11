@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlmodel
+psycopg[binary]
+python-dotenv
+PyJWT
+bcrypt
+

@@ -49,19 +49,6 @@ class Message:
     timestamp: datetime = field(default_factory=datetime.now)
 
 
-@dataclass
-class ChatSession:
-    """Full conversation history for a teacher session"""
-    session_id: str
-    messages: list = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.now)
-
-    def add_message(self, role: str, content: str):
-        self.messages.append(Message(role=role, content=content))
-
-    def get_history(self):
-        return [{"role": m.role, "content": m.content} for m in self.messages]
-
 
 class ApiMessage(BaseModel):
     """Message format for API communication (Node.js ↔ FastAPI)"""
@@ -70,98 +57,10 @@ class ApiMessage(BaseModel):
     role: str
     timestamp: datetime = Field(default_factory=datetime.now)
 
-# ─── Agent internals ─────
 
-class TeacherContext(BaseModel):
-    """Teacher info forwarded from Node.js"""
-    id:    int
-    name:  str
-    email: str
-
-
-class ClassInfo(BaseModel):
-    id:     int
-    name:   str
-    period: Optional[str] = None
-    room:   Optional[str] = None
-
-
-class StudentInfo(BaseModel):
-    id:         int
-    name:       str
-    class_id:   int
-    class_name: str
-
-
-class RequestContext(BaseModel):
-    """Full context forwarded from Node.js with every agent call"""
-    classes:  List[ClassInfo]
-    students: List[StudentInfo]
-    date:     str   # ISO format: "2026-03-30"
-
-
-class AgentRequest(BaseModel):
-    """Body received at POST /agent/run"""
-    input:   str
-    teacher: TeacherContext
-    context: RequestContext
-
-
-# ─── Agent action types ───────────────────────
-
-AttendanceStatus = Literal["P", "A", "L", "E"]
-
-
-class AttendanceAction(BaseModel):
-    """A single attendance record the agent wants to write"""
-    student_id: int
-    student_name: str
-    class_id:   int
-    class_name: str
-    status:     AttendanceStatus
-    date:       str
-
-
-class FlagAction(BaseModel):
-    """A student the agent wants to flag"""
-    student_id:   int
-    student_name: str
-    class_id:     int
-    type:         Literal["behavior", "absence", "grade"]
-    reason:       str
-
-
-class HomeworkAction(BaseModel):
-    """Homework the agent wants to log"""
-    class_id:      int
-    class_name:    str
-    title:         str
-    subject:       Optional[str] = None
-    chapter:       Optional[str] = None
-    assigned_date: str
-    due_date:      Optional[str] = None
-
-
-class LessonAction(BaseModel):
-    """Lesson log entry the agent wants to write"""
-    class_id:   int
-    class_name: str
-    date:       str
-    chapter:    Optional[str] = None
-    topic:      Optional[str] = None
-    weak_point: Optional[str] = None
-    insight:    Optional[str] = None
-
-
-class AgentAction(BaseModel):
-    """One action extracted and executed by the agent"""
-    type:        Literal["attendance", "flag", "homework", "lesson", "insight"]
-    description: str                 # human-readable summary shown in UI
-    data:        Any                 # one of the action models above
-
-
-class AgentResponse(BaseModel):
-    """Shape returned to Node.js after agent run"""
-    summary:  str                    # one sentence shown in the agent bar
-    actions:  List[AgentAction]      # list of all actions taken
-    raw:      Optional[Any] = None   # full LangGraph state (debug)
+@dataclass
+class AppError(Exception):
+    """Shared API exception shape used across backend modules."""
+    code: str
+    message: str
+    status_code: int = 400
