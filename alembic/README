@@ -1,2 +1,2 @@
-Generic single-database configuration.
+run to change the db based on the dbModels
 py alembic/script.py
