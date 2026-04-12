@@ -17,14 +17,27 @@ class Teacher(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class Class(SQLModel, table=True):
+    __tablename__ = "classes"
+    __table_args__ = (
+        UniqueConstraint("teacher_id", "name", "subject", name="uq_class_teacher_name_subject"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=120)
+    subject: str = Field(max_length=120)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class Upload(SQLModel, table=True):
     __tablename__ = "uploads"
     __table_args__ = (
-        UniqueConstraint("teacher_id", "file_hash", name="uq_upload_teacher_hash"),
+        UniqueConstraint("class_id", "file_hash", name="uq_upload_class_hash"),
     )
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
     filename: str = Field(max_length=255)
     file_path: str = Field(max_length=512)
     file_hash: str = Field(index=True, max_length=64)
@@ -32,4 +45,4 @@ class Upload(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-__all__ = ["SQLModel", "Teacher", "Upload"]
+__all__ = ["SQLModel", "Teacher", "Class", "Upload"]
