@@ -1,120 +1,288 @@
 // =============================================
 // DIGI-SCHOOL AI — API Client
-// All backend calls go through this module.
+// Direct integration with FastAPI backend
 // =============================================
 
-const BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://localhost:8000';
 
-// ─── Core fetch wrapper ──────────────────────
-
-async function request(method, path, body = null) {
-  const token = sessionStorage.getItem('digischool_token');
-
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const config = { method, headers };
-  if (body) config.body = JSON.stringify(body);
-
-  const res  = await fetch(`${BASE_URL}${path}`, config);
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || `Request failed with status ${res.status}`);
-  }
-
-  return data;
-}
-
-const get    = (path)        => request('GET',    path);
-const post   = (path, body)  => request('POST',   path, body);
-const put    = (path, body)  => request('PUT',    path, body);
-const del    = (path)        => request('DELETE', path);
-
-// ─── Auth ────────────────────────────────────
-
-export const api = {
-
-  auth: {
-    login:    (email, password)                   => post('/auth/login',    { email, password }),
-    register: (name, email, password, subject)    => post('/auth/register', { name, email, password, subject }),
-    me:       ()                                  => get('/auth/me'),
-  },
-
-  // ─── Classes ──────────────────────────────
-
-  classes: {
-    getAll:   ()              => get('/classes'),
-    create:   (data)          => post('/classes', data),
-    update:   (id, data)      => put(`/classes/${id}`, data),
-    delete:   (id)            => del(`/classes/${id}`),
-  },
-
-  // ─── Students ─────────────────────────────
-
-  students: {
-    getAll:       (classId)   => get(`/students${classId ? `?classId=${classId}` : ''}`),
-    create:       (data)      => post('/students', data),
-    update:       (id, data)  => put(`/students/${id}`, data),
-    delete:       (id)        => del(`/students/${id}`),
-  },
-
-  // ─── Attendance ───────────────────────────
-
-  attendance: {
-    get:    (classId, date)   => get(`/attendance?classId=${classId}${date ? `&date=${date}` : ''}`),
-    today:  ()                => get('/attendance/today'),
-    mark:   (data)            => post('/attendance', data),
-    bulk:   (records)         => post('/attendance/bulk', { records }),
-  },
-
-  // ─── Grades ───────────────────────────────
-
-  grades: {
-    get:    (classId)         => get(`/grades${classId ? `?classId=${classId}` : ''}`),
-    save:   (data)            => post('/grades', data),
-    bulk:   (records)         => post('/grades/bulk', { records }),
-    update: (id, score)       => put(`/grades/${id}`, { score }),
-  },
-
-  // ─── Flagged ──────────────────────────────
-
-  flagged: {
-    getAll:   ()              => get('/flagged'),
-    create:   (data)          => post('/flagged', data),
-    resolve:  (id)            => put(`/flagged/${id}/resolve`),
-  },
-
-  // ─── Notifications ────────────────────────
-
-  notifications: {
-    getAll:   ()              => get('/notifications'),
-    send:     (data)          => post('/notifications', data),
-  },
-
-  // ─── Voice History ────────────────────────
-
-  voice: {
-    getAll:   ()              => get('/voice'),
-    save:     (data)          => post('/voice', data),
-  },
-
-  // ─── Lesson Log ───────────────────────────
-
-  lessons: {
-    get:    (classId)         => get(`/lessons${classId ? `?classId=${classId}` : ''}`),
-    create: (data)            => post('/lessons', data),
-  },
-
-  // ─── Homework ─────────────────────────────
-
-  homework: {
-    get:      (classId)       => get(`/homework${classId ? `?classId=${classId}` : ''}`),
-    create:   (data)          => post('/homework', data),
-    complete: (id)            => put(`/homework/${id}/complete`),
-  },
-  // ─── Agent ───────────────────────────
-  agent: {
-    run: (message) => post('/agent/run', { message }),
-  },
+export const API = {
+    token: null,
+    
+    setToken(token) {
+        this.token = token;
+    },
+    
+    getHeaders(includeAuth = false) {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        
+        if (includeAuth && this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        return headers;
+    },
+    
+    async handleResponse(response) {
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // Backend returns: { success: false, error: { code, message } }
+            throw new Error(data.error?.message || 'Request failed');
+        }
+        
+        return data;
+    },
+    
+    // ─── Authentication ──────────────────────────
+    
+    async register(name, email, password, initials = null) {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                name,
+                email,
+                password,
+                initials: initials || name.substring(0, 2).toUpperCase()
+            })
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async login(email, password) {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ email, password })
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async getMe() {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            method: 'GET',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Classes ─────────────────────────────────
+    
+    async getClasses() {
+        const response = await fetch(`${API_BASE_URL}/classes`, {
+            method: 'GET',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async createClass(classData) {
+        // Backend expects: teacher_id, name, period, room, subject, school, color
+        const response = await fetch(`${API_BASE_URL}/classes`, {
+            method: 'POST',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(classData)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async updateClass(classId, classData) {
+        const response = await fetch(`${API_BASE_URL}/classes/${classId}`, {
+            method: 'PUT',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(classData)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async deleteClass(classId) {
+        const response = await fetch(`${API_BASE_URL}/classes/${classId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Students ────────────────────────────────
+    
+    async getStudents(classId = null) {
+        const url = classId 
+            ? `${API_BASE_URL}/students?classId=${classId}`
+            : `${API_BASE_URL}/students`;
+            
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async createStudent(studentData) {
+        // Backend expects: class_id, name, parent_email (optional), behavior, notes
+        const response = await fetch(`${API_BASE_URL}/students`, {
+            method: 'POST',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(studentData)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async updateStudent(studentId, studentData) {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
+            method: 'PUT',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(studentData)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async deleteStudent(studentId) {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    
+    // ─── Notifications ───────────────────────────
+    
+    async getNotifications() {
+        const response = await fetch(`${API_BASE_URL}/notifications`, {
+            method: 'GET',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async markNotificationRead(notificationId) {
+        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async deleteNotification(notificationId) {
+        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Teacher Profile / Settings ──────────────
+    
+    async updateTeacherProfile(profileData) {
+        // Backend expects: name, initials, subject, school, grades
+        const response = await fetch(`${API_BASE_URL}/teachers/profile`, {
+            method: 'PUT',
+            headers: this.getHeaders(true),
+            body: JSON.stringify(profileData)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async changePassword(currentPassword, newPassword) {
+        const response = await fetch(`${API_BASE_URL}/teachers/password`, {
+            method: 'PUT',
+            headers: this.getHeaders(true),
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword
+            })
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Attendance ──────────────────────────────
+    
+    async markAttendance(studentId, classId, date, status) {
+        const response = await fetch(`${API_BASE_URL}/attendance`, {
+            method: 'POST',
+            headers: this.getHeaders(true),
+            body: JSON.stringify({
+                studentId,
+                classId,
+                date,
+                status
+            })
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    async getAttendance(classId, date = null) {
+        const url = date
+            ? `${API_BASE_URL}/attendance?classId=${classId}&date=${date}`
+            : `${API_BASE_URL}/attendance?classId=${classId}`;
+            
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.getHeaders(true)
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Lessons ─────────────────────────────────
+    
+    async uploadLesson(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_BASE_URL}/lessons/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            },
+            body: formData
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Voice Processing ────────────────────────
+    // Placeholder for future agent integration
+    
+    async processVoiceNote(audioBlob, classId) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        formData.append('classId', classId);
+        
+        const response = await fetch(`${API_BASE_URL}/voice/process`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.token}`
+            },
+            body: formData
+        });
+        
+        return this.handleResponse(response);
+    },
+    
+    // ─── Health Check ────────────────────────────
+    
+    async healthCheck() {
+        const response = await fetch(`${API_BASE_URL}/health`);
+        return this.handleResponse(response);
+    }
 };
