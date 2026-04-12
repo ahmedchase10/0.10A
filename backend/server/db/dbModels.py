@@ -45,4 +45,26 @@ class Upload(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-__all__ = ["SQLModel", "Teacher", "Class", "Upload"]
+class Student(SQLModel, table=True):
+    __tablename__ = "students"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=100)
+    email: str = Field(index=True, unique=True, max_length=150)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class StudentClass(SQLModel, table=True):
+    __tablename__ = "student_class"
+    __table_args__ = (
+        UniqueConstraint("class_id", "student_id", name="uq_student_class"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    student_id: int = Field(foreign_key="students.id", index=True)
+    name: str = Field(max_length=100)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass"]

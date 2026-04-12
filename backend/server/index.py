@@ -4,9 +4,10 @@ from fastapi.responses import JSONResponse
 
 from backend.models import AppError
 from backend.server.auth.me import router as auth_router
-from backend.server.routes.login_route import router as login_router
+from backend.server.routes.teacher_route import router as login_router , teachers_router
 from backend.server.routes.lessons_route import router as lessons_router
 from backend.server.routes.classes_route import router as classes_router
+from backend.server.routes.students_route import router as students_router
 app = FastAPI(title="Digi-School API")
 
 
@@ -85,5 +86,7 @@ def health_check():
 
 app.include_router(auth_router)
 app.include_router(login_router)
+app.include_router(teachers_router)
 app.include_router(lessons_router)
 app.include_router(classes_router)
+app.include_router(students_router)
