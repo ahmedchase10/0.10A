@@ -8,6 +8,7 @@ from backend.server.routes.teacher_route import router as login_router , teacher
 from backend.server.routes.lessons_route import router as lessons_router
 from backend.server.routes.classes_route import router as classes_router
 from backend.server.routes.students_route import router as students_router
+from backend.server.routes.timetable_route import router as timetable_router
 app = FastAPI(title="Digi-School API")
 
 
@@ -90,3 +91,4 @@ app.include_router(teachers_router)
 app.include_router(lessons_router)
 app.include_router(classes_router)
 app.include_router(students_router)
+app.include_router(timetable_router)

@@ -56,15 +56,28 @@ class Student(SQLModel, table=True):
 
 class StudentClass(SQLModel, table=True):
     __tablename__ = "student_class"
+
+    class_id: int = Field(foreign_key="classes.id", primary_key=True)
+    student_id: int = Field(foreign_key="students.id", primary_key=True)
+
+    display_name: str = Field(max_length=100)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+
+class Timetable(SQLModel, table=True):
+    __tablename__ = "timetable"
     __table_args__ = (
-        UniqueConstraint("class_id", "student_id", name="uq_student_class"),
+        UniqueConstraint("class_id", "day_of_week", "start_time", name="uq_timetable_class_day_time"),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     class_id: int = Field(foreign_key="classes.id", index=True)
-    student_id: int = Field(foreign_key="students.id", index=True)
-    name: str = Field(max_length=100)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    day_of_week: int = Field(ge=0, le=6)  # 0 = Monday, 6 = Sunday
+    start_time: str = Field(max_length=5)  # HH:MM format
+    end_time: str = Field(max_length=5)    # HH:MM format
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass"]
+__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass", "Timetable"]

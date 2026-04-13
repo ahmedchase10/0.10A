@@ -118,7 +118,7 @@ def add_student(
 	student_class_record = StudentClass(
 		class_id=class_id,
 		student_id=student_record.id,
-		name=clean_name,
+		display_name=clean_name,
 	)
 	session.add(student_class_record)
 	session.commit()
@@ -128,7 +128,7 @@ def add_student(
 		"success": True,
 		"student": {
 			"id": student_record.id,
-			"name": student_class_record.name,
+			"name": student_class_record.display_name,
 			"email": student_record.email,
 			"created_at": student_class_record.created_at,
 		},
