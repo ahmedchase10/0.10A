@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 import uuid
 
@@ -80,4 +80,18 @@ class Timetable(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass", "Timetable"]
+class Attendance(SQLModel, table=True):
+    __tablename__ = "attendance"
+    __table_args__ = (
+        UniqueConstraint("class_id", "student_id", "session_date", name="uq_attendance_class_student_date"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    student_id: int = Field(foreign_key="students.id", index=True)
+    session_date: date = Field(index=True)
+    present: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass", "Timetable", "Attendance"]
