@@ -109,12 +109,8 @@ class ApiService {
   
   // ─── Students ────────────────────────────────
   
-  async getStudents(classId = null) {
-    const url = classId 
-      ? `${API_BASE_URL}/students?classId=${classId}`
-      : `${API_BASE_URL}/students`;
-      
-    const response = await fetch(url, {
+  async getStudents(classId) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/students`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
@@ -122,8 +118,9 @@ class ApiService {
     return this.handleResponse(response);
   }
   
-  async createStudent(studentData) {
-    const response = await fetch(`${API_BASE_URL}/students`, {
+  async createStudent(data) {
+    const { class_id, ...studentData } = data;
+    const response = await fetch(`${API_BASE_URL}/classes/${class_id}/students`, {
       method: 'POST',
       headers: this.getHeaders(true),
       body: JSON.stringify(studentData)
@@ -132,8 +129,8 @@ class ApiService {
     return this.handleResponse(response);
   }
   
-  async updateStudent(studentId, studentData) {
-    const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
+  async updateStudent(classId, studentId, studentData) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
       method: 'PUT',
       headers: this.getHeaders(true),
       body: JSON.stringify(studentData)
@@ -142,8 +139,8 @@ class ApiService {
     return this.handleResponse(response);
   }
   
-  async deleteStudent(studentId) {
-    const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
+  async deleteStudent(classId, studentId) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
@@ -175,6 +172,42 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
       method: 'DELETE',
       headers: this.getHeaders(true)
+    });
+    
+    return this.handleResponse(response);
+  }
+  
+  // ─── Attendance ──────────────────────────────
+  
+  async createAttendance(data) {
+    const response = await fetch(`${API_BASE_URL}/attendance`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    
+    return this.handleResponse(response);
+  }
+  
+  async getAttendance(classId, sessionDate) {
+    const params = new URLSearchParams({
+      class_id: classId.toString(),
+      session_date: sessionDate
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/attendance?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    
+    return this.handleResponse(response);
+  }
+  
+  async updateAttendance(data) {
+    const response = await fetch(`${API_BASE_URL}/attendance`, {
+      method: 'PUT',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(data)
     });
     
     return this.handleResponse(response);
@@ -266,12 +299,17 @@ class ApiService {
     return this.handleResponse(response);
   }
   
-  async getLessons(classId = null) {
-    const url = classId
-      ? `${API_BASE_URL}/lessons?classId=${classId}`
-      : `${API_BASE_URL}/lessons`;
+  async getLessons(classId, options = {}) {
+    const { limit = 20, offset = 0, sort = 'created_at_desc', refresh = true } = options;
+    const params = new URLSearchParams({
+      class_id: classId,
+      limit: limit.toString(),
+      offset: offset.toString(),
+      sort,
+      refresh: refresh.toString()
+    });
       
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE_URL}/lessons?${params}`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
@@ -279,13 +317,9 @@ class ApiService {
     return this.handleResponse(response);
   }
   
+  // Note: Backend doesn't have delete endpoint yet
   async deleteLesson(lessonId) {
-    const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(true)
-    });
-    
-    return this.handleResponse(response);
+    throw new Error('Delete lesson endpoint not implemented in backend yet');
   }
   
   // ─── Voice Processing ────────────────────────

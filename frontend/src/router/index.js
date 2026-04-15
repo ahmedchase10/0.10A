@@ -24,6 +24,11 @@ const routes = [
         component: () => import('@/views/ClassPage.vue')
       },
       {
+        path: 'class/:id/attendance',
+        name: 'ClassAttendance',
+        component: () => import('@/views/ClassAttendance.vue')
+      },
+      {
         path: 'timetable',
         name: 'Timetable',
         component: () => import('@/views/Timetable.vue')

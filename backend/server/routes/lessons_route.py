@@ -3,7 +3,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlmodel import Session
 
-from backend.lessons.main import list_lesson_uploads, upload_lesson_file
+from backend.lessons.main import list_lesson_uploads, upload_lesson_file, delete_lesson_upload
 from backend.server.auth.dependencies import require_auth
 from backend.server.db.engine import get_session
 
@@ -45,3 +45,15 @@ def upload_lesson_route(
         class_id=class_id,
     )
 
+
+@router.delete("/{upload_id}")
+def delete_lesson_route(
+    upload_id: str,
+    teacher: Dict[str, Any] = Depends(require_auth),
+    session: Session = Depends(get_session),
+):
+    return delete_lesson_upload(
+        session=session,
+        teacher_payload=teacher,
+        upload_id=upload_id
+    )

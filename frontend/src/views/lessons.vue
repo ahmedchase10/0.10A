@@ -169,7 +169,7 @@
                         type="file"
                         ref="fileInput"
                         @change="handleFileSelect"
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
+                        accept=".pdf"
                         class="hidden"
                       />
                       <button
@@ -180,8 +180,8 @@
                         <ArrowUpTrayIcon class="w-6 h-6" />
                         <span class="font-medium">Click to browse files</span>
                       </button>
-                      <p class="text-sm text-grey-500 mt-2">PDF, DOC, PPT, TXT, or Images</p>
-                      <p class="text-xs text-grey-400 mt-1">Max size: 10MB</p>
+                      <p class="text-sm text-grey-500 mt-2">PDF files only</p>
+                      <p class="text-xs text-grey-400 mt-1">Max size: 150MB</p>
                       
                       <div v-if="uploadForm.file" class="mt-4 flex items-center justify-center gap-2 text-sm text-grey-700">
                         <DocumentIcon class="w-5 h-5 text-primary-500" />
@@ -303,9 +303,15 @@ function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Validate file size (10MB max)
-  if (file.size > 10 * 1024 * 1024) {
-    uploadError.value = 'File size must be less than 10MB';
+  // Backend only accepts PDF files
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    uploadError.value = 'Only PDF files are allowed';
+    return;
+  }
+
+  // Validate file size (150MB max as per backend)
+  if (file.size > 150 * 1024 * 1024) {
+    uploadError.value = 'File size must be less than 150MB';
     return;
   }
 
@@ -322,16 +328,29 @@ async function handleUpload() {
   try {
     const formData = new FormData();
     formData.append('file', uploadForm.value.file);
-    if (uploadForm.value.class_id) {
-      formData.append('class_id', uploadForm.value.class_id);
-    }
+    formData.append('class_id', uploadForm.value.class_id);
 
     const response = await api.uploadLesson(formData);
     
     if (response.success) {
-      files.value.unshift(response.file);
+      // Backend returns 'upload' object
+      const newFile = {
+        id: response.upload.id,
+        file_name: response.upload.name,
+        file_type: response.upload.name.split('.').pop(),
+        file_size: response.upload.size,
+        uploaded_at: response.upload.created_at,
+        class_id: uploadForm.value.class_id,
+        class_name: classes.value.find(c => c.id === uploadForm.value.class_id)?.name || 'Unknown'
+      };
+      
+      files.value.unshift(newFile);
       showUploadModal.value = false;
       uploadForm.value = { class_id: null, file: null };
+      
+      if (response.upload.already_exists) {
+        alert('This file already exists in this class');
+      }
     }
   } catch (error) {
     uploadError.value = error.message || 'Failed to upload file';
@@ -342,29 +361,47 @@ async function handleUpload() {
 
 async function downloadFile(file) {
   try {
-    // This will be implemented based on your backend file storage
-    window.open(file.file_url, '_blank');
+    // Files are at /uploads/classes/{class_id}/{filename}
+    const fileUrl = `http://localhost:8000/uploads/classes/${file.class_id}/${file.file_name}`;
+    window.open(fileUrl, '_blank');
   } catch (error) {
     alert('Failed to download file: ' + error.message);
   }
 }
 
 async function deleteFile(fileId) {
-  if (!confirm('Are you sure you want to delete this file?')) return;
-
-  try {
-    await api.deleteLesson(fileId);
-    files.value = files.value.filter(f => f.id !== fileId);
-  } catch (error) {
-    alert('Failed to delete file: ' + error.message);
-  }
+  alert('Delete lesson endpoint is not implemented in backend yet. File will remain in database.');
+  return;
+  
+  // Uncomment when backend implements DELETE /lessons/{id}
+  // if (!confirm('Are you sure you want to delete this file?')) return;
+  // try {
+  //   await api.deleteLesson(fileId);
+  //   files.value = files.value.filter(f => f.id !== fileId);
+  // } catch (error) {
+  //   alert('Failed to delete file: ' + error.message);
+  // }
 }
 
 async function loadFiles() {
   try {
-    const response = await api.getLessons(selectedClassId.value);
+    const response = await api.getLessons(selectedClassId.value, {
+      limit: 100,
+      offset: 0,
+      sort: 'created_at_desc',
+      refresh: true
+    });
     if (response.success) {
-      files.value = response.files || [];
+      // Backend returns 'uploads' array
+      files.value = (response.uploads || []).map(upload => ({
+        id: upload.id,
+        file_name: upload.name,
+        file_type: upload.name.split('.').pop(),
+        file_size: upload.size,
+        uploaded_at: upload.created_at,
+        class_id: selectedClassId.value,
+        class_name: classes.value.find(c => c.id === selectedClassId.value)?.name || 'Unknown'
+      }));
     }
   } catch (error) {
     console.error('Failed to load files:', error);

@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
-from backend.server.db.dbModels import Upload
+from backend.server.db.dbModels import Upload, Class
 
 MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
@@ -222,3 +222,41 @@ def upload_lesson_file(
         if temp_path.exists():
             temp_path.unlink()
 
+
+def delete_lesson_upload(
+    session: Session,
+    teacher_payload: Dict[str, Any],
+    *,
+    upload_id: str
+) -> Dict[str, Any]:
+    teacher_id = int(teacher_payload["id"])
+    
+    upload = session.exec(
+        select(Upload).where(Upload.id == upload_id)
+    ).first()
+    
+    if not upload:
+        raise AppError("LESSONS_NOT_FOUND", "Upload not found.", 404)
+    
+    # Verify teacher owns the class
+    class_record = session.exec(
+        select(Class).where(
+            Class.id == upload.class_id,
+            Class.teacher_id == teacher_id
+        )
+    ).first()
+    
+    if not class_record:
+        raise AppError("LESSONS_FORBIDDEN", "You don't own this class.", 403)
+    
+    # Delete file from disk
+    file_path = Path(upload.file_path)
+    absolute_path = UPLOADS_ROOT.parent / file_path
+    if absolute_path.exists():
+        absolute_path.unlink()
+    
+    # Delete from database
+    session.delete(upload)
+    session.commit()
+    
+    return {"success": True, "message": "Upload deleted successfully."}
