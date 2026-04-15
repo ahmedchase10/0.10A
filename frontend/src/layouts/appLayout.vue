@@ -126,6 +126,7 @@ import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
 import {
   HomeIcon,
   CalendarIcon,
+  DocumentTextIcon,
   BellIcon,
   Cog6ToothIcon,
   ChevronLeftIcon,
@@ -145,6 +146,7 @@ const unreadNotifications = ref(3); // Mock data
 const navigation = [
   { name: 'Dashboard', to: '/', icon: HomeIcon },
   { name: 'Timetable', to: '/timetable', icon: CalendarIcon },
+  { name: 'Lessons', to: '/lessons', icon: DocumentTextIcon },
   { name: 'Notifications', to: '/notifications', icon: BellIcon, badge: unreadNotifications.value },
   { name: 'Settings', to: '/settings', icon: Cog6ToothIcon },
 ];

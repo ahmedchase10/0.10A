@@ -252,6 +252,42 @@ class ApiService {
     return this.handleResponse(response);
   }
   
+  // ─── Lessons ─────────────────────────────────
+  
+  async uploadLesson(formData) {
+    const response = await fetch(`${API_BASE_URL}/lessons/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.token}`
+      },
+      body: formData
+    });
+    
+    return this.handleResponse(response);
+  }
+  
+  async getLessons(classId = null) {
+    const url = classId
+      ? `${API_BASE_URL}/lessons?classId=${classId}`
+      : `${API_BASE_URL}/lessons`;
+      
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    
+    return this.handleResponse(response);
+  }
+  
+  async deleteLesson(lessonId) {
+    const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
+    });
+    
+    return this.handleResponse(response);
+  }
+  
   // ─── Voice Processing ────────────────────────
   
   async processVoiceNote(audioBlob, classId) {

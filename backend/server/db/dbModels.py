@@ -59,7 +59,8 @@ class StudentClass(SQLModel, table=True):
 
     class_id: int = Field(foreign_key="classes.id", primary_key=True)
     student_id: int = Field(foreign_key="students.id", primary_key=True)
-
+    flagged: bool = Field(default=False)
+    flag_reason: str = Field(max_length=500)
     display_name: str = Field(max_length=100)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

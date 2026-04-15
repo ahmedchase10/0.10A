@@ -29,6 +29,11 @@ const routes = [
         component: () => import('@/views/Timetable.vue')
       },
       {
+        path: 'lessons',
+        name: 'Lessons',
+        component: () => import('@/views/Lessons.vue')
+      },
+      {
         path: 'notifications',
         name: 'Notifications',
         component: () => import('@/views/Notifications.vue')
