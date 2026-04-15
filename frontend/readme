@@ -1,381 +1,816 @@
+# Digi-School AI — Frontend Documentation
+
+> **Voice-First AI Teaching Assistant Platform**  
+> Modern web interface built with Vue 3, designed to help teachers manage their classes efficiently through natural language commands.
+
+---
+
+## 📖 Table of Contents
+
+- [What is Digi-School AI?](#what-is-digi-school-ai)
+- [Quick Start](#quick-start)
+- [Features Overview](#features-overview)
+- [Page-by-Page Guide](#page-by-page-guide)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [How It Works](#how-it-works)
+- [Development Guide](#development-guide)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 What is Digi-School AI?
+
+Digi-School AI is a web application that helps teachers manage their daily classroom tasks using **voice and text commands**. Instead of clicking through multiple menus, teachers can simply say or type things like:
+
+- _"Ahmed and Sara were absent today"_
+- _"Homework for tomorrow is pages 45-50"_
+- _"Generate a report for all students"_
+
+The AI system processes these commands and automatically updates attendance, creates notifications, generates reports, and more.
+
+### **Who Is This For?**
+
+- **Teachers**: Manage classes, track student behavior, mark attendance
+- **Schools**: Centralized platform for classroom management
+- **Administrators**: Monitor teaching activities and student progress
+
+---
+
+## 🚀 Quick Start
+
+### **Prerequisites**
+- Node.js 18 or higher
+- npm or yarn
+- Backend server running on `http://localhost:8000`
+
+### **Installation**
+
+```bash
+# 1. Navigate to the frontend folder
 cd frontend
+
+# 2. Install dependencies
 npm install
-docker compose up -d
-connect to the pgadmin interface and create add a server with the credentials in the .env file (and docker-compose.yml)
-node server/schema.js
-npm run server
+
+# 3. Start the development server
 npm run dev
+```
 
+The application will open at **`http://localhost:3000`**
 
-# Digi-School AI — Frontend
+### **First Time Setup**
 
-A voice-first AI platform that eliminates administrative work for teachers.
+1. **Create an account** on the signup page
+   - Enter your name, email, and password
+   - **Note**: You DON'T select a subject here anymore (teachers teach multiple subjects!)
+   
+2. **Create your first class**
+   - Click "New Class" on the dashboard
+   - Enter class name (e.g., "3G — Mathematics")
+   - **Select the subject here** (this is where you choose what you teach)
+   - Set period, room, and school details
+   - Pick a color for easy identification
 
-## 📖 What This Application Does
+3. **Add students**
+   - Open the class
+   - Click "Add Student"
+   - Enter student details and parent contact
 
-This is the **teacher-facing interface** for Digi-School AI. Think of it as your command center for managing classes, students, and daily teaching tasks—all powered by AI that understands natural language.
-
-### The Big Idea
-
-Instead of clicking through menus and filling out forms, you **talk to the system** (or type naturally). The AI understands what you want and does it for you. Not drafts—**finished work**.
+4. **Start using AI commands**
+   - Type or speak commands in the AI Command Console
+   - Watch as the system automatically handles your tasks
 
 ---
 
-## 🗂 How The Application Is Organized
+## ✨ Features Overview
 
-### **Pages You Can Visit**
+### **1. Smart Authentication**
+- Secure login/signup with JWT tokens
+- Password requirements enforced
+- Auto-generates initials if not provided
+- Session persistence across browser refreshes
 
-1. **Login/Signup Page** (`auth.js`)
-   - Where you create an account or sign in
-   - Stores a secure token so you stay logged in
+### **2. Class Management Dashboard**
+- Visual grid of all your classes
+- Color-coded class cards
+- One-click access to class details
+- Create unlimited classes with different subjects
 
-2. **Dashboard** (`dashboard.js`)
-   - Shows all your classes as cards
-   - Click "New Class" to create one
-   - Click any class card to open it
+### **3. AI Command Console**
+- Natural language processing
+- Voice input support (coming soon)
+- Quick action buttons for common tasks
+- Real-time command execution
 
-3. **Class Page** (`class-page.js`)
-   - The workspace for one specific class
-   - Shows class details, student list, and the **AI Command Zone**
-   - The AI Zone is where you give voice/text commands
+### **4. Student Tracking**
+- Add/remove students per class
+- Track behavior (Excellent, Good, Fair, Needs Improvement)
+- Store parent contact information
+- Add custom notes for each student
 
-4. **Timetable** (`timetable.js`)
-   - Your weekly teaching schedule
-   - Automatically built from the "period" field in your classes
-   - Shows Monday-Friday grid
+### **5. Weekly Timetable**
+- Visual weekly schedule
+- Period-by-period breakdown
+- Navigate between weeks
+- Click on any class to view details
 
-5. **Notifications** (`notifications.js`)
-   - System alerts (e.g., "Ahmed has been absent 3 days")
-   - Behavioral flags from the AI
-   - Mark as read or delete
+### **6. Notifications Center**
+- Real-time alerts
+- Mark notifications as read
+- Delete unwanted notifications
+- Unread count badge in sidebar
 
-6. **Settings** (`settings.js`)
-   - Update your profile (name, school, subject)
-   - Change your password
-   - Adjust preferences (voice settings, notifications)
-
----
-
-## 🧩 How The Code Works (Simple Explanation)
-
-### **1. State Management** (`main.js`)
-
-The `State` object is the **single source of truth** for the entire app. It holds:
-- Your user info (name, email)
-- Your authentication token
-- All your classes
-- All your students
-- Which page you're on right now
-
-**Example:** When you create a new class, we add it to `State.classes`. Then the sidebar automatically updates to show the new class—no page refresh needed.
-
-### **2. API Client** (`api.js`)
-
-This file talks to the Python backend. Every function here is a **direct HTTP request**:
-- `API.login(email, password)` → Sends credentials, gets back a token
-- `API.getClasses()` → Fetches your classes from the database
-- `API.createStudent(data)` → Adds a student to a class
-
-**Key Feature:** It automatically includes your auth token in every request header, so the backend knows it's you.
-
-### **3. Components** (`src/components/`)
-
-Each page is a **component**—a JavaScript class that:
-1. **Renders** HTML (the `.render()` method)
-2. **Attaches listeners** to buttons/forms (the `.attachListeners()` method)
-3. **Cleans up** when you navigate away (the `.destroy()` method)
-
-**Example Flow:**
-```
-User clicks "Create Class" button
-  → Dashboard opens a modal
-  → User fills form and submits
-  → Dashboard calls API.createClass()
-  → Backend returns new class data
-  → Dashboard adds it to State.classes
-  → Sidebar updates automatically
-  → Modal closes
-```
-
-### **4. Router** (`main.js`)
-
-The Router decides which component to show based on `State.currentView`:
-- `'auth'` → Show login page
-- `'dashboard'` → Show class grid
-- `'class-page'` → Show individual class workspace
-- etc.
-
-**Navigation works like this:**
-```javascript
-// User clicks "Timetable" in sidebar
-window.dispatchEvent(new CustomEvent('navigate', { 
-  detail: { view: 'timetable' } 
-}));
-
-// Router hears this and updates the page
-State.currentView = 'timetable';
-Router.render(); // Swaps in the Timetable component
-```
+### **7. Settings & Preferences**
+- Update profile information
+- Change password securely
+- Configure notification preferences
+- Set language and timezone
+- Customize appearance (light theme, dark coming soon)
 
 ---
 
-## 🎯 Key Features Explained
+## 📄 Page-by-Page Guide
 
-### **The AI Command Zone** (class-page.js)
+### **🔐 Login/Signup Page (`/auth`)**
 
-This is the **heart of the voice-first experience**:
+**What it does**: Authenticates teachers into the system
 
-**What it looks like:**
-- Big purple gradient box at the top of each class page
-- Text area where you type (or later: record voice)
-- "Quick Action" chips for common tasks
-- Status indicator showing "Ready"
+**Key Changes from Old Version**:
+- ✅ **No subject field** during signup
+- ✅ Subject is now set per-class
+- ✅ Modern gradient background with animated blobs
+- ✅ Tab switching between login and signup
+- ✅ Auto-generates initials from name if not provided
 
-**What it does:**
-- Takes natural language like: *"Ahmed and Sara were absent today"*
-- Sends it to the backend AI orchestrator
-- The orchestrator figures out you want to mark attendance
-- Executes the database update
-- Shows you the result
-
-**Current State:** Right now it just shows an alert. Once your backend AI agent is ready, you'll connect it here by calling:
-```javascript
-await API.processVoiceNote(audioBlob, classId)
-```
-
-### **Students Table** (class-page.js)
-
-**What you see:**
-- List of all students in that class
-- Columns: Name, Behavior, Parent Email, Notes
-- Edit/Delete buttons for each student
-
-**How it works:**
-1. When you open a class page, it calls `API.getStudents(classId)`
-2. Backend returns all students for that class
-3. Component renders them in a table
-4. Click "Add Student" → modal pops up → fill form → student gets added
-
-### **Timetable Grid** (timetable.js)
-
-**What it does:**
-- Reads the `period` field from all your classes
-- Extracts the period number (e.g., "Period 3" → 3)
-- Builds a Monday-Friday grid
-- Places each class in its time slot
-
-**Note:** This is a **simplified version**. In production, you'd add a `day_of_week` column to the database to know which day each class meets.
-
-### **Dynamic Sidebar** (sidebar.js)
-
-**Automatically updates when:**
-- You create a new class → class appears in sidebar
-- You receive a notification → red badge appears on "Notifications"
-- You navigate → the active page is highlighted
-
-**How?** The sidebar has an `.update()` method that gets called whenever `State.classes` or `State.notifications` changes.
+**How to use**:
+1. New users: Click "Sign Up" tab
+2. Enter your full name, email, and password
+3. Optionally enter initials (or let it auto-generate)
+4. Click "Create Account"
+5. Existing users: Enter email and password, click "Login"
 
 ---
 
-## 📡 How It Talks To The Backend
+### **📊 Dashboard (`/`)**
+
+**What it does**: Shows all your classes in a visual grid
+
+**Features**:
+- Grid layout (3 columns on desktop, responsive)
+- Each class card shows:
+  - Class name with gradient header
+  - Subject, period, room, school
+  - Custom color for visual identification
+- "New Class" button to create classes
+- Click any card to open class details
+
+**How to create a class**:
+1. Click "New Class" button (top right)
+2. Fill in the form:
+   - **Class Name** (required): e.g., "3G — Mathematics"
+   - **Subject**: Mathematics, Physics, etc.
+   - **Period**: e.g., "Period 3"
+   - **Room**: e.g., "Room 204"
+   - **School**: e.g., "Lycée Pilote"
+   - **Color**: Pick from 12 colors
+3. Click "Create Class"
+
+**Empty state**: Shows a friendly message with "Create Your First Class" button
+
+---
+
+### **🎓 Class Page (`/class/:id`)**
+
+**What it does**: Workspace for an individual class with AI command zone
+
+**Key Sections**:
+
+1. **Header**
+   - Breadcrumb navigation (back to dashboard)
+   - Class name and color bar
+   - Pills showing subject, period, room, school
+
+2. **AI Command Console**
+   - Large blue gradient box at the top
+   - Textarea for typing commands
+   - Voice input button (placeholder for future)
+   - "Execute" button to run commands
+   - Quick action chips for common tasks
+   - Status indicator showing "Ready"
+
+3. **Students Table**
+   - List of all students in the class
+   - Columns: Name, Behavior, Parent Email, Notes, Actions
+   - Avatar circles with student initials
+   - Color-coded behavior badges:
+     - **Excellent**: Green
+     - **Good**: Blue
+     - **Fair**: Yellow
+     - **Needs Improvement**: Red
+   - Delete button per student
+
+**How to add a student**:
+1. Click "Add Student" button
+2. Fill in:
+   - Student name (required)
+   - Parent email
+   - Behavior rating
+   - Notes
+3. Click "Add Student"
+
+**How to use AI commands**:
+1. Type a natural language command like:
+   - "Ahmed and Sara were absent today"
+   - "Mark all students present"
+   - "Generate attendance report"
+2. Click "Execute" or press Ctrl+Enter
+3. The multi-agent system processes it (backend integration required)
+
+---
+
+### **📅 Timetable (`/timetable`)**
+
+**What it does**: Shows your weekly teaching schedule
+
+**Features**:
+- Weekly grid view (Monday to Friday)
+- Time slots from 8:00 AM to 4:00 PM
+- Shows which class is taught in each period
+- Color-coded based on class colors
+- Week navigation (previous/next week buttons)
+- Click any class block to jump to class details
+
+**How to read it**:
+- Rows = Time periods (Period 1, Period 2, Break, Lunch, etc.)
+- Columns = Days of the week
+- Colored blocks = Your classes
+- Empty cells = Free periods
+
+**Note**: The schedule is currently using mock data. It will be populated from your actual class periods once backend integration is complete.
+
+---
+
+### **🔔 Notifications (`/notifications`)**
+
+**What it does**: Central hub for all alerts and updates
+
+**Features**:
+- List of notifications sorted by date
+- Different types:
+  - Attendance reminders
+  - Behavior alerts
+  - System updates
+  - Parent messages
+- Mark individual notifications as read
+- Delete notifications
+- Unread count badge in sidebar
+
+**How to use**:
+1. Click "Notifications" in sidebar
+2. View all notifications
+3. Click "Mark as Read" on unread items
+4. Click trash icon to delete
+
+**Empty state**: Shows "No notifications" message when inbox is clear
+
+---
+
+### **⚙️ Settings (`/settings`)**
+
+**What it does**: Manage your account, security, and preferences
+
+**Three Tabs**:
+
+#### **1. Profile Tab**
+- Avatar display (initials circle)
+- Update name, email, initials
+- Set school affiliation
+- Save changes button
+
+#### **2. Security Tab**
+- Change password form
+- Password requirements reminder:
+  - Minimum 8 characters
+  - Mix of letters and numbers
+  - Avoid common passwords
+- Current password verification
+- New password + confirmation
+
+#### **3. Preferences Tab**
+- **Notifications**:
+  - Email notifications toggle
+  - Weekly reports toggle
+  - Attendance reminders toggle
+- **Language & Region**:
+  - Language selector (English, Français, العربية)
+  - Timezone selector
+- **Appearance**:
+  - Light theme (default)
+  - Dark theme (coming soon)
+
+**How to update profile**:
+1. Go to Settings → Profile tab
+2. Edit any fields
+3. Click "Save Changes"
+
+**How to change password**:
+1. Go to Settings → Security tab
+2. Enter current password
+3. Enter new password twice
+4. Click "Update Password"
+
+---
+
+## 🛠️ Technology Stack
+
+### **Core Technologies**
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Vue 3** | 3.3.8 | Reactive UI framework with Composition API |
+| **Vite** | 5.0.0 | Lightning-fast dev server and build tool |
+| **Tailwind CSS** | 3.3.6 | Utility-first CSS framework for styling |
+| **Headless UI** | 1.7.16 | Accessible unstyled UI components |
+| **Heroicons** | 2.0.18 | Beautiful SVG icons |
+| **Pinia** | 2.1.7 | State management (modern Vuex replacement) |
+| **Vue Router** | 4.2.5 | Client-side routing |
+
+### **Why These Technologies?**
+
+**Vue 3**:
+- Reactive data binding (no manual DOM updates)
+- Component-based architecture
+- Easier to maintain than vanilla JavaScript
+- Strong developer tools
+
+**Vite**:
+- Starts in <1 second (vs 10+ seconds for Webpack)
+- Hot module replacement (instant updates on save)
+- Optimized production builds
+
+**Tailwind CSS**:
+- Rapid styling with utility classes
+- Consistent design system
+- No CSS naming conflicts
+- Smaller bundle size (unused styles removed)
+
+**Headless UI**:
+- Accessible by default (keyboard navigation, screen readers)
+- Unstyled (full design control)
+- Built by Tailwind team
+
+**Pinia**:
+- Simpler than Vuex
+- Better TypeScript support
+- DevTools integration for debugging
+
+---
+
+## 📁 Project Structure
+
+```
+frontend/
+├── src/
+│   ├── assets/
+│   │   └── main.css                 # Tailwind imports + custom scrollbar
+│   ├── components/                  # Reusable components (future)
+│   ├── layouts/
+│   │   └── AppLayout.vue           # Main layout with sidebar navigation
+│   ├── views/                       # Page components (one per route)
+│   │   ├── Auth.vue                # Login/Signup page
+│   │   ├── Dashboard.vue           # Class grid homepage
+│   │   ├── ClassPage.vue           # Individual class workspace
+│   │   ├── Timetable.vue           # Weekly schedule
+│   │   ├── Notifications.vue       # Alerts center
+│   │   └── Settings.vue            # Account settings
+│   ├── stores/
+│   │   └── auth.js                 # Authentication state (Pinia)
+│   ├── services/
+│   │   └── api.js                  # Backend API client
+│   ├── router/
+│   │   └── index.js                # Route definitions + guards
+│   ├── App.vue                     # Root component
+│   └── main.js                     # Application entry point
+├── index.html                       # HTML template
+├── package.json                     # Dependencies
+├── vite.config.js                  # Vite configuration
+├── tailwind.config.js              # Tailwind theme (colors, fonts)
+├── postcss.config.js               # PostCSS configuration
+└── README.md                        # This file
+```
+
+### **Key Files Explained**
+
+**`src/main.js`**: 
+- Entry point of the application
+- Initializes Vue, Pinia, and Router
+- Mounts the app to `#app` div
+
+**`src/router/index.js`**:
+- Defines all routes (`/`, `/auth`, `/class/:id`, etc.)
+- Authentication guards (redirect to login if not authenticated)
+
+**`src/stores/auth.js`**:
+- Manages authentication state (user, token)
+- Functions: `login()`, `register()`, `logout()`, `updateUser()`
+- Persists to localStorage
+
+**`src/services/api.js`**:
+- All backend API calls
+- Handles authentication headers
+- Error handling
+
+**`src/layouts/AppLayout.vue`**:
+- Sidebar navigation
+- User profile dropdown
+- Outlet for page content
+
+---
+
+## 🎨 Design System
+
+### **Color Palette**
+
+**Primary Blue** (Main brand color):
+```
+#3b82f6  - Used for buttons, links, active states
+```
+
+**Success Green** (Positive actions):
+```
+#22c55e  - Used for success messages, excellent behavior
+```
+
+**Grey Scale** (Backgrounds and text):
+```
+#f9fafb  - Lightest backgrounds
+#6b7280  - Secondary text
+#111827  - Headings and important text
+```
+
+### **Typography**
+- Font family: System fonts (`-apple-system`, `Segoe UI`, `Roboto`)
+- Headings: Bold, grey-900
+- Body text: Regular, grey-700
+- Secondary text: grey-600
+
+### **Spacing**
+- Base unit: 4px (Tailwind default)
+- Padding: Usually `p-6` (24px) or `p-8` (32px)
+- Gaps: `gap-6` (24px) for grids
+
+### **Border Radius**
+- Small: `rounded-lg` (8px)
+- Medium: `rounded-xl` (12px)
+- Large: `rounded-2xl` (16px)
+- Full: `rounded-full` (pill shape)
+
+### **Shadows**
+- Cards: `shadow-sm` (subtle)
+- Modals: `shadow-xl` (prominent)
+- Custom: `shadow-soft` (defined in tailwind.config.js)
+
+---
+
+## 🔄 How It Works
 
 ### **Authentication Flow**
 
-1. **Signup:**
-   ```
-   User fills signup form
-   → Frontend: API.register(name, email, password)
-   → Backend: POST /auth/register
-   → Backend: Returns { success: true, token: "abc123", teacher: {...} }
-   → Frontend: Stores token in localStorage
-   → Frontend: Redirects to dashboard
-   ```
-
-2. **All Other Requests:**
-   ```
-   Frontend needs to fetch classes
-   → API.getClasses() adds header: "Authorization: Bearer abc123"
-   → Backend verifies token
-   → Backend returns classes for that teacher
-   ```
-
-3. **Logout:**
-   ```
-   User clicks logout
-   → Frontend deletes token from localStorage
-   → Frontend clears State
-   → Frontend redirects to login page
-   ```
-
-### **Database Schema Compatibility**
-
-The frontend sends data **exactly matching your database**:
-
-**Creating a class:**
-```json
-{
-  "name": "3G — Mathematics",
-  "subject": "Mathematics",
-  "period": "Period 3",
-  "room": "Room 204",
-  "school": "Lycée Pilote",
-  "color": "#667eea"
-}
+```
+1. User visits site
+2. Router checks if authenticated
+   - YES → Redirect to Dashboard
+   - NO → Show Login/Signup page
+3. User enters credentials
+4. Frontend sends POST to /auth/login or /auth/register
+5. Backend validates and returns:
+   - JWT token
+   - User data (name, email, initials)
+6. Frontend stores in:
+   - Pinia store (in-memory)
+   - localStorage (persistence)
+7. API service sets Authorization header
+8. Router allows access to protected routes
 ```
 
-**Adding a student:**
-```json
+### **Data Flow Example: Creating a Class**
+
+```
+1. User clicks "New Class" button
+2. Modal opens (Headless UI Dialog)
+3. User fills form and submits
+4. Frontend calls api.createClass(data)
+5. API service sends POST /classes with JWT token
+6. Backend creates class in database
+7. Backend returns created class with ID
+8. Frontend adds to classes array (reactive update)
+9. UI automatically re-renders with new class card
+10. Modal closes
+```
+
+### **State Management (Pinia)**
+
+```javascript
+// Define store
+const useAuthStore = defineStore('auth', () => {
+  const user = ref(null);
+  const token = ref(localStorage.getItem('digi_token'));
+  
+  function login(email, password) {
+    // API call, store token and user
+  }
+  
+  return { user, token, login };
+});
+
+// Use in component
+const authStore = useAuthStore();
+console.log(authStore.user.name);
+authStore.login(email, password);
+```
+
+### **Routing with Authentication**
+
+```javascript
+// Protected route
 {
-  "class_id": 5,
-  "name": "Ahmed Ben Ali",
-  "parent_email": "parent@email.com",
-  "behavior": "Good",
-  "notes": "Excels at geometry"
+  path: '/class/:id',
+  component: ClassPage,
+  meta: { requiresAuth: true }  // ← Requires login
 }
+
+// Guard
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next('/auth');  // Redirect to login
+  } else {
+    next();  // Allow
+  }
+});
 ```
 
 ---
 
-## 🔧 What You Need To Do Next
+## 💻 Development Guide
 
-### **Backend Endpoints To Implement**
-
-See `BACKEND_INTEGRATION.md` for exact code, but here's the checklist:
-
-**✅ Already Working:**
-- POST /auth/register
-- POST /auth/login
-- GET /auth/me
-- POST /lessons/upload
-
-**❌ Need To Add:**
-- GET /classes (fetch teacher's classes)
-- POST /classes (create new class)
-- PUT /classes/:id (update class)
-- DELETE /classes/:id (delete class)
-- GET /students?classId=X (fetch students)
-- POST /students (add student)
-- DELETE /students/:id (remove student)
-- GET /notifications (fetch alerts)
-- PUT /teachers/profile (update teacher info)
-- PUT /teachers/password (change password)
-
----
-
-## 🏃 Running The App
+### **Running the App**
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start development server
+# Development mode (hot reload)
 npm run dev
 
-# App opens at: http://localhost:3000
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-**Important:** The frontend expects your Python backend at `http://localhost:8000`
+### **Common Development Tasks**
 
----
+**1. Adding a new page**:
+```vue
+<!-- src/views/NewPage.vue -->
+<template>
+  <div class="p-8">
+    <h1 class="text-3xl font-bold text-grey-900">New Page</h1>
+  </div>
+</template>
 
-## 🎨 Design Philosophy
+<script setup>
+import { ref } from 'vue';
 
-### **Voice-First UI**
-- Big, prominent AI command zone
-- Natural language placeholders
-- Quick action chips for common tasks
-
-### **No Page Refreshes**
-- Everything is a single-page app (SPA)
-- Navigate between pages instantly
-- State persists across navigation
-
-### **Clean & Professional**
-- Gradient accent colors (#667eea → #764ba2)
-- Generous whitespace
-- Subtle shadows and animations
-- Accessible fonts (system defaults)
-
----
-
-## 📂 File Structure Explained
-
-```
-digi-school-frontend/
-├── index.html              # Entry point (loads main.js)
-│
-├── src/
-│   ├── main.js            # App startup, State, Router
-│   ├── api.js             # All backend HTTP requests
-│   │
-│   ├── components/        # Each page is a component
-│   │   ├── auth.js        # Login/Signup
-│   │   ├── dashboard.js   # Class grid
-│   │   ├── class-page.js  # Individual class + AI zone
-│   │   ├── timetable.js   # Weekly schedule
-│   │   ├── notifications.js # Alerts list
-│   │   ├── settings.js    # Profile & preferences
-│   │   └── sidebar.js     # Navigation sidebar
-│   │
-│   └── styles/            # CSS files
-│       ├── main.css       # Global styles & variables
-│       ├── auth.css       # Login page styles
-│       ├── dashboard.css  # Dashboard & sidebar
-│       ├── class-view.css # (Old class view, kept for compatibility)
-│       └── components.css # New components (class-page, timetable, etc.)
-│
-├── package.json           # Node dependencies
-├── vite.config.js         # Dev server config
-└── README.md              # This file
+const message = ref('Hello!');
+</script>
 ```
 
+Then add route:
+```javascript
+// src/router/index.js
+{
+  path: '/new-page',
+  name: 'NewPage',
+  component: () => import('@/views/NewPage.vue'),
+  meta: { requiresAuth: true }
+}
+```
+
+**2. Making an API call**:
+```javascript
+import api from '@/services/api';
+
+async function loadData() {
+  try {
+    const response = await api.getClasses();
+    if (response.success) {
+      classes.value = response.classes;
+    }
+  } catch (error) {
+    console.error('Failed:', error);
+  }
+}
+```
+
+**3. Using Tailwind classes**:
+```vue
+<!-- Blue button with hover effect -->
+<button class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg transition">
+  Click Me
+</button>
+
+<!-- Responsive grid (1 col mobile, 3 col desktop) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</div>
+```
+
+### **Code Style Guidelines**
+
+**Vue Components**:
+- Use `<script setup>` syntax
+- Use Composition API (`ref`, `computed`, `onMounted`)
+- Keep components under 300 lines
+- Extract complex logic to composables
+
+**Naming Conventions**:
+- Components: PascalCase (`ClassCard.vue`)
+- Variables: camelCase (`currentClass`)
+- Constants: UPPER_SNAKE_CASE (`MAX_STUDENTS`)
+
+**Tailwind**:
+- Use utility classes, not custom CSS
+- Follow order: layout → spacing → colors → typography
+- Group related utilities: `"px-6 py-3"` not `"px-6 rounded-lg py-3"`
+
 ---
 
-## 🐛 Common Issues & Solutions
+## 🐛 Troubleshooting
 
-**Problem:** "Failed to fetch classes"
-**Solution:** Make sure backend is running on port 8000 and CORS is enabled
+### **App won't start**
 
-**Problem:** "Invalid token" error
-**Solution:** Your JWT expired (default 7 days). Just log out and log back in
+**Error**: `ENOENT: no such file or directory`
 
-**Problem:** Sidebar doesn't update after creating a class
-**Solution:** Call `sidebar.update()` after modifying `State.classes`
+**Solution**:
+```bash
+# Make sure you're in the frontend folder
+cd frontend
 
-**Problem:** AI command does nothing
-**Solution:** The backend `/voice/process` endpoint isn't implemented yet—it's a placeholder
-
----
-
-## 🚀 Future Features (Not Yet Built)
-
-These are referenced in the code but need backend work:
-
-1. **Voice Recording**
-   - Capture audio from microphone
-   - Send to transcription service
-   - Process through AI orchestrator
-
-2. **Real-time Notifications**
-   - WebSocket connection to backend
-   - Push alerts when students exceed thresholds
-
-3. **Report Card Generation**
-   - AI synthesizes all student data
-   - Generates personalized paragraphs
-   - Exports to PDF/Word
+# Delete node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+```
 
 ---
 
-## 📝 Summary
+### **Tailwind classes not working**
 
-This frontend is a **complete, production-ready SPA** that:
-- Manages authentication with JWTs
-- Provides full CRUD for classes and students
-- Includes a dedicated AI command interface
-- Shows timetables, notifications, and settings
-- Works seamlessly with your existing backend schema
+**Problem**: Styles not applying
 
-**The AI agent integration is ready to plug in**—just connect your voice transcription and LangGraph orchestrator to the API endpoints, and the UI will handle the rest.
+**Solution**:
+1. Check `tailwind.config.js` content paths:
+   ```javascript
+   content: ["./index.html", "./src/**/*.{vue,js}"]
+   ```
+2. Restart dev server: `npm run dev`
 
-**Everything is built with vanilla JavaScript**—no React, no Vue. Just clean, modern ES6 modules.
+---
+
+### **Component not found error**
+
+**Error**: `Failed to resolve component: X`
+
+**Solution**:
+- Use `@/` alias for imports: `import X from '@/components/X.vue'`
+- Check file path matches exactly (case-sensitive)
+- Make sure file exists
+
+---
+
+### **API calls failing**
+
+**Error**: `Failed to fetch` or `Network error`
+
+**Solution**:
+1. Check backend is running: `http://localhost:8000/health`
+2. Check CORS is enabled on backend
+3. Verify API base URL in `src/services/api.js`
+4. Check browser console for detailed error
+
+---
+
+### **Login not working**
+
+**Problem**: Can't log in even with correct credentials
+
+**Solution**:
+1. Check Network tab in browser DevTools
+2. Verify backend response format matches:
+   ```json
+   {
+     "success": true,
+     "token": "jwt_token_here",
+     "teacher": { "name": "...", "email": "..." }
+   }
+   ```
+3. Clear localStorage: `localStorage.clear()`
+4. Try registering a new account
+
+---
+
+### **Build fails**
+
+**Error**: Build command errors
+
+**Solution**:
+```bash
+# Clear cache
+rm -rf node_modules/.vite
+
+# Rebuild
+npm run build
+```
+
+---
+
+## 📞 Getting Help
+
+**For Developers**:
+- Check browser console (F12) for errors
+- Use Vue DevTools extension
+- Check Network tab for API issues
+
+**For Users**:
+- Refresh the page
+- Clear browser cache
+- Try incognito/private mode
+- Contact support with screenshot
+
+---
+
+## 🚀 Next Steps
+
+### **For Development**:
+1. ✅ Complete frontend UI (DONE)
+2. 🔄 Integrate with backend API
+3. 🎤 Implement voice input
+4. 🤖 Connect multi-agent AI system
+5. 📊 Add real-time statistics
+6. 📱 Create mobile app version
+
+### **For Users**:
+1. Create account and first class
+2. Add students to classes
+3. Explore AI command features
+4. Set up weekly timetable
+5. Configure notification preferences
+
+---
+
+## 📄 License
+
+Proprietary - Digi-School AI Platform
+
+**Built with ❤️ by the Digi-School Team**
+
+---
+
+## 🎓 Quick Reference
+
+### **Essential Commands**
+```bash
+npm install          # Install dependencies
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+```
+
+### **Important URLs**
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+- API Docs: `http://localhost:8000/docs`
+
+### **Key Concepts**
+- **Reactive**: Data changes automatically update UI
+- **Component**: Reusable piece of UI
+- **Store**: Shared state across components
+- **Route**: URL path that loads a page
+- **Guard**: Check before allowing navigation
+
+### **Color Classes**
+```
+bg-primary-600     # Blue background
+bg-success-600     # Green background
+bg-grey-100        # Light grey background
+text-primary-600   # Blue text
+text-success-600   # Green text
+border-grey-200    # Grey border
+```
+
+---
+
+**Last Updated**: April 2026  
+**Version**: 2.0.0  
+**Contact**: support@digi-school.ai
