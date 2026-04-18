@@ -239,15 +239,9 @@ def delete_lesson_upload(
         raise AppError("LESSONS_NOT_FOUND", "Upload not found.", 404)
     
     # Verify teacher owns the class
-    class_record = session.exec(
-        select(Class).where(
-            Class.id == upload.class_id,
-            Class.teacher_id == teacher_id
-        )
-    ).first()
-    
-    if not class_record:
-        raise AppError("LESSONS_FORBIDDEN", "You don't own this class.", 403)
+
+
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=upload.class_id)
     
     # Delete file from disk
     file_path = Path(upload.file_path)

@@ -45,7 +45,7 @@ def get_class_students(
 		"students": [
 			{
 				"id": student.id,
-				"name": sc.name,
+				"name": sc.display_name,
 				"email": student.email,
 				"created_at": sc.created_at,
 			}
