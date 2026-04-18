@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
-from backend.server.db.dbModels import Upload, Class
+from backend.server.db.dbModels import Upload
 
 MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
@@ -222,35 +222,44 @@ def upload_lesson_file(
         if temp_path.exists():
             temp_path.unlink()
 
-
 def delete_lesson_upload(
     session: Session,
     teacher_payload: Dict[str, Any],
-    *,
-    upload_id: str
+    upload_id: str,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
-    
+
     upload = session.exec(
         select(Upload).where(Upload.id == upload_id)
     ).first()
-    
-    if not upload:
-        raise AppError("LESSONS_NOT_FOUND", "Upload not found.", 404)
-    
-    # Verify teacher owns the class
 
+    if upload is None:
+        raise AppError("LESSONS_UPLOAD_NOT_FOUND", "Upload not found.", 404)
 
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=upload.class_id)
-    
-    # Delete file from disk
-    file_path = Path(upload.file_path)
-    absolute_path = UPLOADS_ROOT.parent / file_path
-    if absolute_path.exists():
-        absolute_path.unlink()
-    
-    # Delete from database
+    get_owned_class_or_403(session,teacher_id=teacher_id,class_id=upload.class_id)
+
+    absolute_path = UPLOADS_ROOT.parent / upload.file_path
+    file_deleted = False
+
+    try:
+        if absolute_path.exists():
+            absolute_path.unlink()
+            file_deleted = True
+    except OSError:
+        raise AppError(
+            "LESSONS_DELETE_FILE_FAILED",
+            "Failed to delete file from disk.",
+            500,
+        )
+
     session.delete(upload)
     session.commit()
-    
-    return {"success": True, "message": "Upload deleted successfully."}
+
+    return {
+        "success": True,
+        "deleted": {
+            "id": upload_id,
+            "name": upload.filename,
+            "file_deleted": file_deleted,
+        },
+    }

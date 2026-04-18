@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from sqlmodel import Session
 
 from backend.students.main import add_student, get_class_students, remove_student
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/classes", tags=["students"])
 
 class AddStudentRequest(BaseModel):
 	name: str
-	email: str
+	email: EmailStr
 
 
 @router.get("/{class_id}/students")

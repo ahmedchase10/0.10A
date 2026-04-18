@@ -1,8 +1,6 @@
 import re
 from typing import Any, Dict, List
 
-from backend.classes.access import get_owned_class_or_403
-
 from sqlmodel import Session, select
 
 from backend.models import AppError

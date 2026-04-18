@@ -65,7 +65,6 @@ class StudentClass(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-
 class Timetable(SQLModel, table=True):
     __tablename__ = "timetable"
     __table_args__ = (
@@ -77,7 +76,7 @@ class Timetable(SQLModel, table=True):
     teacher_id: int = Field(foreign_key="teachers.id", index=True)
     day_of_week: int = Field(ge=0, le=6)  # 0 = Monday, 6 = Sunday
     start_time: str = Field(max_length=5)  # HH:MM format
-    end_time: str = Field(max_length=5)    # HH:MM format
+    end_time: str = Field(max_length=5)  # HH:MM format
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -95,4 +94,39 @@ class Attendance(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-__all__ = ["SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass", "Timetable", "Attendance"]
+class ExamType(SQLModel, table=True):
+    __tablename__ = "exam_types"
+    __table_args__ = (
+        UniqueConstraint("class_id", "name", name="uq_exam_type_class_name"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    name: str = Field(max_length=120)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class Grade(SQLModel, table=True):
+    __tablename__ = "grades"
+    __table_args__ = (
+        UniqueConstraint("student_id", "exam_type_id", name="uq_grade_student_exam_type"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    student_id: int = Field(foreign_key="students.id", index=True)
+    exam_type_id: int = Field(foreign_key="exam_types.id", index=True)
+    value: float
+
+
+__all__ = [
+    "SQLModel",
+    "Teacher",
+    "Class",
+    "Upload",
+    "Student",
+    "StudentClass",
+    "Timetable",
+    "Attendance",
+    "ExamType",
+    "Grade",
+]
