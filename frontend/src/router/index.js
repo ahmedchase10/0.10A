@@ -5,48 +5,48 @@ const routes = [
   {
     path: '/auth',
     name: 'Auth',
-    component: () => import('@/views/Auth.vue'),
+    component: () => import('@/views/auth.vue'),
     meta: { requiresGuest: true }
   },
   {
     path: '/',
-    component: () => import('@/layouts/AppLayout.vue'),
+    component: () => import('@/layouts/appLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
         name: 'Dashboard',
-        component: () => import('@/views/Dashboard.vue')
+        component: () => import('@/views/dashboard.vue')
       },
       {
         path: 'class/:id',
         name: 'ClassPage',
-        component: () => import('@/views/ClassPage.vue')
+        component: () => import('@/views/classpage.vue')
       },
       {
         path: 'class/:id/attendance',
         name: 'ClassAttendance',
-        component: () => import('@/views/ClassAttendance.vue')
+        component: () => import('@/views/classattendance.vue')
       },
       {
         path: 'timetable',
         name: 'Timetable',
-        component: () => import('@/views/Timetable.vue')
+        component: () => import('@/views/timetable.vue')
       },
       {
         path: 'lessons',
         name: 'Lessons',
-        component: () => import('@/views/Lessons.vue')
+        component: () => import('@/views/lessons.vue')
       },
       {
         path: 'notifications',
         name: 'Notifications',
-        component: () => import('@/views/Notifications.vue')
+        component: () => import('@/views/notifications.vue')
       },
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('@/views/Settings.vue')
+        component: () => import('@/views/settings.vue')
       }
     ]
   }
@@ -60,7 +60,7 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
-  
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/auth');
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
