@@ -129,18 +129,76 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // async updateStudent(classId, studentId, studentData) {
-  //   const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
-  //     method: 'PUT',
-  //     headers: this.getHeaders(true),
-  //     body: JSON.stringify(studentData)
-  //   });
-
-  //   return this.handleResponse(response);
-  // }
-
   async deleteStudent(classId, studentId) {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
+    });
+
+    return this.handleResponse(response);
+  }
+
+  // ─── Exam Types ───────────────────────────────
+
+  async getExamTypes(classId) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/exam-types`, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async createExamType(classId, name) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/exam-types`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ name })
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteExamType(classId, examTypeId) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/exam-types/${examTypeId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
+    });
+
+    return this.handleResponse(response);
+  }
+
+  // ─── Grades ───────────────────────────────────
+
+  async getGrades(classId, examTypeId = null) {
+    const params = new URLSearchParams();
+    if (examTypeId !== null) params.set('exam_type_id', examTypeId.toString());
+
+    const url = `${API_BASE_URL}/classes/${classId}/grades${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async saveGrade(classId, studentId, examTypeId, value) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/grades`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({
+        student_id: studentId,
+        exam_type_id: examTypeId,
+        value
+      })
+    });
+
+    return this.handleResponse(response);
+  }
+
+  async deleteGrade(classId, gradeId) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/grades/${gradeId}`, {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
@@ -238,53 +296,6 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // ─── Attendance ──────────────────────────────
-
-  async markAttendance(studentId, classId, date, status) {
-    const response = await fetch(`${API_BASE_URL}/attendance`, {
-      method: 'POST',
-      headers: this.getHeaders(true),
-      body: JSON.stringify({
-        studentId,
-        classId,
-        date,
-        status
-      })
-    });
-
-    return this.handleResponse(response);
-  }
-
-  // async getAttendance(classId, date = null) {
-  //   const url = date
-  //     ? `${API_BASE_URL}/attendance?classId=${classId}&date=${date}`
-  //     : `${API_BASE_URL}/attendance?classId=${classId}`;
-
-  //   const response = await fetch(url, {
-  //     method: 'GET',
-  //     headers: this.getHeaders(true)
-  //   });
-
-  //   return this.handleResponse(response);
-  // }
-
-  // // ─── Lessons ─────────────────────────────────
-
-  // async uploadLesson(file) {
-  //   const formData = new FormData();
-  //   formData.append('file', file);
-
-  //   const response = await fetch(`${API_BASE_URL}/lessons/upload`, {
-  //     method: 'POST',
-  //     headers: {
-  //       'Authorization': `Bearer ${this.token}`
-  //     },
-  //     body: formData
-  //   });
-
-  //   return this.handleResponse(response);
-  // }
-
   // ─── Lessons ─────────────────────────────────
 
   async uploadLesson(formData) {
@@ -324,7 +335,6 @@ class ApiService {
     });
     return this.handleResponse(response);
   }
-
 
   // ─── Voice Processing ────────────────────────
 
