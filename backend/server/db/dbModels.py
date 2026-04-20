@@ -27,6 +27,8 @@ class Class(SQLModel, table=True):
     name: str = Field(max_length=120)
     subject: str = Field(max_length=120)
     teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    color: Optional[str] = Field(default=None, max_length=20)   # hex or css color
+    school: Optional[str] = Field(default=None, max_length=150)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -77,6 +79,7 @@ class Timetable(SQLModel, table=True):
     day_of_week: int = Field(ge=0, le=6)  # 0 = Monday, 6 = Sunday
     start_time: str = Field(max_length=5)  # HH:MM format
     end_time: str = Field(max_length=5)  # HH:MM format
+    classroom: Optional[str] = Field(default=None, max_length=100)  # e.g. "Room 12"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

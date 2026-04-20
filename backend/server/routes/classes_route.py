@@ -61,6 +61,8 @@ def update_class_route(
 		class_id=class_id,
 		name=payload.name,
 		subject=payload.subject,
+		color=payload.color,
+		school=payload.school,
 	)
 
 

@@ -19,131 +19,107 @@ def _time_to_minutes(time_str: str) -> int:
     return hours * 60 + minutes
 
 
-def bulk_add_timetable_entries(
+def _serialize_entry(tt: Timetable, cls: Class) -> Dict[str, Any]:
+    return {
+        "id": tt.id,
+        "class_id": tt.class_id,
+        "class_name": cls.name,
+        "subject": cls.subject,
+        "day_of_week": tt.day_of_week,
+        "start_time": tt.start_time,
+        "end_time": tt.end_time,
+        "classroom": tt.classroom,
+        "created_at": tt.created_at,
+    }
+
+
+def _validate_entry(entry: Dict[str, Any]) -> None:
+    """Raise AppError if the entry fields are invalid."""
+    class_id = entry.get("class_id")
+    day_of_week = entry.get("day_of_week")
+    start_time = entry.get("start_time")
+    end_time = entry.get("end_time")
+
+    if class_id is None or day_of_week is None or not start_time or not end_time:
+        raise AppError("TIMETABLE_MISSING_FIELDS", "class_id, day_of_week, start_time and end_time are required.", 400)
+
+    if not (0 <= day_of_week <= 6):
+        raise AppError("TIMETABLE_INVALID_DAY", "day_of_week must be between 0 (Monday) and 6 (Sunday).", 400)
+
+    if not _validate_time_format(start_time):
+        raise AppError("TIMETABLE_INVALID_TIME", f"start_time '{start_time}' must be HH:MM.", 400)
+
+    if not _validate_time_format(end_time):
+        raise AppError("TIMETABLE_INVALID_TIME", f"end_time '{end_time}' must be HH:MM.", 400)
+
+    if _time_to_minutes(start_time) >= _time_to_minutes(end_time):
+        raise AppError("TIMETABLE_INVALID_RANGE", "start_time must be before end_time.", 400)
+
+
+def _upsert_single(
+    session: Session,
+    teacher_id: int,
+    entry: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Validate, check ownership, then insert or update one timetable slot."""
+    _validate_entry(entry)
+
+    class_id   = entry["class_id"]
+    day_of_week = entry["day_of_week"]
+    start_time  = entry["start_time"]
+    end_time    = entry["end_time"]
+    classroom   = entry.get("classroom")
+
+    class_record = session.exec(
+        select(Class).where(Class.id == class_id, Class.teacher_id == teacher_id)
+    ).first()
+    if not class_record:
+        raise AppError("TIMETABLE_CLASS_NOT_FOUND", f"Class {class_id} not found or not yours.", 404)
+
+    existing = session.exec(
+        select(Timetable).where(
+            Timetable.class_id == class_id,
+            Timetable.day_of_week == day_of_week,
+            Timetable.start_time == start_time,
+        )
+    ).first()
+
+    if existing:
+        existing.end_time  = end_time
+        existing.classroom = classroom
+        session.add(existing)
+        session.flush()
+        return _serialize_entry(existing, class_record)
+
+    new_entry = Timetable(
+        class_id=class_id,
+        teacher_id=teacher_id,
+        day_of_week=day_of_week,
+        start_time=start_time,
+        end_time=end_time,
+        classroom=classroom,
+    )
+    session.add(new_entry)
+    session.flush()
+    return _serialize_entry(new_entry, class_record)
+
+
+def bulk_upsert_timetable_entries(
     session: Session,
     teacher_payload: Dict[str, Any],
     *,
     entries: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
+    """Insert or update timetable entries. Natural key: (class_id, day_of_week, start_time)."""
     teacher_id = int(teacher_payload["id"])
 
     if not entries:
         raise AppError("TIMETABLE_EMPTY_LIST", "At least one timetable entry is required.", 400)
 
-    created_entries = []
-    errors = []
-
-    for idx, entry in enumerate(entries):
-        try:
-            class_id = entry.get("class_id")
-            day_of_week = entry.get("day_of_week")
-            start_time = entry.get("start_time")
-            end_time = entry.get("end_time")
-
-            # Validate required fields
-            if class_id is None or day_of_week is None or not start_time or not end_time:
-                errors.append({
-                    "index": idx,
-                    "error": "Missing required fields (class_id, day_of_week, start_time, end_time)",
-                })
-                continue
-
-            # Validate day_of_week
-            if not (0 <= day_of_week <= 6):
-                errors.append({
-                    "index": idx,
-                    "error": "Day of week must be between 0 (Monday) and 6 (Sunday)",
-                })
-                continue
-
-            # Validate time formats
-            if not _validate_time_format(start_time):
-                errors.append({
-                    "index": idx,
-                    "error": "Start time must be in HH:MM format",
-                })
-                continue
-            if not _validate_time_format(end_time):
-                errors.append({
-                    "index": idx,
-                    "error": "End time must be in HH:MM format",
-                })
-                continue
-
-            # Validate start_time < end_time
-            if _time_to_minutes(start_time) >= _time_to_minutes(end_time):
-                errors.append({
-                    "index": idx,
-                    "error": "Start time must be before end time",
-                })
-                continue
-
-            # Verify teacher owns the class
-            class_record = session.exec(
-                select(Class).where(
-                    Class.id == class_id,
-                    Class.teacher_id == teacher_id,
-                )
-            ).first()
-            if not class_record:
-                errors.append({
-                    "index": idx,
-                    "error": "Class not found or you don't have permission to access it",
-                })
-                continue
-
-            # Check for duplicates
-            existing = session.exec(
-                select(Timetable).where(
-                    Timetable.class_id == class_id,
-                    Timetable.day_of_week == day_of_week,
-                    Timetable.start_time == start_time,
-                )
-            ).first()
-            if existing:
-                errors.append({
-                    "index": idx,
-                    "error": "This timetable entry already exists",
-                })
-                continue
-
-            # Create timetable entry
-            timetable_entry = Timetable(
-                class_id=class_id,
-                teacher_id=teacher_id,
-                day_of_week=day_of_week,
-                start_time=start_time,
-                end_time=end_time,
-            )
-            session.add(timetable_entry)
-            session.flush()  # Get the ID without committing
-
-            created_entries.append({
-                "id": timetable_entry.id,
-                "class_id": timetable_entry.class_id,
-                "class_name": class_record.name,
-                "subject": class_record.subject,
-                "day_of_week": timetable_entry.day_of_week,
-                "start_time": timetable_entry.start_time,
-                "end_time": timetable_entry.end_time,
-            })
-
-        except Exception as e:
-            errors.append({
-                "index": idx,
-                "error": str(e),
-            })
-
-    # Commit all successful entries
+    upserted = [_upsert_single(session, teacher_id, entry) for entry in entries]
     session.commit()
 
-    return {
-        "success": True,
-        "created": len(created_entries),
-        "failed": len(errors),
-        "timetable": created_entries,
-        "errors": errors if errors else None,
-    }
+    return {"success": True, "upserted": len(upserted), "timetable": upserted}
 
 
 def get_teacher_timetable(
@@ -152,8 +128,7 @@ def get_teacher_timetable(
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
 
-    # Get all timetable entries for the teacher with class information
-    timetable_records = session.exec(
+    rows = session.exec(
         select(Timetable, Class)
         .join(Class, Timetable.class_id == Class.id)
         .where(Timetable.teacher_id == teacher_id)
@@ -162,146 +137,28 @@ def get_teacher_timetable(
 
     return {
         "success": True,
-        "timetable": [
-            {
-                "id": tt.id,
-                "class_id": tt.class_id,
-                "class_name": cls.name,
-                "subject": cls.subject,
-                "day_of_week": tt.day_of_week,
-                "start_time": tt.start_time,
-                "end_time": tt.end_time,
-                "created_at": tt.created_at,
-            }
-            for tt, cls in timetable_records
-        ],
+        "timetable": [_serialize_entry(tt, cls) for tt, cls in rows],
     }
 
 
-def bulk_update_timetable_entries(
+def delete_timetable_entry(
     session: Session,
     teacher_payload: Dict[str, Any],
     *,
-    entries: List[Dict[str, Any]],
+    timetable_id: int,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
 
-    if not entries:
-        raise AppError("TIMETABLE_EMPTY_LIST", "At least one timetable entry is required.", 400)
+    entry = session.exec(
+        select(Timetable).where(
+            Timetable.id == timetable_id,
+            Timetable.teacher_id == teacher_id,
+        )
+    ).first()
+    if not entry:
+        raise AppError("TIMETABLE_NOT_FOUND", "Timetable entry not found or not yours.", 404)
 
-    updated_entries = []
-    errors = []
-
-    for idx, entry in enumerate(entries):
-        try:
-            timetable_id = entry.get("id")
-            day_of_week = entry.get("day_of_week")
-            start_time = entry.get("start_time")
-            end_time = entry.get("end_time")
-
-            # Validate required fields
-            if timetable_id is None or day_of_week is None or not start_time or not end_time:
-                errors.append({
-                    "index": idx,
-                    "error": "Missing required fields (id, day_of_week, start_time, end_time)",
-                })
-                continue
-
-            # Validate day_of_week
-            if not (0 <= day_of_week <= 6):
-                errors.append({
-                    "index": idx,
-                    "error": "Day of week must be between 0 (Monday) and 6 (Sunday)",
-                })
-                continue
-
-            # Validate time formats
-            if not _validate_time_format(start_time):
-                errors.append({
-                    "index": idx,
-                    "error": "Start time must be in HH:MM format",
-                })
-                continue
-            if not _validate_time_format(end_time):
-                errors.append({
-                    "index": idx,
-                    "error": "End time must be in HH:MM format",
-                })
-                continue
-
-            # Validate start_time < end_time
-            if _time_to_minutes(start_time) >= _time_to_minutes(end_time):
-                errors.append({
-                    "index": idx,
-                    "error": "Start time must be before end time",
-                })
-                continue
-
-            # Get the timetable entry and verify ownership
-            timetable_entry = session.exec(
-                select(Timetable).where(
-                    Timetable.id == timetable_id,
-                    Timetable.teacher_id == teacher_id,
-                )
-            ).first()
-            if not timetable_entry:
-                errors.append({
-                    "index": idx,
-                    "error": "Timetable entry not found or you don't have permission to update it",
-                })
-                continue
-
-            # Check if updating would create a duplicate
-            existing = session.exec(
-                select(Timetable).where(
-                    Timetable.class_id == timetable_entry.class_id,
-                    Timetable.day_of_week == day_of_week,
-                    Timetable.start_time == start_time,
-                    Timetable.id != timetable_id,
-                )
-            ).first()
-            if existing:
-                errors.append({
-                    "index": idx,
-                    "error": "A timetable entry with this schedule already exists for this class",
-                })
-                continue
-
-            # Update the entry
-            timetable_entry.day_of_week = day_of_week
-            timetable_entry.start_time = start_time
-            timetable_entry.end_time = end_time
-            session.add(timetable_entry)
-            session.flush()
-
-            # Get class info for response
-            class_record = session.exec(
-                select(Class).where(Class.id == timetable_entry.class_id)
-            ).first()
-
-            updated_entries.append({
-                "id": timetable_entry.id,
-                "class_id": timetable_entry.class_id,
-                "class_name": class_record.name if class_record else None,
-                "subject": class_record.subject if class_record else None,
-                "day_of_week": timetable_entry.day_of_week,
-                "start_time": timetable_entry.start_time,
-                "end_time": timetable_entry.end_time,
-            })
-
-        except Exception as e:
-            errors.append({
-                "index": idx,
-                "error": str(e),
-            })
-
-    # Commit all successful updates
+    session.delete(entry)
     session.commit()
 
-    return {
-        "success": True,
-        "updated": len(updated_entries),
-        "failed": len(errors),
-        "timetable": updated_entries,
-        "errors": errors if errors else None,
-    }
+    return {"success": True, "message": "Timetable entry deleted."}

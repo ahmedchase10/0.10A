@@ -10,12 +10,26 @@ def _clean_text(value: str) -> str:
 	return value.strip()
 
 
+def _serialize_class(c: Class) -> Dict[str, Any]:
+	return {
+		"id": c.id,
+		"name": c.name,
+		"subject": c.subject,
+		"teacher_id": c.teacher_id,
+		"color": c.color,
+		"school": c.school,
+		"created_at": c.created_at,
+	}
+
+
 def create_teacher_class(
 	session: Session,
 	teacher_payload: Dict[str, Any],
 	*,
 	name: str,
 	subject: str,
+	color: str | None = None,
+	school: str | None = None,
 ) -> Dict[str, Any]:
 	teacher_id = int(teacher_payload["id"])
 	clean_name = _clean_text(name)
@@ -44,21 +58,14 @@ def create_teacher_class(
 		name=clean_name,
 		subject=clean_subject,
 		teacher_id=teacher_id,
+		color=color,
+		school=school,
 	)
 	session.add(class_record)
 	session.commit()
 	session.refresh(class_record)
 
-	return {
-		"success": True,
-		"class": {
-			"id": class_record.id,
-			"name": class_record.name,
-			"subject": class_record.subject,
-			"teacher_id": class_record.teacher_id,
-			"created_at": class_record.created_at,
-		},
-	}
+	return {"success": True, "class": _serialize_class(class_record)}
 
 
 def get_teacher_classes(
@@ -74,16 +81,7 @@ def get_teacher_classes(
 
 	return {
 		"success": True,
-		"classes": [
-			{
-				"id": row.id,
-				"name": row.name,
-				"subject": row.subject,
-				"teacher_id": row.teacher_id,
-				"created_at": row.created_at,
-			}
-			for row in rows
-		],
+		"classes": [_serialize_class(row) for row in rows],
 	}
 
 
@@ -94,6 +92,8 @@ def update_teacher_class(
 	class_id: int,
 	name: str,
 	subject: str,
+	color: str | None = None,
+	school: str | None = None,
 ) -> Dict[str, Any]:
 	teacher_id = int(teacher_payload["id"])
 	clean_name = _clean_text(name)
@@ -117,7 +117,6 @@ def update_teacher_class(
 			404,
 		)
 
-	# Check if another class with the same name and subject already exists
 	existing = session.exec(
 		select(Class).where(
 			Class.teacher_id == teacher_id,
@@ -135,20 +134,13 @@ def update_teacher_class(
 
 	class_record.name = clean_name
 	class_record.subject = clean_subject
+	class_record.color = color
+	class_record.school = school
 	session.add(class_record)
 	session.commit()
 	session.refresh(class_record)
 
-	return {
-		"success": True,
-		"class": {
-			"id": class_record.id,
-			"name": class_record.name,
-			"subject": class_record.subject,
-			"teacher_id": class_record.teacher_id,
-			"created_at": class_record.created_at,
-		},
-	}
+	return {"success": True, "class": _serialize_class(class_record)}
 
 
 def delete_teacher_class(
