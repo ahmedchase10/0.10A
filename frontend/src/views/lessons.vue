@@ -370,17 +370,13 @@ async function downloadFile(file) {
 }
 
 async function deleteFile(fileId) {
-  alert('Delete lesson endpoint is not implemented in backend yet. File will remain in database.');
-  return;
-  
-  // Uncomment when backend implements DELETE /lessons/{id}
-  // if (!confirm('Are you sure you want to delete this file?')) return;
-  // try {
-  //   await api.deleteLesson(fileId);
-  //   files.value = files.value.filter(f => f.id !== fileId);
-  // } catch (error) {
-  //   alert('Failed to delete file: ' + error.message);
-  // }
+   if (!confirm('Are you sure you want to delete this file?')) return;
+   try {
+     await api.deleteLesson(fileId);
+     files.value = files.value.filter(f => f.id !== fileId);
+   } catch (error) {
+     alert('Failed to delete file: ' + error.message);
+   }
 }
 
 async function loadFiles() {
@@ -424,5 +420,6 @@ async function loadClasses() {
 onMounted(() => {
   loadClasses();
   loadFiles();
+  deleteFile();
 });
 </script>

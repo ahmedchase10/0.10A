@@ -27,7 +27,7 @@ const routes = [
       {
         path: 'lessons',
         name: 'Lessons',
-        component: () => import('@/views/lessons.vue')   // global lessons view (all classes)
+        component: () => import('@/views/lessons.vue')   // global view — see BUG-02
       },
       {
         path: 'notifications',
@@ -49,22 +49,22 @@ const routes = [
       {
         path: 'class/:id/students',
         name: 'ClassStudents',
-        component: () => import('@/views/classstudents.vue')    // student roster
+        component: () => import('@/views/classstudents.vue')
       },
       {
         path: 'class/:id/attendance',
         name: 'ClassAttendance',
-        component: () => import('@/views/classattendance.vue')  // daily attendance
+        component: () => import('@/views/classattendance.vue')
       },
       {
         path: 'class/:id/grades',
         name: 'ClassGrades',
-        component: () => import('@/views/classgrades.vue')           // grade spreadsheet
+        component: () => import('@/views/grades.vue')
       },
       {
         path: 'class/:id/lessons',
         name: 'ClassLessons',
-        component: () => import('@/views/classlessons.vue')     // class-scoped PDF files
+        component: () => import('@/views/classlessons.vue')
       }
     ]
   }

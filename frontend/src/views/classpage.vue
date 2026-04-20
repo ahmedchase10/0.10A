@@ -6,65 +6,55 @@
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
     </div>
 
-    <template v-else>
-      <!-- Header -->
+    <template v-else-if="classData">
+      <!-- Color bar + header -->
       <div class="bg-white border-b border-grey-200">
-        <!-- Color bar -->
-        <div class="h-2 w-full" :style="{ backgroundColor: classData?.color || '#3b82f6' }"></div>
-
+        <div class="h-2 w-full" :style="{ backgroundColor: classData.color || '#3b82f6' }"></div>
         <div class="px-8 py-6">
           <!-- Breadcrumb -->
           <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
             <router-link to="/" class="hover:text-primary-600 transition">Dashboard</router-link>
             <span>/</span>
-            <span class="text-grey-900 font-medium truncate">{{ classData?.name }}</span>
+            <span class="text-grey-900 font-medium truncate">{{ classData.name }}</span>
           </div>
 
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h1 class="text-3xl font-bold text-grey-900 mb-2">{{ classData?.name }}</h1>
+              <h1 class="text-3xl font-bold text-grey-900 mb-2">{{ classData.name }}</h1>
               <div class="flex flex-wrap items-center gap-3">
-                <span v-if="classData?.subject" class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
-                  <AcademicCapIcon class="w-3.5 h-3.5" />
-                  {{ classData.subject }}
+                <span v-if="classData.subject"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
+                  <AcademicCapIcon class="w-3.5 h-3.5" />{{ classData.subject }}
                 </span>
-                <span v-if="classData?.period" class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <ClockIcon class="w-3.5 h-3.5" />
-                  {{ classData.period }}
+                <span v-if="classData.period"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
+                  <ClockIcon class="w-3.5 h-3.5" />{{ classData.period }}
                 </span>
-                <span v-if="classData?.room" class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <HomeIcon class="w-3.5 h-3.5" />
-                  {{ classData.room }}
+                <span v-if="classData.room"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
+                  <HomeIcon class="w-3.5 h-3.5" />{{ classData.room }}
                 </span>
-                <span v-if="classData?.school" class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <BuildingOfficeIcon class="w-3.5 h-3.5" />
-                  {{ classData.school }}
+                <span v-if="classData.school"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
+                  <BuildingOfficeIcon class="w-3.5 h-3.5" />{{ classData.school }}
                 </span>
               </div>
             </div>
-
-            <!-- Edit / Delete -->
             <div class="flex items-center gap-2 flex-shrink-0">
-              <button
-                @click="showEditModal = true"
-                class="flex items-center gap-2 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition"
-              >
-                <PencilIcon class="w-4 h-4" />
-                Edit
+              <button @click="openEdit"
+                class="flex items-center gap-2 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition">
+                <PencilIcon class="w-4 h-4" />Edit
               </button>
-              <button
-                @click="handleDeleteClass"
-                class="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
-              >
-                <TrashIcon class="w-4 h-4" />
-                Delete
+              <button @click="handleDeleteClass"
+                class="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition">
+                <TrashIcon class="w-4 h-4" />Delete
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Quick Stats -->
+      <!-- Stats row -->
       <div class="px-8 pt-6 grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-5">
           <div class="flex items-center gap-3">
@@ -105,16 +95,15 @@
               <CalendarDaysIcon class="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-grey-900">{{ formatShortDate(classData?.created_at) }}</div>
+              <div class="text-xl font-bold text-grey-900">{{ formatShortDate(classData.created_at) }}</div>
               <div class="text-xs text-grey-500">Created</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Navigation Cards -->
+      <!-- Navigation cards -->
       <div class="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-
         <!-- Students -->
         <router-link :to="`/class/${classId}/students`" class="group">
           <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-primary-300 transition cursor-pointer">
@@ -126,7 +115,7 @@
             </div>
             <h3 class="text-lg font-semibold text-grey-900 mb-1">Students</h3>
             <p class="text-sm text-grey-500">Manage class roster, add or remove students.</p>
-            <div class="mt-4 flex items-center gap-2">
+            <div class="mt-4">
               <span class="text-xs font-medium text-primary-600 bg-primary-50 px-2.5 py-1 rounded-full">
                 {{ stats.students }} enrolled
               </span>
@@ -145,7 +134,7 @@
             </div>
             <h3 class="text-lg font-semibold text-grey-900 mb-1">Attendance</h3>
             <p class="text-sm text-grey-500">Mark and review daily attendance records.</p>
-            <div class="mt-4 flex items-center gap-2">
+            <div class="mt-4">
               <span class="text-xs font-medium text-success-700 bg-success-50 px-2.5 py-1 rounded-full">
                 Today: {{ formatTodayDate() }}
               </span>
@@ -164,7 +153,7 @@
             </div>
             <h3 class="text-lg font-semibold text-grey-900 mb-1">Grades</h3>
             <p class="text-sm text-grey-500">Enter, edit, and review grades per exam type.</p>
-            <div class="mt-4 flex items-center gap-2">
+            <div class="mt-4">
               <span class="text-xs font-medium text-violet-700 bg-violet-50 px-2.5 py-1 rounded-full">
                 {{ stats.examTypes }} exam type{{ stats.examTypes !== 1 ? 's' : '' }}
               </span>
@@ -183,18 +172,23 @@
             </div>
             <h3 class="text-lg font-semibold text-grey-900 mb-1">Lessons</h3>
             <p class="text-sm text-grey-500">Upload and manage PDF teaching materials.</p>
-            <div class="mt-4 flex items-center gap-2">
+            <div class="mt-4">
               <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
                 {{ stats.lessons }} file{{ stats.lessons !== 1 ? 's' : '' }} uploaded
               </span>
             </div>
           </div>
         </router-link>
-
       </div>
     </template>
 
-    <!-- Edit Class Modal -->
+    <!-- Not found -->
+    <div v-else class="flex flex-col items-center justify-center h-64 gap-4">
+      <p class="text-grey-600">Class not found.</p>
+      <router-link to="/" class="text-primary-600 hover:underline">Back to Dashboard</router-link>
+    </div>
+
+    <!-- Edit Modal -->
     <TransitionRoot :show="showEditModal" as="template">
       <Dialog @close="showEditModal = false" class="relative z-50">
         <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
@@ -276,7 +270,6 @@
         </div>
       </Dialog>
     </TransitionRoot>
-
   </div>
 </template>
 
@@ -284,37 +277,34 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  AcademicCapIcon,
-  ClockIcon,
-  HomeIcon,
-  BuildingOfficeIcon,
-  UserGroupIcon,
-  ClipboardDocumentCheckIcon,
-  ClipboardDocumentListIcon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  DocumentArrowUpIcon,
-  CalendarDaysIcon,
-  ChevronRightIcon,
-  PencilIcon,
-  TrashIcon
+  AcademicCapIcon, ClockIcon, HomeIcon, BuildingOfficeIcon,
+  UserGroupIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon,
+  ChartBarIcon, DocumentTextIcon, DocumentArrowUpIcon,
+  CalendarDaysIcon, ChevronRightIcon, PencilIcon, TrashIcon
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
+import { useClassesStore } from '@/stores/classesStore';
 import api from '@/services/api';
 
-const route = useRoute();
+const route  = useRoute();
 const router = useRouter();
+const classesStore = useClassesStore();
+
 const classId = computed(() => parseInt(route.params.id));
 
+// Derive classData reactively from the store so edits are instant everywhere
+const classData = computed(() =>
+  classesStore.classes.find(c => c.id === classId.value) ?? null
+);
+
 const loading = ref(true);
-const classData = ref(null);
-const stats = ref({ students: 0, examTypes: 0, lessons: 0 });
+const stats   = ref({ students: 0, examTypes: 0, lessons: 0 });
 
 // Edit modal
 const showEditModal = ref(false);
-const saving = ref(false);
-const editError = ref('');
-const editForm = ref({ name: '', subject: '', period: '', room: '', school: '', color: '#3b82f6' });
+const saving        = ref(false);
+const editError     = ref('');
+const editForm      = ref({ name: '', subject: '', period: '', room: '', school: '', color: '#3b82f6' });
 
 const colors = [
   '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6',
@@ -331,63 +321,45 @@ function formatTodayDate() {
   return new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-async function loadClass() {
-  try {
-    const res = await api.getClasses();
-    if (res.success) {
-      classData.value = res.classes.find(c => c.id === classId.value) || null;
-    }
-  } catch (e) {
-    console.error(e);
-  }
-}
-
 async function loadStats() {
-  try {
-    const [studentsRes, examTypesRes, lessonsRes] = await Promise.allSettled([
-      api.getStudents(classId.value),
-      api.getExamTypes(classId.value),
-      api.getLessons(classId.value, { limit: 1, refresh: false })
-    ]);
-
-    if (studentsRes.status === 'fulfilled' && studentsRes.value.success)
-      stats.value.students = studentsRes.value.students?.length ?? 0;
-
-    if (examTypesRes.status === 'fulfilled' && examTypesRes.value.success)
-      stats.value.examTypes = examTypesRes.value.exam_types?.length ?? 0;
-
-    if (lessonsRes.status === 'fulfilled' && lessonsRes.value.success)
-      stats.value.lessons = lessonsRes.value.uploads?.length ?? 0;
-  } catch (e) {
-    console.error(e);
-  }
+  const [studentsRes, examTypesRes, lessonsRes] = await Promise.allSettled([
+    api.getStudents(classId.value),
+    api.getExamTypes(classId.value),
+    api.getLessons(classId.value, { limit: 1, refresh: false })
+  ]);
+  if (studentsRes.status  === 'fulfilled' && studentsRes.value.success)
+    stats.value.students  = studentsRes.value.students?.length ?? 0;
+  if (examTypesRes.status === 'fulfilled' && examTypesRes.value.success)
+    stats.value.examTypes = examTypesRes.value.exam_types?.length ?? 0;
+  if (lessonsRes.status   === 'fulfilled' && lessonsRes.value.success)
+    stats.value.lessons   = lessonsRes.value.uploads?.length ?? 0;
 }
 
 function openEdit() {
   if (!classData.value) return;
   editForm.value = {
-    name: classData.value.name || '',
+    name:    classData.value.name    || '',
     subject: classData.value.subject || '',
-    period: classData.value.period || '',
-    room: classData.value.room || '',
-    school: classData.value.school || '',
-    color: classData.value.color || '#3b82f6'
+    period:  classData.value.period  || '',
+    room:    classData.value.room    || '',
+    school:  classData.value.school  || '',
+    color:   classData.value.color   || '#3b82f6'
   };
-  editError.value = '';
+  editError.value   = '';
   showEditModal.value = true;
 }
 
 async function submitEdit() {
   editError.value = '';
-  saving.value = true;
+  saving.value    = true;
   try {
     const res = await api.updateClass(classId.value, {
-      name: editForm.value.name,
+      name:    editForm.value.name,
       subject: editForm.value.subject
     });
     if (res.success) {
-      // Merge all fields locally (backend only stores name+subject, rest is local display)
-      classData.value = { ...classData.value, ...editForm.value, ...res.class };
+      // Merge all form fields (including frontend-only ones) into the store
+      classesStore.update(classId.value, { ...editForm.value, ...res.class });
       showEditModal.value = false;
     }
   } catch (err) {
@@ -401,6 +373,7 @@ async function handleDeleteClass() {
   if (!confirm(`Delete class "${classData.value?.name}"? This cannot be undone.`)) return;
   try {
     await api.deleteClass(classId.value);
+    classesStore.remove(classId.value);   // sidebar updates immediately
     router.push('/');
   } catch (err) {
     alert('Failed to delete: ' + err.message);
@@ -408,7 +381,8 @@ async function handleDeleteClass() {
 }
 
 onMounted(async () => {
-  await loadClass();
+  // Ensure the store is populated before we look up classData
+  await classesStore.load();
   await loadStats();
   loading.value = false;
 });

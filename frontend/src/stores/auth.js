@@ -31,25 +31,27 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(email, password) {
     const response = await api.login(email, password);
-    if (response.success) {
-      setAuth(response.token, response.teacher);
-    }
+    if (response.success) setAuth(response.token, response.teacher);
     return response;
   }
 
   async function register(name, email, password, initials) {
     const response = await api.register(name, email, password, initials);
-    if (response.success) {
-      setAuth(response.token, response.teacher);
-    }
+    if (response.success) setAuth(response.token, response.teacher);
     return response;
   }
 
   function logout() {
     clearAuth();
+
+    // Reset classes cache so the sidebar starts clean on next login.
+    // Lazy import avoids a circular dependency (classesStore → api → auth).
+    import('@/stores/classesStore').then(({ useClassesStore }) => {
+      useClassesStore().reset();
+    });
   }
 
-  // Initialize from localStorage
+  // Restore session from localStorage on page reload
   function init() {
     const savedUser = localStorage.getItem('digi_user');
     if (token.value && savedUser) {
@@ -60,13 +62,5 @@ export const useAuthStore = defineStore('auth', () => {
 
   init();
 
-  return {
-    user,
-    token,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    updateUser
-  };
+  return { user, token, isAuthenticated, login, register, logout, updateUser };
 });

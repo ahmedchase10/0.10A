@@ -1,4 +1,26 @@
+/**
+ * api.js — Singleton HTTP client for the Digi-School FastAPI backend.
+ *
+ * 401 INTERCEPTOR
+ * ───────────────
+ * handleResponse() detects HTTP 401 responses. When one arrives it:
+ *   1. Calls authStore.logout()     — clears token + localStorage
+ *   2. Calls classesStore.reset()   — clears cached class list
+ *   3. Calls router.push('/auth')   — sends user to login page
+ *   4. Throws AuthError so the calling component doesn't try to process data.
+ *
+ * Stores and router are imported lazily to avoid circular-dependency issues
+ * at module initialisation time.
+ */
+
 const API_BASE_URL = 'http://localhost:8000';
+
+export class AuthError extends Error {
+  constructor(message = 'Session expired. Please log in again.') {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 class ApiService {
   constructor() {
@@ -10,18 +32,33 @@ class ApiService {
   }
 
   getHeaders(includeAuth = false) {
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-
+    const headers = { 'Content-Type': 'application/json' };
     if (includeAuth && this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-
     return headers;
   }
 
+  // ── 401 handler — lazy imports avoid circular deps ─────────────────────────
+
+  async _handle401() {
+    const { useAuthStore } = await import('@/stores/auth');
+    const { useClassesStore } = await import('@/stores/classesStore');
+    const { default: router } = await import('@/router');
+
+    useAuthStore().logout();
+    useClassesStore().reset();
+    await router.push('/auth');
+  }
+
+  // ── Core response handler ──────────────────────────────────────────────────
+
   async handleResponse(response) {
+    if (response.status === 401) {
+      await this._handle401();
+      throw new AuthError();
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -31,7 +68,7 @@ class ApiService {
     return data;
   }
 
-  // ─── Authentication ──────────────────────────
+  // ─── Authentication ────────────────────────────────────────────────────────
 
   async register(name, email, password, initials = null) {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -44,7 +81,6 @@ class ApiService {
         initials: initials || name.substring(0, 2).toUpperCase()
       })
     });
-
     return this.handleResponse(response);
   }
 
@@ -54,7 +90,6 @@ class ApiService {
       headers: this.getHeaders(),
       body: JSON.stringify({ email, password })
     });
-
     return this.handleResponse(response);
   }
 
@@ -63,18 +98,16 @@ class ApiService {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Classes ─────────────────────────────────
+  // ─── Classes ──────────────────────────────────────────────────────────────
 
   async getClasses() {
     const response = await fetch(`${API_BASE_URL}/classes`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -84,7 +117,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(classData)
     });
-
     return this.handleResponse(response);
   }
 
@@ -94,7 +126,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(classData)
     });
-
     return this.handleResponse(response);
   }
 
@@ -103,18 +134,16 @@ class ApiService {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Students ────────────────────────────────
+  // ─── Students ─────────────────────────────────────────────────────────────
 
   async getStudents(classId) {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/students`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -125,7 +154,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(studentData)
     });
-
     return this.handleResponse(response);
   }
 
@@ -134,18 +162,16 @@ class ApiService {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Exam Types ───────────────────────────────
+  // ─── Exam Types ───────────────────────────────────────────────────────────
 
   async getExamTypes(classId) {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/exam-types`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -155,7 +181,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify({ name })
     });
-
     return this.handleResponse(response);
   }
 
@@ -164,22 +189,19 @@ class ApiService {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Grades ───────────────────────────────────
+  // ─── Grades ───────────────────────────────────────────────────────────────
 
   async getGrades(classId, examTypeId = null) {
     const params = new URLSearchParams();
     if (examTypeId !== null) params.set('exam_type_id', examTypeId.toString());
-
     const url = `${API_BASE_URL}/classes/${classId}/grades${params.toString() ? '?' + params.toString() : ''}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -187,13 +209,8 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/grades`, {
       method: 'POST',
       headers: this.getHeaders(true),
-      body: JSON.stringify({
-        student_id: studentId,
-        exam_type_id: examTypeId,
-        value
-      })
+      body: JSON.stringify({ student_id: studentId, exam_type_id: examTypeId, value })
     });
-
     return this.handleResponse(response);
   }
 
@@ -202,18 +219,16 @@ class ApiService {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Notifications ───────────────────────────
+  // ─── Notifications ────────────────────────────────────────────────────────
 
   async getNotifications() {
     const response = await fetch(`${API_BASE_URL}/notifications`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -222,7 +237,6 @@ class ApiService {
       method: 'PUT',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -231,11 +245,10 @@ class ApiService {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Attendance ──────────────────────────────
+  // ─── Attendance ───────────────────────────────────────────────────────────
 
   async createAttendance(data) {
     const response = await fetch(`${API_BASE_URL}/attendance`, {
@@ -243,7 +256,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(data)
     });
-
     return this.handleResponse(response);
   }
 
@@ -252,12 +264,10 @@ class ApiService {
       class_id: classId.toString(),
       session_date: sessionDate
     });
-
     const response = await fetch(`${API_BASE_URL}/attendance?${params}`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -267,11 +277,10 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(data)
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Teacher Profile ─────────────────────────
+  // ─── Teacher Profile ──────────────────────────────────────────────────────
 
   async updateTeacherProfile(profileData) {
     const response = await fetch(`${API_BASE_URL}/teachers/profile`, {
@@ -279,7 +288,6 @@ class ApiService {
       headers: this.getHeaders(true),
       body: JSON.stringify(profileData)
     });
-
     return this.handleResponse(response);
   }
 
@@ -292,21 +300,18 @@ class ApiService {
         new_password: newPassword
       })
     });
-
     return this.handleResponse(response);
   }
 
-  // ─── Lessons ─────────────────────────────────
+  // ─── Lessons ──────────────────────────────────────────────────────────────
 
   async uploadLesson(formData) {
+    // FormData — do NOT set Content-Type; browser sets it with the correct boundary
     const response = await fetch(`${API_BASE_URL}/lessons/upload`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.token}`
-      },
+      headers: { 'Authorization': `Bearer ${this.token}` },
       body: formData
     });
-
     return this.handleResponse(response);
   }
 
@@ -319,12 +324,10 @@ class ApiService {
       sort,
       refresh: refresh.toString()
     });
-
     const response = await fetch(`${API_BASE_URL}/lessons?${params}`, {
       method: 'GET',
       headers: this.getHeaders(true)
     });
-
     return this.handleResponse(response);
   }
 
@@ -336,21 +339,17 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // ─── Voice Processing ────────────────────────
+  // ─── Voice Processing ─────────────────────────────────────────────────────
 
   async processVoiceNote(audioBlob, classId) {
     const formData = new FormData();
     formData.append('audio', audioBlob);
     formData.append('classId', classId);
-
     const response = await fetch(`${API_BASE_URL}/voice/process`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.token}`
-      },
+      headers: { 'Authorization': `Bearer ${this.token}` },
       body: formData
     });
-
     return this.handleResponse(response);
   }
 }
