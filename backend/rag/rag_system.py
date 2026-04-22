@@ -1,7 +1,5 @@
 import ollama
 import base64
-from PIL import Image
-from io import BytesIO
 from weaviate.classes.query import Filter
 from backend.models import SearchResult, Message
 from backend.rag.document_processor import DocumentProcessor
@@ -18,7 +16,7 @@ You answer questions based strictly on the provided course material pages.
 If the answer is not in the provided pages, say so clearly.
 Always be concise, accurate and educational."""
 
-    # ─── Encode images for Ollama ─────────────────────────────────────────
+    # ─── Encode images ─────────────────────────────────────────
 
     def _encode_images(self, results: list[SearchResult]) -> list[str]:
         encoded = []

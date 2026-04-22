@@ -14,7 +14,7 @@ class DocumentProcessor:
     # ─── PDF to images ────────────────────────────────────────────────────
 
     def pdf_to_images(self, pdf_path: str) -> list[Image.Image]:
-        return convert_from_path(pdf_path, dpi=200)
+        return convert_from_path(pdf_path, dpi=185)
 
     # ─── Save page image ──────────────────────────────────────────────────
 
@@ -43,14 +43,18 @@ class DocumentProcessor:
     def embed_query(self, query: str) -> list:
         return process_query_remote(query)
 
+    def close(self):
+        pass  # remote embedder — no persistent connection to close
+
     # ─── Process full PDF ─────────────────────────────────────────────────
 
     def process_pdf(
         self,
         pdf_path: str,
-        source: str = "local"
+        source: str = "local",
+        doc_id: str = None,
     ) -> tuple[Document, list[Page]]:
-        doc_id = str(uuid.uuid4())
+        doc_id = doc_id or str(uuid.uuid4())
         filename = Path(pdf_path).name
         images = self.pdf_to_images(pdf_path)
         embeddings = self.embed_pages(images)

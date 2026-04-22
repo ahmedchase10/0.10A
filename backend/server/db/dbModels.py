@@ -44,6 +44,7 @@ class Upload(SQLModel, table=True):
     file_path: str = Field(max_length=512)
     file_hash: str = Field(index=True, max_length=64)
     size: int
+    embedded: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -121,6 +122,16 @@ class Grade(SQLModel, table=True):
     value: float
 
 
+class AgentSession(SQLModel, table=True):
+    __tablename__ = "agent_sessions"
+
+    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    title: str = Field(max_length=120)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 __all__ = [
     "SQLModel",
     "Teacher",
@@ -132,4 +143,5 @@ __all__ = [
     "Attendance",
     "ExamType",
     "Grade",
+    "AgentSession",
 ]

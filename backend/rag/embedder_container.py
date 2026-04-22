@@ -22,8 +22,10 @@ image = (
 #cpu and ram will be added to enhance performance
 @app.cls(
     gpu="l4",
+    cpu=2.0,
+    memory=2048,
     image=image,
-    secrets=[modal.Secret.from_name("API")],
+    secrets=[modal.Secret.from_name("digi_school")],
     scaledown_window=300,
 )
 class ColQwenEmbedder:

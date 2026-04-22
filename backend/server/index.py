@@ -1,10 +1,12 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from backend.models import AppError
 from backend.server.auth.me import router as auth_router
-from backend.server.routes.teacher_route import router as login_router , teachers_router
+from backend.server.routes.teacher_route import router as login_router, teachers_router
 from backend.server.routes.lessons_route import router as lessons_router
 from backend.server.routes.classes_route import router as classes_router
 from backend.server.routes.students_route import router as students_router
@@ -12,7 +14,21 @@ from backend.server.routes.attendance_route import router as attendance_router
 from backend.server.routes.timetable_route import router as timetable_router
 from backend.server.routes.exam_types_route import router as exam_types_router
 from backend.server.routes.grades_route import router as grades_router
-app = FastAPI(title="Digi-School API")
+from backend.server.routes.agents_route import router as agents_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ───────────────────────────────────────────────────────────────
+    from backend.agents.pedagogical_agent.agent import get_graph
+    await get_graph()   # initialises Postgres pool + checkpointer tables
+    yield
+    # ── Shutdown ──────────────────────────────────────────────────────────────
+    from backend.agents.pedagogical_agent.agent import close_graph
+    await close_graph()
+
+
+app = FastAPI(title="Digi-School API", lifespan=lifespan)
 
 
 @app.exception_handler(RequestValidationError)
@@ -98,3 +114,4 @@ app.include_router(attendance_router)
 app.include_router(timetable_router)
 app.include_router(exam_types_router)
 app.include_router(grades_router)
+app.include_router(agents_router)

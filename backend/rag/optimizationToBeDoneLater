@@ -1,0 +1,23 @@
+1. GPU & Precision (The "Hardware" Layer)
+The L4’s Ada Lovelace architecture is newer and more stable for 4.5B models.
+
+Enable FP8 KV Cache: Use --kv-cache-dtype fp8. This reduces the VRAM footprint of those 16k image tokens,
+ensuring you never hit an Out-of-Memory (OOM) error on a 24GB card.
+
+2. The Engine (The "Inference" Layer)
+Use vLLM native: Do not use raw PyTorch scripts. vLLM uses PagedAttention and FlashInfer backends which
+are ~3-5x faster for vision-to-vector tasks.
+
+Task Type: Set --task embedding (or token_embed in latest vLLM versions). This ensures you get the multi-vector
+(token-level) output necessary for ColQwen’s "Late Interaction" search.
+
+Chunked Prefill: Enable --enable-chunked-prefill. This stops the "GPU spikes" when you send that massive 6k-to-2k document image.
+
+3. The Transport (The "API" Layer)
+Binary Blobs: Stop sending vectors as JSON lists of numbers. Use numpy.tobytes() and base64 encoding.
+
+Sidecar Wrapper: Wrap the vLLM server in a FastAPI web_server. This allows you to attach your custom metadata
+(Tunisian doc IDs, timestamps, etc.) to the binary vectors in a single response.
+
+Prefix Caching: Enable --enable-prefix-caching. If you use the same system prompt or document headers repeatedly,
+ the GPU will skip the math and pull the results from the 24GB "reservoir" instantly.

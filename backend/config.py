@@ -3,13 +3,14 @@ import os
 
 load_dotenv()
 
-# ── LLM ───────────────────────────────────────────────────────────────────
-OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5vl:3b"  # ← removed duplicate, keep vision model only
+# ─── Ollama (legacy, kept for compatibility) ──────────────────────────────
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL    = os.getenv("OLLAMA_MODEL",    "llama3.1:8b")
 
 # ── ColQwen ───────────────────────────────────────────────────────────────
 COLQWEN_MODEL = "athrael-soju/colqwen3.5-4.5B-v3"
-PAGES_STORAGE_PATH = "./storage/pages"
+PAGES_STORAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "storage", "pages")
 
 # ── Weaviate ──────────────────────────────────────────────────────────────
 WEAVIATE_PERSISTENCE_PATH = "./.collections"  # ← removed WEAVIATE_URL, using embedded
@@ -17,7 +18,18 @@ WEAVIATE_COLLECTION = "CoursePage"
 WEAVIATE_VERSION = "1.31.0"  # ← add this, needed for connect_to_embedded
 
 # ── PostgreSQL ────────────────────────────────────────────────────────────
-#POSTGRES_URL = os.getenv("POSTGRES_URL", "postgresql://postgres:password@localhost:5432/teacher_agent")
+POSTGRES_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql+psycopg://{os.getenv('DB_USER','digischool')}:{os.getenv('DB_PASSWORD','digischool123')}@{os.getenv('DB_HOST','localhost')}:{os.getenv('DB_PORT','5432')}/{os.getenv('DB_NAME','digischool')}"
+)
+
+# ── HuggingFace / Qwen VLM ────────────────────────────────────────────────
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+HF_ENDPOINT_URL = os.getenv(
+    "HF_ENDPOINT_URL",
+    "https://dtujvjpyjnyev6ou.us-east-1.aws.endpoints.huggingface.cloud/v1"
+)
+VLM_MODEL = os.getenv("VLM_MODEL", "Qwen/Qwen3.6-35B-A3B-FP8")
 
 # ── Google APIs ───────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,10 +53,6 @@ DB_CONFIG = {
     "dbname":   os.getenv("DB_NAME",     "digischool"),
 }
 
-# ─── Ollama ───────────────────────────────────
-
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL    = os.getenv("OLLAMA_MODEL",    "llama3.1:8b")
 
 # ─── Agent server ─────────────────────────────
 

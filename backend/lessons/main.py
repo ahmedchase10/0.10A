@@ -1,8 +1,9 @@
 import hashlib
+import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from fastapi import UploadFile
 from sqlalchemy import asc, desc
@@ -11,6 +12,8 @@ from sqlmodel import Session, select
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
 from backend.server.db.dbModels import Upload
+
+logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE_BYTES = 150 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
@@ -115,12 +118,13 @@ def list_lesson_uploads(
     return {
         "success": True,
         "uploads": [
-            {
-                "id": row.id,
-                "name": row.filename,
-                "size": row.size,
-                "created_at": row.created_at,
-            }
+        {
+            "id": row.id,
+            "name": row.filename,
+            "size": row.size,
+            "embedded": row.embedded,
+            "created_at": row.created_at,
+        }
             for row in rows
         ],
         "pagination": {
@@ -209,10 +213,12 @@ def upload_lesson_file(
 
         return {
             "success": True,
+            "embed_queued": True,
             "upload": {
                 "id": record.id,
                 "name": record.filename,
                 "size": record.size,
+                "embedded": record.embedded,
                 "created_at": record.created_at,
                 "already_exists": False,
             },
@@ -222,35 +228,84 @@ def upload_lesson_file(
         if temp_path.exists():
             temp_path.unlink()
 
+
+def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str) -> None:
+    """
+    Background task: embed a PDF into Weaviate and mark Upload.embedded = True.
+    Runs in a thread pool (FastAPI BackgroundTasks).
+    Uses its own DB session and RAG instances so it's isolated from the request.
+    """
+    import sqlalchemy
+    from sqlmodel import Session as SyncSession, create_engine
+    from backend.rag.document_processor import DocumentProcessor
+    from backend.rag.vector_store import VectorStore
+
+    engine = create_engine(db_url, echo=False)
+
+    processor = DocumentProcessor()
+    store = VectorStore()
+    try:
+        document, pages = processor.process_pdf(file_path, source="lesson", doc_id=doc_id)
+        store.store_pages_batch(pages, document)
+
+        with SyncSession(engine) as session:
+            upload = session.get(Upload, upload_id)
+            if upload:
+                upload.embedded = True
+                session.add(upload)
+                session.commit()
+        logger.info("Embedded doc %s (%s)", doc_id, upload_id)
+    except Exception as exc:
+        logger.error("Embedding failed for upload %s: %s", upload_id, exc)
+        # embedded stays False — frontend shows warning
+    finally:
+        processor.close()
+        store.close()
+        engine.dispose()
+
+
 def delete_lesson_upload(
     session: Session,
     teacher_payload: Dict[str, Any],
     upload_id: str,
 ) -> Dict[str, Any]:
+    from backend.rag.vector_store import VectorStore
+    from backend.config import PAGES_STORAGE_PATH
+
     teacher_id = int(teacher_payload["id"])
 
-    upload = session.exec(
-        select(Upload).where(Upload.id == upload_id)
-    ).first()
-
+    upload = session.exec(select(Upload).where(Upload.id == upload_id)).first()
     if upload is None:
         raise AppError("LESSONS_UPLOAD_NOT_FOUND", "Upload not found.", 404)
 
-    get_owned_class_or_403(session,teacher_id=teacher_id,class_id=upload.class_id)
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=upload.class_id)
 
+    # ── Delete PDF from disk ───────────────────────────────────────────────
     absolute_path = UPLOADS_ROOT.parent / upload.file_path
     file_deleted = False
-
     try:
         if absolute_path.exists():
             absolute_path.unlink()
             file_deleted = True
     except OSError:
-        raise AppError(
-            "LESSONS_DELETE_FILE_FAILED",
-            "Failed to delete file from disk.",
-            500,
-        )
+        raise AppError("LESSONS_DELETE_FILE_FAILED", "Failed to delete file from disk.", 500)
+
+    # ── Delete page images from disk ──────────────────────────────────────
+    pages_dir = Path(PAGES_STORAGE_PATH)
+    for page_img in pages_dir.glob(f"{upload_id}_page_*.png"):
+        try:
+            page_img.unlink()
+        except OSError:
+            logger.warning("Could not delete page image %s", page_img)
+
+    # ── Delete vectors from Weaviate ──────────────────────────────────────
+    if upload.embedded:
+        try:
+            store = VectorStore()
+            store.delete_by_doc_id(upload_id)
+            store.close()
+        except Exception as exc:
+            logger.warning("Weaviate cleanup failed for %s: %s", upload_id, exc)
 
     session.delete(upload)
     session.commit()
@@ -263,3 +318,32 @@ def delete_lesson_upload(
             "file_deleted": file_deleted,
         },
     }
+
+
+def retry_embed_uploads(
+    session: Session,
+    teacher_payload: Dict[str, Any],
+    class_id: int,
+    db_url: str,
+) -> Dict[str, Any]:
+    """Queue background embedding for all unembedded uploads in a class."""
+    teacher_id = int(teacher_payload["id"])
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+
+    unembedded = session.exec(
+        select(Upload).where(
+            Upload.class_id == class_id,
+            Upload.embedded == False,  # noqa: E712
+        )
+    ).all()
+
+    queued: List[str] = []
+    for upload in unembedded:
+        absolute_path = str(UPLOADS_ROOT.parent / upload.file_path)
+        if Path(absolute_path).exists():
+            queued.append(upload.id)
+        else:
+            logger.warning("File missing for upload %s, skipping retry", upload.id)
+
+    return {"success": True, "queued": queued}
+

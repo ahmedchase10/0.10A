@@ -16,7 +16,7 @@ def process_docs_remote(images: list) -> list:
     b64_images = []
     for img in images:
         buf = BytesIO()
-        img.save(buf, format="PNG")
+        img.save(buf, format="JPEG", quality=90, optimize=True)
         b64_images.append(base64.b64encode(buf.getvalue()).decode())
 
     response = requests.post(

@@ -177,5 +177,12 @@ class VectorStore:
             for obj in results.objects
         ]
 
+    def delete_by_doc_id(self, doc_id: str) -> int:
+        """Delete all page objects for a given doc_id. Returns number deleted."""
+        result = self.collection.data.delete_many(
+            where=Filter.by_property("doc_id").equal(doc_id)
+        )
+        return result.successful
+
     def close(self):
         self.client.close()
