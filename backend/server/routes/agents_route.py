@@ -182,6 +182,10 @@ async def pedagogical_agent(
 
                     # Preferred path: reasoning tokens surfaced separately from content
                     reasoning_tok = _extract_reasoning_tokens(msg_chunk)
+                    # Snapshot BEFORE mutating the flag so a transition chunk (reasoning +
+                    # content in the same delta) doesn't immediately route its own content
+                    # token as an answer — that would permanently close the thinking path.
+                    already_saw_reasoning = saw_reasoning
                     if reasoning_tok and not saw_content:
                         saw_reasoning = True
                         thinking_chunks += 1
@@ -191,8 +195,10 @@ async def pedagogical_agent(
                     if not raw:
                         continue
 
-                    # If we already received explicit reasoning tokens, treat content as answer.
-                    if saw_reasoning:
+                    # Only use the fast-path if reasoning was already established on a
+                    # *previous* chunk (use snapshot). If both appeared in the same chunk
+                    # fall through to the <think>-tag parser which handles it correctly.
+                    if already_saw_reasoning:
                         saw_content = True
                         content_chunks += 1
                         yield _sse("content", raw)
@@ -289,12 +295,13 @@ def _extract_reasoning_tokens(msg_chunk: Any) -> str:
     out = ""
 
     # 1) Legacy/adapter path: additional_kwargs
+    # Read only one key — agent sets both "reasoning" and "reasoning_content" to the same
+    # value, so iterating both would double every token.
     additional = getattr(msg_chunk, "additional_kwargs", None)
     if isinstance(additional, dict):
-        for key in ("reasoning", "reasoning_content"):
-            val = additional.get(key)
-            if isinstance(val, str):
-                out += val
+        val = additional.get("reasoning") or additional.get("reasoning_content")
+        if isinstance(val, str):
+            out += val
 
     # 2) New LangChain path: content_blocks / content_blocks-like entries
     blocks = getattr(msg_chunk, "content_blocks", None)

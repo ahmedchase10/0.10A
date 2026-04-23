@@ -27,7 +27,6 @@ if sys.platform == "win32":
 from langchain_core.messages import AnyMessage, SystemMessage, ToolMessage, AIMessage, HumanMessage, AIMessageChunk
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
-from langchain_openai.chat_models.base import _convert_message_to_dict, _convert_from_v1_to_chat_completions
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
@@ -42,7 +41,24 @@ from backend.agents.pedagogical_agent.tools import rag_retrieve, rewrite_query
 # ─── Tools registry ───────────────────────────────────────────────────────────
 
 TOOLS: List[BaseTool] = [rewrite_query, rag_retrieve]
-TOOL_NODE = ToolNode(TOOLS)
+_TOOL_NODE = ToolNode(TOOLS)
+
+# Emit tool_result custom events for tools whose output is human-readable
+_TEXT_TOOLS = {"rewrite_query"}
+
+async def tools_node(state: "AgentState") -> dict:
+    writer = get_stream_writer()
+    result = await _TOOL_NODE.ainvoke(state)
+    # result is {"messages": [ToolMessage, ...]}
+    for msg in result.get("messages", []):
+        if getattr(msg, "name", None) in _TEXT_TOOLS:
+            writer({
+                "type": "tool_result",
+                "name": msg.name,
+                "content": msg.content if isinstance(msg.content, str) else json.dumps(msg.content),
+                "tool_call_id": getattr(msg, "tool_call_id", ""),
+            })
+    return result
 
 # ─── Postgres URL: strip SQLAlchemy driver prefix for psycopg3 direct use ─────
 
@@ -128,39 +144,6 @@ def _extract_reasoning_from_ai_message(msg: AIMessage) -> str:
 
 class ChatOpenAIWithReasoning(ChatOpenAI):
     """Preserve provider-native reasoning keys on streamed chunks."""
-
-    def _get_request_payload(self, input_, *, stop=None, **kwargs):
-        """
-        Inject assistant `reasoning` back into chat history payload.
-
-        LangChain's default OpenAI conversion drops arbitrary additional_kwargs keys.
-        Qwen/vLLM reasoning continuity expects a top-level assistant `reasoning` field.
-        """
-        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
-        if self._use_responses_api(payload):
-            return payload
-
-        messages = self._convert_input(input_).to_messages()
-        payload["messages"] = []
-        for m in messages:
-            if isinstance(m, AIMessage):
-                m_chat = _convert_from_v1_to_chat_completions(m)
-                m_dict = _convert_message_to_dict(m_chat)
-
-                reasoning = ""
-                additional = getattr(m, "additional_kwargs", None)
-                if isinstance(additional, dict):
-                    reasoning = additional.get("reasoning") or additional.get("reasoning_content") or ""
-
-                if isinstance(reasoning, str) and reasoning:
-                    # Use provider-native key observed in raw SSE: delta.reasoning
-                    m_dict["reasoning"] = reasoning
-
-                payload["messages"].append(m_dict)
-            else:
-                payload["messages"].append(_convert_message_to_dict(m))
-
-        return payload
 
     def _convert_chunk_to_generation_chunk(self, chunk: dict, default_chunk_class: type, base_generation_info: dict | None):
         generation_chunk = super()._convert_chunk_to_generation_chunk(
@@ -263,13 +246,10 @@ async def agent_node(state: AgentState) -> dict:
         if msg.type == "human":
             lc_messages.append(HumanMessage(content=msg.content))
         elif msg.type == "ai":
-            prior_reasoning = _extract_reasoning_from_ai_message(msg) if isinstance(msg, AIMessage) else ""
-            prior_additional = {"reasoning": prior_reasoning} if prior_reasoning else {}
             lc_messages.append(
                 AIMessage(
                     content=msg.content or "",
                     tool_calls=getattr(msg, "tool_calls", []),
-                    additional_kwargs=prior_additional,
                 )
             )
         elif msg.type == "tool":
@@ -292,6 +272,15 @@ async def agent_node(state: AgentState) -> dict:
     if final_reasoning:
         response.additional_kwargs["reasoning"] = final_reasoning
 
+    # Emit tool_call custom events so the SSE route can forward them to the frontend
+    for tc in getattr(response, "tool_calls", []) or []:
+        writer({
+            "type": "tool_call",
+            "name": tc.get("name", ""),
+            "args": tc.get("args", {}),
+            "id": tc.get("id", ""),
+        })
+
     return {"messages": [response]}
 
 # ─── Routing ──────────────────────────────────────────────────────────────────
@@ -308,7 +297,7 @@ def should_continue(state: AgentState) -> Literal["tools", "__end__"]:
 def _build_graph(checkpointer: AsyncPostgresSaver) -> Any:
     graph = StateGraph(AgentState)
     graph.add_node("agent", agent_node)
-    graph.add_node("tools", TOOL_NODE)
+    graph.add_node("tools", tools_node)  # custom wrapper emits tool_result events
     graph.add_edge(START, "agent")  # replaces deprecated set_entry_point
     graph.add_conditional_edges("agent", should_continue)
     graph.add_edge("tools", "agent")
