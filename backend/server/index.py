@@ -15,17 +15,18 @@ from backend.server.routes.timetable_route import router as timetable_router
 from backend.server.routes.exam_types_route import router as exam_types_router
 from backend.server.routes.grades_route import router as grades_router
 from backend.server.routes.agents_route import router as agents_router
+from backend.server.routes.grading_route import router as grading_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────────────────────
-    from backend.agents.pedagogical_agent.agent import get_graph
-    await get_graph()   # initialises Postgres pool + checkpointer tables
+    from backend.agents.db import get_checkpointer
+    await get_checkpointer()   # opens shared pool + creates checkpoint tables once for all agents
     yield
     # ── Shutdown ──────────────────────────────────────────────────────────────
-    from backend.agents.pedagogical_agent.agent import close_graph
-    await close_graph()
+    from backend.agents.db import close_pool
+    await close_pool()
 
 
 app = FastAPI(title="Digi-School API", lifespan=lifespan)
@@ -115,3 +116,4 @@ app.include_router(timetable_router)
 app.include_router(exam_types_router)
 app.include_router(grades_router)
 app.include_router(agents_router)
+app.include_router(grading_router)

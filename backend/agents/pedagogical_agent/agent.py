@@ -32,10 +32,9 @@ from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from psycopg.rows import dict_row
 from typing_extensions import TypedDict
 
-from backend.config import HF_ENDPOINT_URL, HF_TOKEN, VLM_MODEL, POSTGRES_URL
+from backend.config import HF_ENDPOINT_URL, HF_TOKEN, VLM_MODEL
 from backend.agents.pedagogical_agent.tools import rag_retrieve, rewrite_query
 
 # ─── Tools registry ───────────────────────────────────────────────────────────
@@ -60,10 +59,6 @@ async def tools_node(state: "AgentState") -> dict:
             })
     return result
 
-# ─── Postgres URL: strip SQLAlchemy driver prefix for psycopg3 direct use ─────
-
-def _psycopg_url(url: str) -> str:
-    return url.replace("postgresql+psycopg://", "postgresql://", 1)
 
 # ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -142,33 +137,7 @@ def _extract_reasoning_from_ai_message(msg: AIMessage) -> str:
 
 # ─── LLM wrapper: keep reasoning deltas from OpenAI-compatible streams ────────
 
-class ChatOpenAIWithReasoning(ChatOpenAI):
-    """Preserve provider-native reasoning keys on streamed chunks."""
-
-    def _convert_chunk_to_generation_chunk(self, chunk: dict, default_chunk_class: type, base_generation_info: dict | None):
-        generation_chunk = super()._convert_chunk_to_generation_chunk(
-            chunk, default_chunk_class, base_generation_info
-        )
-        if generation_chunk is None:
-            return None
-
-        try:
-            choices = chunk.get("choices", []) or chunk.get("chunk", {}).get("choices", [])
-            if not choices:
-                return generation_chunk
-            delta = choices[0].get("delta") or {}
-            if not isinstance(delta, dict):
-                return generation_chunk
-
-            reasoning_tok = delta.get("reasoning") or delta.get("reasoning_content")
-            if reasoning_tok and isinstance(generation_chunk.message, AIMessageChunk):
-                generation_chunk.message.additional_kwargs["reasoning"] = reasoning_tok
-                generation_chunk.message.additional_kwargs["reasoning_content"] = reasoning_tok
-        except Exception:
-            # Never break streaming because of metadata extraction.
-            pass
-
-        return generation_chunk
+from backend.agents.reasoningchatopenai import ChatOpenAIWithReasoning
 
 
 # ─── LLM factory ──────────────────────────────────────────────────────────────
@@ -306,43 +275,21 @@ def _build_graph(checkpointer: AsyncPostgresSaver) -> Any:
 # ─── Public: lazily initialised compiled graph ────────────────────────────────
 
 _graph = None
-_pool = None
 
 
 async def get_graph() -> Any:
     """
-    Initialise the Postgres connection pool and LangGraph checkpointer on first call.
-
-    Pool kwargs MUST include:
-      autocommit=True  — required by AsyncPostgresSaver for all operations
-      row_factory=dict_row — required so rows are read as dicts, not tuples
-    This also means setup() no longer needs a separate autocommit connection.
+    Initialise the compiled graph on first call using the shared Postgres pool.
     """
-    global _graph, _pool
+    global _graph
     if _graph is None:
-        from psycopg_pool import AsyncConnectionPool
-
-        conn_string = _psycopg_url(POSTGRES_URL)
-        _pool = AsyncConnectionPool(
-            conninfo=conn_string,
-            max_size=10,
-            kwargs={
-                "autocommit": True,
-                "row_factory": dict_row,
-            },
-            open=False,
-        )
-        await _pool.open()
-        checkpointer = AsyncPostgresSaver(_pool)
-        await checkpointer.setup()
+        from backend.agents.db import get_checkpointer
+        checkpointer = await get_checkpointer()
         _graph = _build_graph(checkpointer)
     return _graph
 
 
 async def close_graph() -> None:
-    """Close the Postgres connection pool cleanly on app shutdown."""
-    global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    """No-op — pool is now managed by backend.agents.db.close_pool()."""
+    pass
 

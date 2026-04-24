@@ -12,3 +12,5 @@ requests
 httpx
 gradio
 pillow
+pymupdf
+

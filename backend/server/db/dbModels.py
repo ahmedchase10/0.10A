@@ -132,6 +132,88 @@ class AgentSession(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+# ─── Grading Agent ────────────────────────────────────────────────────────────
+
+class ExamPaper(SQLModel, table=True):
+    """Class-scoped exam question paper. Uploaded before analysis. Separate from student answer PDFs."""
+    __tablename__ = "exam_papers"
+    __table_args__ = (
+        UniqueConstraint("class_id", "file_hash", name="uq_exam_paper_class_hash"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    filename: str = Field(max_length=255)
+    file_path: str = Field(max_length=512)   # uploads/exam_papers/{teacher_id}/{uuid}.pdf
+    file_hash: str = Field(index=True, max_length=64)
+    size: int
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ExamUpload(SQLModel, table=True):
+    """Student exam PDFs — separate from Upload, never embedded in Weaviate."""
+    __tablename__ = "exam_uploads"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    filename: str = Field(max_length=255)
+    file_path: str = Field(max_length=512)   # uploads/exams/{teacher_id}/{uuid}.pdf
+    file_hash: str = Field(index=True, max_length=64)
+    size: int
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class GradingBlueprint(SQLModel, table=True):
+    """Teacher-scoped reusable correction blueprint. Not tied to any class."""
+    __tablename__ = "grading_blueprints"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    title: str = Field(max_length=120)
+    analysis_thread_id: str = Field(default="", max_length=36)  # LangGraph thread for blueprint run
+    exam_paper_id: Optional[int] = Field(default=None, foreign_key="exam_papers.id", index=True)  # display ref
+    lesson_doc_ids: str = Field(default="[]")           # JSON array of Upload UUIDs
+    exam_file_path: str = Field(max_length=512)         # absolute path used by agent (survives paper deletion)
+    correction_file_path: Optional[str] = Field(default=None, max_length=512)  # null after analysis
+    preferences: str = Field(default="")               # teacher's grading criteria text
+    style_guide: str = Field(default="")               # essay / math style notes
+    blueprint_json: str = Field(default="")            # structured Q/criteria JSON from agent
+    deleted: bool = Field(default=False)               # soft-delete; checkpoint is hard-deleted
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class GradingSession(SQLModel, table=True):
+    """One grading session per student per batch run."""
+    __tablename__ = "grading_sessions"
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    blueprint_id: int = Field(foreign_key="grading_blueprints.id", index=True)
+    class_id: int = Field(foreign_key="classes.id", index=True)
+    exam_type_id: int = Field(foreign_key="exam_types.id", index=True)
+    student_id: int = Field(foreign_key="students.id", index=True)
+    exam_upload_id: str = Field(foreign_key="exam_uploads.id", index=True)
+    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True)  # LangGraph checkpoint
+    batch_id: str = Field(index=True, max_length=36)   # groups all sessions from one /grade call
+    queue_position: int = Field(default=0)              # sort order within batch (alphabetical by student name)
+    status: str = Field(default="pending")              # pending | reviewing | approved | cancelled
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class GradingQuestionResult(SQLModel, table=True):
+    """Per-question grading outcome, written when teacher approves or edits."""
+    __tablename__ = "grading_question_results"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    session_id: str = Field(foreign_key="grading_sessions.id", index=True)
+    question_number: int
+    question_label: str = Field(max_length=20)      # e.g. "Q1a"
+    max_points: float
+    awarded_points: float
+    reasoning: str = Field(default="")
+    teacher_override: bool = Field(default=False)   # True if teacher edited the agent's score
+
+
 __all__ = [
     "SQLModel",
     "Teacher",
@@ -144,4 +226,9 @@ __all__ = [
     "ExamType",
     "Grade",
     "AgentSession",
+    "ExamPaper",
+    "ExamUpload",
+    "GradingBlueprint",
+    "GradingSession",
+    "GradingQuestionResult",
 ]
