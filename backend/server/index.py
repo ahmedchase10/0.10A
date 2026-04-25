@@ -30,7 +30,20 @@ async def lifespan(app: FastAPI):
     await close_pool()
 
 
+
 app = FastAPI(title="Digi-School API", lifespan=lifespan)
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Vite frontend
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],   # IMPORTANT (includes OPTIONS)
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(RequestValidationError)
