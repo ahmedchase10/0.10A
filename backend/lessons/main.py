@@ -123,6 +123,7 @@ def list_lesson_uploads(
             "name": row.filename,
             "size": row.size,
             "embedded": row.embedded,
+            "overview_ready": row.overview is not None,
             "created_at": row.created_at,
         }
             for row in rows
@@ -261,6 +262,16 @@ def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str) 
     finally:
         processor.close()
         store.close()
+
+    # ── Generate doc overview (creator agent preprocessing) ───────────────────
+    # Runs after embedding so we already know the file is valid.
+    # Failure is non-fatal: Upload.overview stays null, retry available via API.
+    try:
+        from backend.agents.creator_agent.preprocessor import generate_overview_task
+        generate_overview_task(file_path, upload_id, db_url)
+    except Exception as exc:
+        logger.error("Overview task failed for upload %s: %s", upload_id, exc)
+    finally:
         engine.dispose()
 
 

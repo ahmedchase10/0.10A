@@ -1,8 +1,8 @@
 from datetime import date, datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 import uuid
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import JSON, UniqueConstraint
 from sqlmodel import SQLModel, Field
 
 
@@ -45,6 +45,7 @@ class Upload(SQLModel, table=True):
     file_hash: str = Field(index=True, max_length=64)
     size: int
     embedded: bool = Field(default=False)
+    overview: Optional[Any] = Field(default=None, sa_type=JSON)  # structured doc overview, null until preprocessed
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -214,6 +215,23 @@ class GradingQuestionResult(SQLModel, table=True):
     teacher_override: bool = Field(default=False)   # True if teacher edited the agent's score
 
 
+# ─── Creator Agent ────────────────────────────────────────────────────────────
+
+class GeneratedExam(SQLModel, table=True):
+    """Teacher-scoped generated exam. Stores the agent session + final exam JSON."""
+    __tablename__ = "generated_exams"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True, max_length=36)
+    title: str = Field(max_length=120)
+    doc_ids: str = Field(default="[]")        # JSON array of Upload UUIDs
+    preferences: str = Field(default="{}")    # full preferences JSON string
+    exam_json: str = Field(default="")        # final exam JSON produced by agent
+    loop_count: int = Field(default=0)        # how many evaluator loops ran (0, 1, or 2)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 __all__ = [
     "SQLModel",
     "Teacher",
@@ -231,4 +249,5 @@ __all__ = [
     "GradingBlueprint",
     "GradingSession",
     "GradingQuestionResult",
+    "GeneratedExam",
 ]

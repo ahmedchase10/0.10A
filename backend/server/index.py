@@ -16,6 +16,7 @@ from backend.server.routes.exam_types_route import router as exam_types_router
 from backend.server.routes.grades_route import router as grades_router
 from backend.server.routes.agents_route import router as agents_router
 from backend.server.routes.grading_route import router as grading_router
+from backend.server.routes.creator_route import router as creator_router
 
 
 @asynccontextmanager
@@ -117,3 +118,4 @@ app.include_router(exam_types_router)
 app.include_router(grades_router)
 app.include_router(agents_router)
 app.include_router(grading_router)
+app.include_router(creator_router)
