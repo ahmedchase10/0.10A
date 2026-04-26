@@ -59,7 +59,7 @@ const routes = [
       {
         path: 'class/:id/grades',
         name: 'ClassGrades',
-        component: () => import('@/views/grades.vue')
+        component: () => import('@/views/classgrades.vue')
       },
       {
         path: 'class/:id/lessons',
