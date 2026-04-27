@@ -43,24 +43,27 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     clearAuth();
-
-    // Reset classes cache so the sidebar starts clean on next login.
-    // Lazy import avoids a circular dependency (classesStore → api → auth).
     import('@/stores/classesStore').then(({ useClassesStore }) => {
       useClassesStore().reset();
     });
   }
 
-  // Restore session from localStorage on page reload
-  function init() {
+  async function init() {
     const savedUser = localStorage.getItem('digi_user');
     if (token.value && savedUser) {
       user.value = JSON.parse(savedUser);
       api.setToken(token.value);
+
+
+      try {
+        await api.getMe();
+      } catch {
+
+      }
     }
   }
 
-  init();
+  const ready = init();
 
-  return { user, token, isAuthenticated, login, register, logout, updateUser };
+  return { user, token, isAuthenticated, ready, login, register, logout, updateUser };
 });

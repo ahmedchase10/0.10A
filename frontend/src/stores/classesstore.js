@@ -5,28 +5,19 @@ import api from '@/services/api';
 /**
  * classesStore — single source of truth for the teacher's class list.
  *
- * Both the sidebar (appLayout) and the Dashboard read from here, so any
- * create / delete / update on the Dashboard is immediately reflected in
- * the sidebar without a page reload.
- *
- * Usage:
- *   const classesStore = useClassesStore();
- *   await classesStore.load();          // fetch from API (idempotent)
- *   classesStore.add(newClass);         // after POST /classes
- *   classesStore.update(id, patch);     // after PUT /classes/:id
- *   classesStore.remove(id);            // after DELETE /classes/:id
- *   classesStore.classes                // reactive array
- *   classesStore.loading                // bool
+ * BUG-09 fix: added _loadPromise in-flight guard so simultaneous calls to
+ * load() (from appLayout + classpage mounting at the same time) only fire
+ * ONE network request. The second caller simply awaits the same promise.
  */
 export const useClassesStore = defineStore('classes', () => {
     const classes = ref([]);
     const loading = ref(false);
-    const loaded = ref(false); // avoid redundant API calls
+    const loaded = ref(false);
 
-    // ── Load ──────────────────────────────────────────────────────────────────
+    // BUG-09: in-flight guard
+    let _loadPromise = null;
 
-    async function load(force = false) {
-        if (loaded.value && !force) return;
+    async function _doLoad() {
         loading.value = true;
         try {
             const res = await api.getClasses();
@@ -41,7 +32,14 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
-    // ── Mutations (call these after a successful API call) ────────────────────
+    async function load(force = false) {
+        if (loaded.value && !force) return;
+        if (_loadPromise) return _loadPromise;         // BUG-09: reuse in-flight request
+        _loadPromise = _doLoad().finally(() => {
+            _loadPromise = null;
+        });
+        return _loadPromise;
+    }
 
     function add(cls) {
         classes.value.unshift(cls);
@@ -56,11 +54,10 @@ export const useClassesStore = defineStore('classes', () => {
         classes.value = classes.value.filter(c => c.id !== classId);
     }
 
-    // ── Reset (call on logout) ────────────────────────────────────────────────
-
     function reset() {
         classes.value = [];
         loaded.value = false;
+        _loadPromise = null;
     }
 
     return { classes, loading, loaded, load, add, update, remove, reset };

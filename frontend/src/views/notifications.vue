@@ -16,19 +16,29 @@
       </button>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center py-16">
+    <!-- Error state -->
+    <div v-if="loadError" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+      <ExclamationTriangleIcon class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+      <div>
+        <p class="text-sm font-medium text-amber-900">Notifications unavailable</p>
+        <p class="text-sm text-amber-700 mt-1">{{ loadError }}</p>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-else-if="loading" class="flex justify-center py-16">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
     </div>
 
-    <!-- Empty State -->
+    <!-- Empty -->
+    <!-- BUG-04: honest empty state — no fake mock data -->
     <div v-else-if="notifications.length === 0" class="text-center py-16 bg-white rounded-xl shadow-sm border border-grey-200">
       <BellIcon class="w-16 h-16 mx-auto text-grey-300 mb-4" />
       <h3 class="text-lg font-medium text-grey-900 mb-2">No notifications</h3>
       <p class="text-grey-600">You're all caught up!</p>
     </div>
 
-    <!-- Notifications List -->
+    <!-- List -->
     <div v-else class="space-y-4">
       <div
         v-for="notification in notifications"
@@ -39,24 +49,14 @@
         ]"
       >
         <div class="flex items-start gap-4">
-          <!-- Icon -->
-          <div
-            :class="[
-              'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
-              getNotificationBg(notification.type)
-            ]"
-          >
+          <div :class="['w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', getNotificationBg(notification.type)]">
             <component :is="getNotificationIcon(notification.type)" class="w-6 h-6" />
           </div>
 
-          <!-- Content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between mb-2">
               <div>
-                <span :class="[
-                  'inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider mb-2',
-                  getNotificationTypeClass(notification.type)
-                ]">
+                <span :class="['inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider mb-2', getNotificationTypeClass(notification.type)]">
                   {{ notification.type }}
                 </span>
                 <p class="text-grey-900 font-medium">{{ notification.message }}</p>
@@ -68,7 +68,6 @@
               Student: <span class="font-medium">{{ notification.student_name }}</span>
             </p>
 
-            <!-- Actions -->
             <div class="flex items-center gap-2">
               <button
                 v-if="!notification.read"
@@ -103,92 +102,57 @@ import {
 } from '@heroicons/vue/24/outline';
 import api from '@/services/api';
 
-const loading = ref(true);
+const loading      = ref(true);
+const loadError    = ref('');   // BUG-04: surface the real error instead of mocking
 const notifications = ref([]);
 
-const unreadCount = computed(() => {
-  return notifications.value.filter(n => !n.read).length;
-});
+const unreadCount = computed(() => notifications.value.filter(n => !n.read).length);
 
 function getNotificationIcon(type) {
-  const icons = {
-    'behavior': ExclamationTriangleIcon,
-    'absence': ClockIcon,
-    'grade': AcademicCapIcon,
-    'system': InformationCircleIcon
-  };
-  return icons[type] || InformationCircleIcon;
+  return { behavior: ExclamationTriangleIcon, absence: ClockIcon, grade: AcademicCapIcon }[type] || InformationCircleIcon;
 }
 
 function getNotificationBg(type) {
-  const classes = {
-    'behavior': 'bg-red-50 text-red-600',
-    'absence': 'bg-yellow-50 text-yellow-600',
-    'grade': 'bg-success-50 text-success-600',
-    'system': 'bg-primary-50 text-primary-600'
-  };
-  return classes[type] || classes['system'];
+  return {
+    behavior: 'bg-red-50 text-red-600',
+    absence:  'bg-yellow-50 text-yellow-600',
+    grade:    'bg-success-50 text-success-600',
+    system:   'bg-primary-50 text-primary-600'
+  }[type] || 'bg-primary-50 text-primary-600';
 }
 
 function getNotificationTypeClass(type) {
-  const classes = {
-    'behavior': 'bg-red-100 text-red-700',
-    'absence': 'bg-yellow-100 text-yellow-700',
-    'grade': 'bg-success-100 text-success-700',
-    'system': 'bg-primary-100 text-primary-700'
-  };
-  return classes[type] || classes['system'];
+  return {
+    behavior: 'bg-red-100 text-red-700',
+    absence:  'bg-yellow-100 text-yellow-700',
+    grade:    'bg-success-100 text-success-700',
+    system:   'bg-primary-100 text-primary-700'
+  }[type] || 'bg-primary-100 text-primary-700';
 }
 
 function formatTime(timestamp) {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}min ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  
+  if (!timestamp) return '';
+  const date    = new Date(timestamp);
+  const diffMs  = Date.now() - date;
+  const mins    = Math.floor(diffMs / 60000);
+  const hours   = Math.floor(diffMs / 3600000);
+  const days    = Math.floor(diffMs / 86400000);
+  if (mins  < 1)  return 'Just now';
+  if (mins  < 60) return `${mins}min ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days  < 7)  return `${days}d ago`;
   return date.toLocaleDateString();
 }
 
+// BUG-04: no more fake fallback — show real error message instead
 async function loadNotifications() {
+  loading.value   = true;
+  loadError.value = '';
   try {
     const response = await api.getNotifications();
-    if (response.success) {
-      notifications.value = response.notifications || [];
-    }
+    if (response.success) notifications.value = response.notifications || [];
   } catch (err) {
-    // Mock data for demo
-    notifications.value = [
-      {
-        id: 1,
-        type: 'absence',
-        message: 'Ahmed Ben Ali has been absent for 3 consecutive days',
-        student_name: 'Ahmed Ben Ali',
-        read: false,
-        sent_at: new Date(Date.now() - 3600000).toISOString()
-      },
-      {
-        id: 2,
-        type: 'behavior',
-        message: 'Mohamed disrupted class for the 3rd time this week',
-        student_name: 'Mohamed',
-        read: false,
-        sent_at: new Date(Date.now() - 7200000).toISOString()
-      },
-      {
-        id: 3,
-        type: 'system',
-        message: 'Your weekly report card generation is ready',
-        read: true,
-        sent_at: new Date(Date.now() - 86400000).toISOString()
-      }
-    ];
+    loadError.value = err.message || 'Could not load notifications.';
   } finally {
     loading.value = false;
   }
@@ -197,17 +161,10 @@ async function loadNotifications() {
 async function markAsRead(id) {
   try {
     await api.markNotificationRead(id);
-    const notification = notifications.value.find(n => n.id === id);
-    if (notification) {
-      notification.read = true;
-    }
+    const n = notifications.value.find(n => n.id === id);
+    if (n) n.read = true;
   } catch (err) {
-    console.error('Failed to mark as read:', err);
-    // Fallback for demo
-    const notification = notifications.value.find(n => n.id === id);
-    if (notification) {
-      notification.read = true;
-    }
+    console.error('markAsRead failed:', err);
   }
 }
 
@@ -216,20 +173,15 @@ async function deleteNotification(id) {
     await api.deleteNotification(id);
     notifications.value = notifications.value.filter(n => n.id !== id);
   } catch (err) {
-    console.error('Failed to delete:', err);
-    // Fallback for demo
-    notifications.value = notifications.value.filter(n => n.id !== id);
+    console.error('deleteNotification failed:', err);
   }
 }
 
 async function markAllAsRead() {
-  const unread = notifications.value.filter(n => !n.read);
-  for (const notification of unread) {
-    await markAsRead(notification.id);
+  for (const n of notifications.value.filter(n => !n.read)) {
+    await markAsRead(n.id);
   }
 }
 
-onMounted(() => {
-  loadNotifications();
-});
+onMounted(loadNotifications);
 </script>
