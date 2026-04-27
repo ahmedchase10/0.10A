@@ -19,11 +19,16 @@ router = APIRouter(prefix="/classes", tags=["classes"])
 class CreateClassRequest(BaseModel):
 	name: str
 	subject: str
+	school: str | None = None
+	color: str | None = None
 
 
 class UpdateClassRequest(BaseModel):
 	name: str
 	subject: str
+	color : str | None = None
+	school : str | None = None
+
 
 
 @router.get("")
@@ -45,6 +50,9 @@ def create_class_route(
 		teacher_payload=teacher,
 		name=payload.name,
 		subject=payload.subject,
+		school=payload.school,
+		color=payload.color,
+
 	)
 
 
