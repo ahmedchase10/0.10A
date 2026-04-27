@@ -814,3 +814,187 @@ border-grey-200    # Grey border
 **Last Updated**: April 2026  
 **Version**: 2.0.0  
 **Contact**: support@digi-school.ai
+
+-----------------------------------------------------------------------------
+Digi-School AI — Frontend
+> Vue 3 teacher-facing web application. Manages classes, students, attendance, grades, and lesson files. Communicates with a FastAPI backend over REST.
+---
+Quick Start
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:3000
+```
+Backend must be running at `http://localhost:8000` (see `/backend/server/readme`).
+---
+Tech Stack
+Package	Version	Role
+Vue 3	3.3	UI framework — Composition API throughout
+Vite	5	Dev server + build tool
+Tailwind CSS	3	Utility-first styling
+Pinia	2	Global state (auth + classes)
+Vue Router	4	Client-side routing + navigation guards
+Headless UI	1.7	Accessible modals, menus, transitions
+Heroicons	2	SVG icon set
+---
+Project Structure
+```
+frontend/
+├── src/
+│   ├── assets/
+│   │   └── main.css              # Tailwind directives + custom scrollbar
+│   ├── layouts/
+│   │   └── appLayout.vue         # Shell: collapsible sidebar + <RouterView>
+│   ├── views/                    # One file per route
+│   │   ├── auth.vue              # /auth — login / register
+│   │   ├── dashboard.vue         # /  — class grid
+│   │   ├── classpage.vue         # /class/:id — class hub (overview)
+│   │   ├── classstudents.vue     # /class/:id/students
+│   │   ├── classattendance.vue   # /class/:id/attendance
+│   │   ├── grades.vue            # /class/:id/grades
+│   │   ├── classlessons.vue      # /class/:id/lessons (class-scoped)
+│   │   ├── lessons.vue           # /lessons — global lessons view (all classes)
+│   │   ├── timetable.vue         # /timetable
+│   │   ├── notifications.vue     # /notifications
+│   │   └── settings.vue          # /settings
+│   ├── stores/
+│   │   ├── auth.js               # Pinia — token, user, login/logout
+│   │   └── classesStore.js       # Pinia — reactive class list shared by sidebar + dashboard
+│   ├── services/
+│   │   └── api.js                # All fetch calls + 401 interceptor
+│   ├── router/
+│   │   └── index.js              # Routes + auth guards
+│   ├── App.vue                   # Root — just <RouterView>
+│   └── main.js                   # App bootstrap
+├── index.html
+├── tailwind.config.js
+├── postcss.config.js
+└── vite.config.js
+```
+---
+File Placement Cheatsheet
+Delivered file	Put it at
+`api.js`	`src/services/api.js`
+`auth.js`	`src/stores/auth.js`
+`classesStore.js`	`src/stores/classesStore.js` ← new file
+`appLayout.vue`	`src/layouts/appLayout.vue`
+`dashboard.vue`	`src/views/dashboard.vue`
+`classpage.vue`	`src/views/classpage.vue`
+`classstudents.vue`	`src/views/classstudents.vue`
+`classattendance.vue`	`src/views/classattendance.vue`
+`grades.vue`	`src/views/grades.vue`
+`classlessons.vue`	`src/views/classlessons.vue`
+`index.js` (router)	`src/router/index.js`
+---
+Routing
+All routes except `/auth` are children of the `appLayout` wrapper (requires auth).
+```
+/auth                     → auth.vue          (guest only)
+/                         → dashboard.vue
+/timetable                → timetable.vue
+/lessons                  → lessons.vue       (all-classes view)
+/notifications            → notifications.vue
+/settings                 → settings.vue
+/class/:id                → classpage.vue     (class hub)
+/class/:id/students       → classstudents.vue
+/class/:id/attendance     → classattendance.vue
+/class/:id/grades         → grades.vue
+/class/:id/lessons        → classlessons.vue  (class-scoped)
+```
+Navigation guards in `router/index.js`:
+Unauthenticated → redirect to `/auth`
+Already authenticated + visiting `/auth` → redirect to `/`
+---
+Auth Flow
+User submits login/register form (`auth.vue`).
+`authStore.login()` / `authStore.register()` calls `api.js`, gets back `{ token, teacher }`.
+Token is stored in `localStorage` (`digi_token`) and on the `ApiService` instance via `api.setToken()`.
+Every subsequent API call includes `Authorization: Bearer <token>`.
+On logout, `authStore.logout()` clears localStorage, nulls the token, and resets `classesStore`.
+On page reload, `auth.js` `init()` restores token + user from localStorage automatically.
+401 Interceptor (token expiry)
+`api.js › handleResponse()` catches any HTTP 401 and automatically:
+Calls `authStore.logout()` — clears token + localStorage.
+Calls `classesStore.reset()` — clears cached class list.
+Calls `router.push('/auth')` — navigates to login page.
+Throws `AuthError` so calling components don't try to process missing data.
+All imports are lazy (`await import(...)`) to avoid circular-dependency issues at module initialisation time.
+---
+State Management
+Two Pinia stores:
+`stores/auth.js`
+```js
+authStore.isAuthenticated  // computed bool
+authStore.user             // { id, name, email, initials }
+authStore.login(email, pw) // async, throws on failure
+authStore.logout()         // clears everything + resets classesStore
+authStore.updateUser(patch)
+```
+`stores/classesStore.js`
+Single source of truth for the teacher's class list. Both `appLayout` (sidebar) and `dashboard` read from here — any create/delete/edit on the dashboard is immediately reflected in the sidebar.
+```js
+classesStore.classes          // reactive array
+classesStore.loading          // bool
+classesStore.load(force?)     // fetch from API — idempotent, skips if already loaded
+classesStore.add(cls)         // call after POST /classes
+classesStore.update(id, patch)// call after PUT /classes/:id
+classesStore.remove(id)       // call after DELETE /classes/:id
+classesStore.reset()          // call on logout
+```
+Rule: always mutate through the store methods after a successful API call. Never mutate `classesStore.classes` directly.
+---
+API Service (`src/services/api.js`)
+Single `ApiService` class, exported as a singleton.
+Method groups:
+Group	Methods
+Auth	`login`, `register`, `getMe`
+Classes	`getClasses`, `createClass`, `updateClass`, `deleteClass`
+Students	`getStudents`, `createStudent`, `deleteStudent`
+Exam Types	`getExamTypes`, `createExamType`, `deleteExamType`
+Grades	`getGrades`, `saveGrade`, `deleteGrade`
+Attendance	`createAttendance`, `getAttendance`, `updateAttendance`
+Lessons	`uploadLesson`, `getLessons`, `deleteLesson`
+Teacher	`updateTeacherProfile`, `changePassword`
+All methods return parsed JSON. On HTTP error, `handleResponse` throws `new Error(data.error.message)`. On HTTP 401 specifically, it throws `AuthError` after redirecting to `/auth`.
+---
+Design System
+Defined in `tailwind.config.js`:
+Token	Value	Usage
+`primary-*`	Blue scale	Buttons, links, focus rings, active states
+`success-*`	Green scale	Present/attendance, positive badges
+`grey-*`	Neutral scale	Text, borders, backgrounds
+Grade badge colours (applied in `grades.vue`):
+Score	Class
+≥ 16	`bg-success-100 text-success-800`
+≥ 12	`bg-blue-100 text-blue-800`
+≥ 10	`bg-amber-100 text-amber-800`
+< 10	`bg-red-100 text-red-800`
+---
+Adding a New Page
+Create `src/views/mypage.vue`.
+Add a route in `src/router/index.js`.
+If it needs a sidebar link, add to the `navigation` array in `appLayout.vue`.
+If it needs API calls, add a method to `src/services/api.js`.
+---
+Environment
+The API base URL is hardcoded in `src/services/api.js`:
+```js
+const API_BASE_URL = 'http://localhost:8000';
+```
+For production, replace with:
+```js
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+```
+And add `.env.production`:
+```
+VITE_API_URL=https://api.yourdomain.com
+```
+---
+Scripts
+```bash
+npm run dev       # Dev server (port 3000, hot reload)
+npm run build     # Production build → dist/
+npm run preview   # Preview production build locally
+```
+---
+---
