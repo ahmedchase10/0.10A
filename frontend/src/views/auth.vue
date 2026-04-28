@@ -109,19 +109,6 @@
             />
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Initials</label>
-              <input
-                v-model="signupForm.initials"
-                type="text"
-                maxlength="5"
-                class="w-full px-4 py-3 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
-                placeholder="JS"
-              />
-            </div>
-          </div>
-
           <div>
             <label class="block text-sm font-medium text-grey-700 mb-2">Password</label>
             <input
@@ -178,8 +165,7 @@ const loginForm = ref({
 const signupForm = ref({
   name: '',
   email: '',
-  password: '',
-  initials: ''
+  password: ''
 });
 
 async function handleLogin() {
@@ -204,8 +190,7 @@ async function handleSignup() {
     await authStore.register(
       signupForm.value.name,
       signupForm.value.email,
-      signupForm.value.password,
-      signupForm.value.initials
+      signupForm.value.password
     );
     router.push('/');
   } catch (err) {

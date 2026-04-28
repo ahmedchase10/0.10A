@@ -218,7 +218,7 @@
 
                     <!-- Edit Mode -->
                     <template v-else>
-                      <div class="flex items-center gap-1">
+                      <form class="flex items-center gap-1" @submit.prevent="saveEdit">
                         <input
                           ref="editInput"
                           v-model="editValue"
@@ -227,11 +227,10 @@
                           max="20"
                           step="0.25"
                           class="w-16 px-2 py-1 text-center border-2 border-primary-500 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-300"
-                          @keydown.enter="saveEdit"
-                          @keydown.escape="cancelEdit"
+                          @keydown.escape.prevent="cancelEdit"
                           @blur="saveEdit"
                         />
-                      </div>
+                      </form>
                     </template>
                   </div>
                 </td>
@@ -469,6 +468,7 @@ const gradeError = ref('');
 const editingCell = ref(null); // { studentId, examTypeId }
 const editValue = ref('');
 const editInput = ref(null);
+const savingInlineEdit = ref(false);
 
 // ── Computed ─────────────────────────────────────────
 
@@ -631,43 +631,45 @@ function startEdit(student, examType) {
 }
 
 async function saveEdit() {
-  if (!editingCell.value) return;
-  const { studentId, examTypeId } = editingCell.value;
-  const raw = editValue.value.trim();
-
-  // Empty = delete grade if it exists
-  if (raw === '') {
-    const existing = gradeMap.value[studentId]?.[examTypeId];
-    if (existing) {
-      try {
-        await api.deleteGrade(classId.value, existing.id);
-        grades.value = grades.value.filter(g => g.id !== existing.id);
-      } catch (err) {
-        console.error('Delete failed:', err);
-      }
-    }
-    editingCell.value = null;
-    return;
-  }
-
-  const val = parseFloat(raw);
-  if (isNaN(val) || val < 0 || val > 20) {
-    cancelEdit();
-    return;
-  }
-
+  if (!editingCell.value || savingInlineEdit.value) return;
+  savingInlineEdit.value = true;
   try {
+    const { studentId, examTypeId } = editingCell.value;
+    const raw = editValue.value.trim();
+
+    // Empty = delete grade if it exists
+    if (raw === '') {
+      const existing = gradeMap.value[studentId]?.[examTypeId];
+      if (existing) {
+        try {
+          await api.deleteGrade(classId.value, existing.id);
+          grades.value = grades.value.filter(g => g.id !== existing.id);
+        } catch (err) {
+          console.error('Delete failed:', err);
+        }
+      }
+      return;
+    }
+
+    const val = parseFloat(raw);
+    if (isNaN(val) || val < 0 || val > 20) {
+      cancelEdit();
+      return;
+    }
+
     const res = await api.saveGrade(classId.value, studentId, examTypeId, val);
     if (res.success) upsertGradeLocally(res.grade);
   } catch (err) {
     console.error('Save failed:', err);
   } finally {
     editingCell.value = null;
+    savingInlineEdit.value = false;
   }
 }
 
 function cancelEdit() {
   editingCell.value = null;
+  savingInlineEdit.value = false;
 }
 
 function upsertGradeLocally(grade) {

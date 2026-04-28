@@ -1,17 +1,13 @@
 <template>
   <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
-
-    <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center h-64">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
     </div>
 
     <template v-else-if="classData">
-      <!-- Color bar + header -->
       <div class="bg-white border-b border-grey-200">
         <div class="h-2 w-full" :style="{ backgroundColor: classData.color || '#3b82f6' }"></div>
         <div class="px-8 py-6">
-          <!-- Breadcrumb -->
           <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
             <router-link to="/" class="hover:text-primary-600 transition">Dashboard</router-link>
             <span>/</span>
@@ -22,31 +18,40 @@
             <div>
               <h1 class="text-3xl font-bold text-grey-900 mb-2">{{ classData.name }}</h1>
               <div class="flex flex-wrap items-center gap-3">
-                <span v-if="classData.subject"
-                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
-                  <AcademicCapIcon class="w-3.5 h-3.5" />{{ classData.subject }}
+                <span
+                  v-if="classData.subject"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium"
+                >
+                  <AcademicCapIcon class="w-3.5 h-3.5" />
+                  {{ classData.subject }}
                 </span>
-                <span v-if="classData.period"
-                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <ClockIcon class="w-3.5 h-3.5" />{{ classData.period }}
+                <span
+                  v-if="classData.school"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm"
+                >
+                  <BuildingOfficeIcon class="w-3.5 h-3.5" />
+                  {{ classData.school }}
                 </span>
-                <span v-if="classData.room"
-                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <HomeIcon class="w-3.5 h-3.5" />{{ classData.room }}
-                </span>
-                <span v-if="classData.school"
-                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-grey-100 text-grey-700 rounded-full text-sm">
-                  <BuildingOfficeIcon class="w-3.5 h-3.5" />{{ classData.school }}
+                <span
+                  v-if="scheduleSummary"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm"
+                >
+                  <ClockIcon class="w-3.5 h-3.5" />
+                  {{ scheduleSummary }}
                 </span>
               </div>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              <button @click="openEdit"
-                class="flex items-center gap-2 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition">
+              <button
+                @click="openEdit"
+                class="flex items-center gap-2 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition"
+              >
                 <PencilIcon class="w-4 h-4" />Edit
               </button>
-              <button @click="handleDeleteClass"
-                class="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition">
+              <button
+                @click="handleDeleteClass"
+                class="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+              >
                 <TrashIcon class="w-4 h-4" />Delete
               </button>
             </div>
@@ -54,7 +59,6 @@
         </div>
       </div>
 
-      <!-- Stats row -->
       <div class="px-8 pt-6 grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-5">
           <div class="flex items-center gap-3">
@@ -102,9 +106,7 @@
         </div>
       </div>
 
-      <!-- Navigation cards -->
       <div class="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-        <!-- Students -->
         <router-link :to="`/class/${classId}/students`" class="group">
           <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-primary-300 transition cursor-pointer">
             <div class="flex items-start justify-between mb-4">
@@ -123,7 +125,6 @@
           </div>
         </router-link>
 
-        <!-- Attendance -->
         <router-link :to="`/class/${classId}/attendance`" class="group">
           <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-success-300 transition cursor-pointer">
             <div class="flex items-start justify-between mb-4">
@@ -142,7 +143,6 @@
           </div>
         </router-link>
 
-        <!-- Grades -->
         <router-link :to="`/class/${classId}/grades`" class="group">
           <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-violet-300 transition cursor-pointer">
             <div class="flex items-start justify-between mb-4">
@@ -161,7 +161,6 @@
           </div>
         </router-link>
 
-        <!-- Lessons -->
         <router-link :to="`/class/${classId}/lessons`" class="group">
           <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-amber-300 transition cursor-pointer">
             <div class="flex items-start justify-between mb-4">
@@ -182,13 +181,11 @@
       </div>
     </template>
 
-    <!-- Not found -->
     <div v-else class="flex flex-col items-center justify-center h-64 gap-4">
       <p class="text-grey-600">Class not found.</p>
       <router-link to="/" class="text-primary-600 hover:underline">Back to Dashboard</router-link>
     </div>
 
-    <!-- Edit Modal -->
     <TransitionRoot :show="showEditModal" as="template">
       <Dialog @close="showEditModal = false" class="relative z-50">
         <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
@@ -206,36 +203,84 @@
                 <form @submit.prevent="submitEdit" class="p-6 space-y-4">
                   <div>
                     <label class="block text-sm font-medium text-grey-700 mb-2">Class Name *</label>
-                    <input v-model="editForm.name" type="text" required
+                    <input
+                      v-model="editForm.name"
+                      type="text"
+                      required
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g. 3G — Mathematics" />
+                      placeholder="e.g. 3G - Mathematics"
+                    />
                   </div>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
                       <label class="block text-sm font-medium text-grey-700 mb-2">Subject</label>
-                      <input v-model="editForm.subject" type="text"
+                      <input
+                        v-model="editForm.subject"
+                        type="text"
                         class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Mathematics" />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Period</label>
-                      <input v-model="editForm.period" type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Period 3" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Room</label>
-                      <input v-model="editForm.room" type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Room 204" />
+                        placeholder="Mathematics"
+                      />
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-grey-700 mb-2">School</label>
-                      <input v-model="editForm.school" type="text"
+                      <input
+                        v-model="editForm.school"
+                        type="text"
                         class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Lycée Pilote" />
+                        placeholder="Lycee Pilote"
+                      />
+                    </div>
+                  </div>
+                  <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 class="text-sm font-semibold text-grey-900">Timetable</h3>
+                        <p class="text-xs text-grey-500">Fill the schedule to update the class slot, or leave it blank to keep no schedule.</p>
+                      </div>
+                      <span class="text-xs font-medium text-grey-500">
+                        {{ classTimetableEntries.length }} slot{{ classTimetableEntries.length !== 1 ? 's' : '' }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium text-grey-700 mb-2">Day</label>
+                        <select
+                          v-model="editForm.day_of_week"
+                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                        >
+                          <option :value="null">No schedule</option>
+                          <option v-for="day in dayOptions" :key="day.value" :value="day.value">
+                            {{ day.label }}
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
+                        <input
+                          v-model="editForm.classroom"
+                          type="text"
+                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="Room 12"
+                        />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium text-grey-700 mb-2">Start Time</label>
+                        <input
+                          v-model="editForm.start_time"
+                          type="time"
+                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-grey-700 mb-2">End Time</label>
+                        <input
+                          v-model="editForm.end_time"
+                          type="time"
+                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -254,13 +299,19 @@
                     <p class="text-sm text-red-700">{{ editError }}</p>
                   </div>
                   <div class="flex gap-3 pt-2">
-                    <button type="button" @click="showEditModal = false"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition">
+                    <button
+                      type="button"
+                      @click="showEditModal = false"
+                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+                    >
                       Cancel
                     </button>
-                    <button type="submit" :disabled="saving"
-                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50">
-                      {{ saving ? 'Saving…' : 'Save Changes' }}
+                    <button
+                      type="submit"
+                      :disabled="saving"
+                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
+                    >
+                      {{ saving ? 'Saving...' : 'Save Changes' }}
                     </button>
                   </div>
                 </form>
@@ -277,34 +328,51 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  AcademicCapIcon, ClockIcon, HomeIcon, BuildingOfficeIcon,
-  UserGroupIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon,
-  ChartBarIcon, DocumentTextIcon, DocumentArrowUpIcon,
-  CalendarDaysIcon, ChevronRightIcon, PencilIcon, TrashIcon
+  AcademicCapIcon,
+  ClockIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon,
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentListIcon,
+  ChartBarIcon,
+  DocumentTextIcon,
+  DocumentArrowUpIcon,
+  CalendarDaysIcon,
+  ChevronRightIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
 import { useClassesStore } from '@/stores/classesStore';
 import api from '@/services/api';
 
-const route  = useRoute();
+const route = useRoute();
 const router = useRouter();
 const classesStore = useClassesStore();
 
 const classId = computed(() => parseInt(route.params.id));
 
-// Derive classData reactively from the store so edits are instant everywhere
 const classData = computed(() =>
-  classesStore.classes.find(c => c.id === classId.value) ?? null
+  classesStore.classes.find((c) => c.id === classId.value) ?? null
 );
 
 const loading = ref(true);
-const stats   = ref({ students: 0, examTypes: 0, lessons: 0 });
+const stats = ref({ students: 0, examTypes: 0, lessons: 0 });
+const timetableEntries = ref([]);
 
-// Edit modal
 const showEditModal = ref(false);
-const saving        = ref(false);
-const editError     = ref('');
-const editForm      = ref({ name: '', subject: '', period: '', room: '', school: '', color: '#3b82f6' });
+const saving = ref(false);
+const editError = ref('');
+const editForm = ref({
+  name: '',
+  subject: '',
+  school: '',
+  color: '#3b82f6',
+  day_of_week: null,
+  classroom: '',
+  start_time: '',
+  end_time: ''
+});
 
 const colors = [
   '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6',
@@ -312,8 +380,30 @@ const colors = [
   '#6366f1', '#84cc16', '#f97316', '#14b8a6'
 ];
 
+const dayOptions = [
+  { value: 0, label: 'Monday' },
+  { value: 1, label: 'Tuesday' },
+  { value: 2, label: 'Wednesday' },
+  { value: 3, label: 'Thursday' },
+  { value: 4, label: 'Friday' },
+  { value: 5, label: 'Saturday' },
+  { value: 6, label: 'Sunday' }
+];
+
+const classTimetableEntries = computed(() =>
+  timetableEntries.value.filter((entry) => entry.class_id === classId.value)
+);
+
+const scheduleSummary = computed(() => {
+  const entry = classTimetableEntries.value[0];
+  if (!entry) return '';
+  const day = dayOptions.find((option) => option.value === entry.day_of_week)?.label || `Day ${entry.day_of_week}`;
+  const time = `${entry.start_time} - ${entry.end_time}`;
+  return entry.classroom ? `${day} - ${time} - ${entry.classroom}` : `${day} - ${time}`;
+});
+
 function formatShortDate(dt) {
-  if (!dt) return '—';
+  if (!dt) return '-';
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
@@ -327,41 +417,89 @@ async function loadStats() {
     api.getExamTypes(classId.value),
     api.getLessons(classId.value, { limit: 1, refresh: false })
   ]);
-  if (studentsRes.status  === 'fulfilled' && studentsRes.value.success)
-    stats.value.students  = studentsRes.value.students?.length ?? 0;
-  if (examTypesRes.status === 'fulfilled' && examTypesRes.value.success)
+
+  if (studentsRes.status === 'fulfilled' && studentsRes.value.success) {
+    stats.value.students = studentsRes.value.students?.length ?? 0;
+  }
+  if (examTypesRes.status === 'fulfilled' && examTypesRes.value.success) {
     stats.value.examTypes = examTypesRes.value.exam_types?.length ?? 0;
-  if (lessonsRes.status   === 'fulfilled' && lessonsRes.value.success)
-    stats.value.lessons   = lessonsRes.value.uploads?.length ?? 0;
+  }
+  if (lessonsRes.status === 'fulfilled' && lessonsRes.value.success) {
+    stats.value.lessons = lessonsRes.value.uploads?.length ?? 0;
+  }
+}
+
+async function loadTimetable() {
+  try {
+    const res = await api.getTimetable();
+    if (res.success) {
+      timetableEntries.value = res.timetable || [];
+    }
+  } catch (err) {
+    console.error('Failed to load timetable:', err);
+  }
 }
 
 function openEdit() {
   if (!classData.value) return;
+  const timetableEntry = classTimetableEntries.value[0] || null;
   editForm.value = {
-    name:    classData.value.name    || '',
+    name: classData.value.name || '',
     subject: classData.value.subject || '',
-    period:  classData.value.period  || '',
-    room:    classData.value.room    || '',
-    school:  classData.value.school  || '',
-    color:   classData.value.color   || '#3b82f6'
+    school: classData.value.school || '',
+    color: classData.value.color || '#3b82f6',
+    day_of_week: timetableEntry ? timetableEntry.day_of_week : null,
+    classroom: timetableEntry?.classroom || '',
+    start_time: timetableEntry?.start_time || '',
+    end_time: timetableEntry?.end_time || ''
   };
-  editError.value   = '';
+  editError.value = '';
   showEditModal.value = true;
 }
 
 async function submitEdit() {
   editError.value = '';
-  saving.value    = true;
+  saving.value = true;
+
   try {
     const res = await api.updateClass(classId.value, {
-      name:    editForm.value.name,
-      subject: editForm.value.subject
+      name: editForm.value.name,
+      subject: editForm.value.subject,
+      school: editForm.value.school,
+      color: editForm.value.color
     });
-    if (res.success) {
-      // Merge all form fields (including frontend-only ones) into the store
-      classesStore.update(classId.value, { ...editForm.value, ...res.class });
-      showEditModal.value = false;
+
+    if (!res.success) return;
+
+    classesStore.update(classId.value, res.class);
+
+    const hasDay = editForm.value.day_of_week !== null && editForm.value.day_of_week !== '';
+    const hasStart = String(editForm.value.start_time || '').trim() !== '';
+    const hasEnd = String(editForm.value.end_time || '').trim() !== '';
+    const hasClassroom = String(editForm.value.classroom || '').trim() !== '';
+    const hasAnyScheduleValue = hasDay || hasStart || hasEnd || hasClassroom;
+    const hasCompleteSchedule = hasDay && hasStart && hasEnd;
+
+    if (hasAnyScheduleValue && !hasCompleteSchedule) {
+      throw new Error('Please fill day, start time, and end time together, or leave the schedule blank.');
     }
+
+    for (const entry of classTimetableEntries.value) {
+      await api.deleteTimetable(entry.id);
+    }
+
+    if (hasCompleteSchedule) {
+      await api.createTimetable([{
+        class_id: classId.value,
+        day_of_week: Number(editForm.value.day_of_week),
+        start_time: editForm.value.start_time,
+        end_time: editForm.value.end_time,
+        classroom: hasClassroom ? String(editForm.value.classroom).trim() : null
+      }]);
+    }
+
+    await loadTimetable();
+    showEditModal.value = false;
   } catch (err) {
     editError.value = err.message || 'Failed to update class';
   } finally {
@@ -373,7 +511,7 @@ async function handleDeleteClass() {
   if (!confirm(`Delete class "${classData.value?.name}"? This cannot be undone.`)) return;
   try {
     await api.deleteClass(classId.value);
-    classesStore.remove(classId.value);   // sidebar updates immediately
+    classesStore.remove(classId.value);
     router.push('/');
   } catch (err) {
     alert('Failed to delete: ' + err.message);
@@ -381,8 +519,8 @@ async function handleDeleteClass() {
 }
 
 onMounted(async () => {
-  // Ensure the store is populated before we look up classData
   await classesStore.load();
+  await loadTimetable();
   await loadStats();
   loading.value = false;
 });

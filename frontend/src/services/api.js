@@ -71,15 +71,18 @@ class ApiService {
   // ─── Authentication ────────────────────────────────────────────────────────
 
   async register(name, email, password, initials = null) {
+    const payload = {
+      name,
+      email,
+      password
+    };
+    if (initials !== null && initials !== undefined && String(initials).trim() !== '') {
+      payload.initials = initials;
+    }
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        initials: initials || name.substring(0, 2).toUpperCase()
-      })
+      body: JSON.stringify(payload)
     });
     return this.handleResponse(response);
   }
@@ -111,11 +114,36 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async getTimetable() {
+    const response = await fetch(`${API_BASE_URL}/timetable`, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
   async createClass(classData) {
     const response = await fetch(`${API_BASE_URL}/classes`, {
       method: 'POST',
       headers: this.getHeaders(true),
       body: JSON.stringify(classData)
+    });
+    return this.handleResponse(response);
+  }
+
+  async createTimetable(entries) {
+    const response = await fetch(`${API_BASE_URL}/timetable`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ entries })
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteTimetable(timetableId) {
+    const response = await fetch(`${API_BASE_URL}/timetable/${timetableId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
     });
     return this.handleResponse(response);
   }

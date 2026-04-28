@@ -1,6 +1,5 @@
 <template>
   <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
-    <!-- Header -->
     <div class="bg-white border-b border-grey-200 px-8 py-6">
       <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
         <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition flex items-center gap-1">
@@ -10,118 +9,125 @@
         <span>/</span>
         <span class="text-grey-900 font-medium">Lessons</span>
       </div>
-      <div class="flex items-center justify-between">
+
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-grey-900 mb-1">Lessons</h1>
-          <p class="text-grey-600">{{ files.length }} file{{ files.length !== 1 ? 's' : '' }} uploaded</p>
+          <h1 class="text-3xl font-bold text-grey-900 mb-1">Class Lessons</h1>
+          <p class="text-grey-600">{{ attachedFiles.length }} attached file{{ attachedFiles.length !== 1 ? 's' : '' }}</p>
         </div>
         <button
-          @click="showUploadModal = true"
-          class="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 shadow-sm transition"
+          @click="attachSelectedAssets"
+          :disabled="selectedAssetIds.length === 0 || attaching"
+          class="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 shadow-sm transition disabled:opacity-50"
         >
           <ArrowUpTrayIcon class="w-5 h-5" />
-          Upload File
+          {{ attaching ? 'Attaching...' : `Attach Selected (${selectedAssetIds.length})` }}
         </button>
       </div>
     </div>
 
-    <div class="p-8">
-      <!-- Loading -->
-      <div v-if="loading" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="files.length === 0" class="bg-white rounded-xl border border-grey-200 shadow-sm p-16 text-center">
-        <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-grey-900 mb-2">No files uploaded yet</h3>
-        <p class="text-grey-600 mb-6">Upload PDF teaching materials for this class.</p>
-        <button @click="showUploadModal = true"
-          class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition">
-          <ArrowUpTrayIcon class="w-5 h-5" />
-          Upload First File
-        </button>
-      </div>
-
-      <!-- Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="file in files" :key="file.id"
-          class="bg-white rounded-xl border border-grey-200 shadow-sm overflow-hidden hover:shadow-md transition group">
-          <div class="h-28 flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600">
-            <DocumentTextIcon class="w-14 h-14 text-white" />
+    <div class="p-8 space-y-8">
+      <section class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-lg font-semibold text-grey-900">Attached Files</h2>
+            <p class="text-sm text-grey-600">These are the files currently available in this class.</p>
           </div>
-          <div class="p-5">
-            <h3 class="font-semibold text-grey-900 mb-3 truncate" :title="file.name">{{ file.name }}</h3>
-            <div class="flex items-center justify-between text-xs text-grey-500 mb-4">
-              <span>{{ formatDate(file.created_at) }}</span>
-              <span>{{ formatSize(file.size) }}</span>
-            </div>
-            <div class="flex gap-2">
-              <button @click="downloadFile(file)"
-                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition text-sm font-medium">
-                <ArrowDownTrayIcon class="w-4 h-4" />
-                Download
-              </button>
-              <button @click="deleteFile(file)"
-                class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition">
-                <TrashIcon class="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <button
+            @click="loadAttachedFiles"
+            class="text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            Refresh
+          </button>
         </div>
-      </div>
+
+        <div v-if="loadingAttached" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
+        </div>
+
+        <div v-else-if="attachedFiles.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
+          <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 mb-2">No attached files yet</h3>
+          <p class="text-grey-600">Choose files from the reusable library below and attach them to this class.</p>
+        </div>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <article
+            v-for="file in attachedFiles"
+            :key="file.id"
+            class="rounded-xl border border-grey-200 overflow-hidden bg-grey-50/40"
+          >
+            <div class="h-24 flex items-center justify-center bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800">
+              <DocumentTextIcon class="w-10 h-10 text-white/90" />
+            </div>
+            <div class="p-4">
+              <h3 class="font-semibold text-grey-900 truncate" :title="file.name">{{ file.name }}</h3>
+              <p class="text-xs text-grey-500 mt-1">{{ formatSize(file.size) }} - {{ formatDate(file.created_at) }}</p>
+              <div class="mt-4 flex gap-2">
+                <button
+                  @click="downloadAttachedFile(file)"
+                  class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-grey-200 text-grey-700 rounded-lg hover:bg-grey-50 transition text-sm font-medium"
+                >
+                  <ArrowDownTrayIcon class="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  @click="deleteAttachedFile(file)"
+                  class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                >
+                  <TrashIcon class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-lg font-semibold text-grey-900">Lesson Library</h2>
+            <p class="text-sm text-grey-600">Select reusable assets to attach to this class.</p>
+          </div>
+          <span class="text-sm text-grey-600">{{ lessonLibrary.assets.length }} asset{{ lessonLibrary.assets.length !== 1 ? 's' : '' }}</span>
+        </div>
+
+        <div v-if="lessonLibrary.loading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
+        </div>
+
+        <div v-else-if="lessonLibrary.assets.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
+          <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 mb-2">No reusable assets yet</h3>
+          <p class="text-grey-600">Add assets from the main Lessons library first.</p>
+        </div>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <article
+            v-for="asset in lessonLibrary.assets"
+            :key="asset.id"
+            class="rounded-xl border transition overflow-hidden"
+            :class="selectedAssetIds.includes(asset.id) ? 'border-primary-500 ring-1 ring-primary-200' : 'border-grey-200'"
+          >
+            <label class="cursor-pointer block">
+              <div class="h-24 flex items-center justify-center bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800 relative">
+                <input
+                  type="checkbox"
+                  class="absolute top-3 left-3 h-4 w-4 rounded border-grey-300 text-primary-600 focus:ring-primary-500"
+                  :value="asset.id"
+                  v-model="selectedAssetIds"
+                />
+                <DocumentTextIcon class="w-10 h-10 text-white/90" />
+              </div>
+              <div class="p-4 bg-white">
+                <h3 class="font-semibold text-grey-900 truncate" :title="asset.name">{{ asset.name }}</h3>
+                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.createdAt) }}</p>
+              </div>
+            </label>
+          </article>
+        </div>
+      </section>
     </div>
-
-    <!-- Upload Modal -->
-    <TransitionRoot :show="showUploadModal" as="template">
-      <Dialog @close="showUploadModal = false" class="relative z-50">
-        <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
-          leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
-          <div class="fixed inset-0 bg-black/25 backdrop-blur-sm" />
-        </TransitionChild>
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
-              leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-md bg-white rounded-2xl shadow-xl">
-                <div class="p-6 border-b border-grey-200">
-                  <DialogTitle class="text-xl font-semibold text-grey-900">Upload Lesson File</DialogTitle>
-                </div>
-                <div class="p-6 space-y-4">
-                  <div class="border-2 border-dashed border-grey-300 rounded-lg p-8 text-center hover:border-primary-500 transition">
-                    <input type="file" ref="fileInput" @change="handleFileSelect" accept=".pdf" class="hidden" />
-                    <button type="button" @click="$refs.fileInput.click()"
-                      class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700">
-                      <ArrowUpTrayIcon class="w-6 h-6" />
-                      <span class="font-medium">Click to browse files</span>
-                    </button>
-                    <p class="text-sm text-grey-500 mt-2">PDF files only · Max 150 MB</p>
-                    <div v-if="selectedFile" class="mt-4 flex items-center justify-center gap-2 text-sm text-grey-700">
-                      <DocumentIcon class="w-5 h-5 text-primary-500" />
-                      <span class="font-medium">{{ selectedFile.name }}</span>
-                      <span class="text-grey-400">({{ formatSize(selectedFile.size) }})</span>
-                    </div>
-                  </div>
-                  <div v-if="uploadError" class="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p class="text-sm text-red-700">{{ uploadError }}</p>
-                  </div>
-                  <div class="flex gap-3">
-                    <button @click="showUploadModal = false"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition">
-                      Cancel
-                    </button>
-                    <button @click="handleUpload" :disabled="!selectedFile || uploading"
-                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50">
-                      {{ uploading ? 'Uploading…' : 'Upload' }}
-                    </button>
-                  </div>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </div>
-      </Dialog>
-    </TransitionRoot>
   </div>
 </template>
 
@@ -134,89 +140,92 @@ import {
   ArrowDownTrayIcon,
   DocumentIcon,
   DocumentTextIcon,
-  TrashIcon
+  TrashIcon,
 } from '@heroicons/vue/24/outline';
-import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
+import { useLessonLibraryStore } from '@/stores/lessonLibraryStore';
 import api from '@/services/api';
 
 const route = useRoute();
 const classId = computed(() => parseInt(route.params.id));
+const lessonLibrary = useLessonLibraryStore();
 
-const loading = ref(true);
-const files = ref([]);
-const showUploadModal = ref(false);
-const uploading = ref(false);
-const uploadError = ref('');
-const selectedFile = ref(null);
+const attachedFiles = ref([]);
+const loadingAttached = ref(true);
+const attaching = ref(false);
+const selectedAssetIds = ref([]);
 
 function formatDate(dt) {
-  if (!dt) return '—';
+  if (!dt) return '-';
   return new Date(dt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function formatSize(bytes) {
   if (!bytes) return '0 KB';
   const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  return `${(kb / 1024).toFixed(1)} MB`;
+  return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
 }
 
-async function loadFiles() {
-  loading.value = true;
+async function loadAttachedFiles() {
+  loadingAttached.value = true;
   try {
     const res = await api.getLessons(classId.value, { limit: 100, refresh: true });
-    if (res.success) files.value = res.uploads || [];
-  } catch (e) {
-    console.error(e);
-  } finally {
-    loading.value = false;
-  }
-}
-
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.pdf')) { uploadError.value = 'Only PDF files are allowed'; return; }
-  if (file.size > 150 * 1024 * 1024) { uploadError.value = 'File exceeds 150 MB'; return; }
-  selectedFile.value = file;
-  uploadError.value = '';
-}
-
-async function handleUpload() {
-  if (!selectedFile.value) return;
-  uploading.value = true;
-  uploadError.value = '';
-  try {
-    const fd = new FormData();
-    fd.append('file', selectedFile.value);
-    fd.append('class_id', classId.value);
-    const res = await api.uploadLesson(fd);
     if (res.success) {
-      files.value.unshift(res.upload);
-      showUploadModal.value = false;
-      selectedFile.value = null;
-      if (res.upload.already_exists) alert('This file already exists in this class.');
+      attachedFiles.value = res.uploads || [];
     }
   } catch (err) {
-    uploadError.value = err.message || 'Upload failed';
+    console.error('Failed to load class lessons:', err);
   } finally {
-    uploading.value = false;
+    loadingAttached.value = false;
   }
 }
 
-function downloadFile(file) {
-  window.open(`http://localhost:8000/uploads/classes/${classId.value}/${file.name}`, '_blank');
+function downloadAttachedFile(file) {
+  const url = `http://localhost:8000/uploads/classes/${classId.value}/${file.name}`;
+  window.open(url, '_blank');
 }
 
-async function deleteFile(file) {
-  if (!confirm(`Delete "${file.name}"?`)) return;
+async function deleteAttachedFile(file) {
+  if (!confirm(`Delete "${file.name}" from this class?`)) return;
   try {
-    await api.deleteLesson(file.id);
-    files.value = files.value.filter(f => f.id !== file.id);
+    const lessonId = file.id || file.upload_id;
+    if (!lessonId) {
+      throw new Error('Missing lesson id');
+    }
+    await api.deleteLesson(lessonId);
+    await loadAttachedFiles();
   } catch (err) {
     alert('Failed to delete: ' + err.message);
   }
 }
 
-onMounted(loadFiles);
+async function attachSelectedAssets() {
+  if (selectedAssetIds.value.length === 0) return;
+  attaching.value = true;
+  try {
+    for (const assetId of selectedAssetIds.value) {
+      const asset = await lessonLibrary.getById(assetId);
+      if (!asset) continue;
+
+      const file = new File([asset.blob], asset.name, {
+        type: asset.type || 'application/octet-stream',
+      });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('class_id', classId.value);
+      await api.uploadLesson(formData);
+    }
+
+    selectedAssetIds.value = [];
+    await loadAttachedFiles();
+  } catch (err) {
+    alert('Failed to attach selected assets: ' + err.message);
+  } finally {
+    attaching.value = false;
+  }
+}
+
+onMounted(async () => {
+  await lessonLibrary.load();
+  await loadAttachedFiles();
+});
 </script>

@@ -31,11 +31,11 @@
           v-for="item in navigation"
           :key="item.name"
           :to="item.to"
-          v-slot="{ isActive }"
+          v-slot="{ isActive, isExactActive }"
         >
           <button :class="[
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-            isActive ? 'bg-primary-50 text-primary-600' : 'text-grey-700 hover:bg-grey-100'
+            navClass(item.to, isActive, isExactActive)
           ]">
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
             <span v-show="sidebarExpanded" class="font-medium">{{ item.name }}</span>
@@ -205,6 +205,11 @@ const userInitials = computed(() =>
   || authStore.user?.name?.substring(0, 2).toUpperCase()
   || 'U'
 );
+
+function navClass(to, isActive, isExactActive) {
+  const active = to === '/' ? isExactActive : isActive;
+  return active ? 'bg-primary-50 text-primary-600' : 'text-grey-700 hover:bg-grey-100';
+}
 
 function handleLogout() {
   authStore.logout();

@@ -58,11 +58,11 @@
         <div class="p-6 space-y-3">
           <div class="flex items-center gap-2 text-sm text-grey-600">
             <ClockIcon class="w-4 h-4" />
-            {{ cls.period || 'No period set' }}
+            {{ formatScheduleSummary(getClassSchedule(cls.id)) }}
           </div>
           <div class="flex items-center gap-2 text-sm text-grey-600">
             <HomeIcon class="w-4 h-4" />
-            {{ cls.room || 'No room set' }}
+            {{ getClassSchedule(cls.id)?.classroom || 'No classroom set' }}
           </div>
           <div class="flex items-center gap-2 text-sm text-grey-600">
             <BuildingOfficeIcon class="w-4 h-4" />
@@ -99,38 +99,79 @@
                 <form @submit.prevent="handleCreateClass" class="p-6 space-y-4">
                   <div>
                     <label class="block text-sm font-medium text-grey-700 mb-2">Class Name *</label>
-                    <input v-model="createForm.name" type="text" required
+                    <input
+                      v-model="createForm.name"
+                      type="text"
+                      required
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="e.g. 3G — Mathematics" />
+                      placeholder="e.g. 3G - Mathematics"
+                    />
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">
                     <div>
                       <label class="block text-sm font-medium text-grey-700 mb-2">Subject</label>
-                      <input v-model="createForm.subject" type="text"
+                      <input
+                        v-model="createForm.subject"
+                        type="text"
                         class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Mathematics" />
+                        placeholder="Mathematics"
+                      />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Period</label>
-                      <input v-model="createForm.period" type="text"
+                      <label class="block text-sm font-medium text-grey-700 mb-2">School</label>
+                      <input
+                        v-model="createForm.school"
+                        type="text"
                         class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Period 3" />
+                        placeholder="Lycee Pilote"
+                      />
                     </div>
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Room</label>
-                      <input v-model="createForm.room" type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Room 204" />
+                      <label class="block text-sm font-medium text-grey-700 mb-2">Day *</label>
+                      <select
+                        v-model="createForm.day_of_week"
+                        required
+                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                      >
+                        <option :value="null" disabled>Select day</option>
+                        <option v-for="day in dayOptions" :key="day.value" :value="day.value">
+                          {{ day.label }}
+                        </option>
+                      </select>
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">School</label>
-                      <input v-model="createForm.school" type="text"
+                      <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
+                      <input
+                        v-model="createForm.classroom"
+                        type="text"
                         class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Lycée Pilote" />
+                        placeholder="Room 204"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-grey-700 mb-2">Start Time *</label>
+                      <input
+                        v-model="createForm.start_time"
+                        type="time"
+                        required
+                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-grey-700 mb-2">End Time *</label>
+                      <input
+                        v-model="createForm.end_time"
+                        type="time"
+                        required
+                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
                     </div>
                   </div>
 
@@ -152,13 +193,19 @@
                   </div>
 
                   <div class="flex gap-3 pt-4">
-                    <button type="button" @click="showCreateModal = false"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition">
+                    <button
+                      type="button"
+                      @click="showCreateModal = false"
+                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+                    >
                       Cancel
                     </button>
-                    <button type="submit" :disabled="creating"
-                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50">
-                      {{ creating ? 'Creating…' : 'Create Class' }}
+                    <button
+                      type="submit"
+                      :disabled="creating"
+                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
+                    >
+                      {{ creating ? 'Creating...' : 'Create Class' }}
                     </button>
                   </div>
                 </form>
@@ -190,6 +237,7 @@ const classesStore = useClassesStore();
 const showCreateModal = ref(false);
 const creating = ref(false);
 const error = ref('');
+const timetable = ref([]);
 
 const colors = [
   '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6',
@@ -197,8 +245,25 @@ const colors = [
   '#6366f1', '#84cc16', '#f97316', '#14b8a6'
 ];
 
+const dayOptions = [
+  { value: 0, label: 'Monday' },
+  { value: 1, label: 'Tuesday' },
+  { value: 2, label: 'Wednesday' },
+  { value: 3, label: 'Thursday' },
+  { value: 4, label: 'Friday' },
+  { value: 5, label: 'Saturday' },
+  { value: 6, label: 'Sunday' }
+];
+
 const createForm = ref({
-  name: '', subject: '', period: '', room: '', school: '', color: '#3b82f6'
+  name: '',
+  subject: '',
+  school: '',
+  color: '#3b82f6',
+  day_of_week: null,
+  start_time: '08:00',
+  end_time: '09:00',
+  classroom: ''
 });
 
 function adjustColor(color, percent) {
@@ -210,16 +275,68 @@ function adjustColor(color, percent) {
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
 }
 
+function dayLabel(day) {
+  return dayOptions.find(option => option.value === day)?.label || 'Unknown day';
+}
+
+function getClassSchedule(classId) {
+  return timetable.value.find(entry => entry.class_id === classId) || null;
+}
+
+function formatScheduleSummary(entry) {
+  if (!entry) return 'No schedule set';
+  return `${dayLabel(entry.day_of_week)} ${entry.start_time} - ${entry.end_time}`;
+}
+
+async function loadTimetable() {
+  try {
+    const response = await api.getTimetable();
+    if (response.success) {
+      timetable.value = response.timetable || [];
+    }
+  } catch (err) {
+    console.error('Failed to load timetable on dashboard:', err);
+  }
+}
+
 async function handleCreateClass() {
   creating.value = true;
   error.value = '';
   try {
-    const response = await api.createClass(createForm.value);
-    if (response.success) {
-      // Push to store — sidebar updates automatically
-      classesStore.add({ ...createForm.value, ...response.class });
+    const classResponse = await api.createClass({
+      name: createForm.value.name,
+      subject: createForm.value.subject,
+      school: createForm.value.school || null,
+      color: createForm.value.color || null
+    });
+
+    if (classResponse.success) {
+      classesStore.add(classResponse.class);
+
+      try {
+        await api.createTimetable([{
+          class_id: classResponse.class.id,
+          day_of_week: createForm.value.day_of_week,
+          start_time: createForm.value.start_time,
+          end_time: createForm.value.end_time,
+          classroom: createForm.value.classroom || null
+        }]);
+      } catch (scheduleErr) {
+        console.error('Failed to create timetable entry:', scheduleErr);
+      }
+
+      await loadTimetable();
       showCreateModal.value = false;
-      createForm.value = { name: '', subject: '', period: '', room: '', school: '', color: '#3b82f6' };
+      createForm.value = {
+        name: '',
+        subject: '',
+        school: '',
+        color: '#3b82f6',
+        day_of_week: null,
+        start_time: '08:00',
+        end_time: '09:00',
+        classroom: ''
+      };
     }
   } catch (err) {
     error.value = err.message;
@@ -229,7 +346,6 @@ async function handleCreateClass() {
 }
 
 onMounted(() => {
-  // load() is idempotent — skips the API call if already loaded
-  classesStore.load();
+  classesStore.load().then(loadTimetable);
 });
 </script>
