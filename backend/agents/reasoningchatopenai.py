@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessageChunk
+from langchain_core.messages import AIMessageChunk,AIMessage
 class ChatOpenAIWithReasoning(ChatOpenAI):
     """Preserve provider-native reasoning keys on streamed chunks."""
 
@@ -27,3 +27,21 @@ class ChatOpenAIWithReasoning(ChatOpenAI):
             pass
 
         return generation_chunk
+
+
+
+def _extract_reasoning(msg: AIMessage) -> str:
+    out = ""
+    additional = getattr(msg, "additional_kwargs", None)
+    if isinstance(additional, dict):
+        val = additional.get("reasoning") or additional.get("reasoning_content")
+        if isinstance(val, str):
+            out += val
+    blocks = getattr(msg, "content_blocks", None)
+    if isinstance(blocks, list):
+        for block in blocks:
+            if isinstance(block, dict) and block.get("type") == "reasoning":
+                val = block.get("reasoning") or block.get("text")
+                if isinstance(val, str):
+                    out += val
+    return out

@@ -295,6 +295,13 @@ def delete_exam_paper(
 # ══════════════════════════════════════════════════════════════════════════════
 #  BLUEPRINT  --  Phase 1 (/analyse)
 # ══════════════════════════════════════════════════════════════════════════════
+class AnalyseRequest(BaseModel):
+    exam_paper_id: int
+    lesson_file_ids: list[str] = []
+    preferences: str = ""
+    style_guide: str = ""
+    title: str
+    reasoning: bool = False
 
 @router.post("/analyse")
 async def analyse_blueprint(
@@ -327,7 +334,13 @@ async def analyse_blueprint(
         if not isinstance(doc_ids, list):
             raise ValueError
     except (json.JSONDecodeError, ValueError):
-        raise AppError("GRADING_INVALID_PARAMS", "lesson_file_ids must be a JSON array.", 400)
+        doc_ids = [item.strip() for item in lesson_file_ids.split(",") if item.strip()]
+    if not isinstance(doc_ids, list):
+        raise AppError(
+            "GRADING_INVALID_PARAMS",
+            "lesson_file_ids must be a JSON array or a comma-separated list of IDs.",
+            400
+        )
 
     for fid in doc_ids:
         upload = session.get(Upload, fid)

@@ -97,23 +97,7 @@ def _make_llm(reasoning: bool) -> ChatOpenAIWithReasoning:
 
 # ─── Reasoning extraction ─────────────────────────────────────────────────────
 
-def _extract_reasoning(msg: AIMessage) -> str:
-    out = ""
-    additional = getattr(msg, "additional_kwargs", None)
-    if isinstance(additional, dict):
-        for key in ("reasoning", "reasoning_content"):
-            val = additional.get(key)
-            if isinstance(val, str):
-                out += val
-    blocks = getattr(msg, "content_blocks", None)
-    if isinstance(blocks, list):
-        for block in blocks:
-            if isinstance(block, dict) and block.get("type") == "reasoning":
-                val = block.get("reasoning") or block.get("text")
-                if isinstance(val, str):
-                    out += val
-    return out
-
+from backend.agents.reasoningchatopenai import _extract_reasoning
 
 # ─── Exam JSON extraction helper ──────────────────────────────────────────────
 
@@ -184,7 +168,7 @@ Step 2 — Retrieve relevant pages
   For each question you plan to write, call rag_retrieve(query, doc_ids, max_px) to fetch the
   relevant pages. Ground EVERY question in retrieved material — do NOT fabricate questions
   about content you have not actually retrieved.
-  Choose max_px based on content type (512 text / 768 tables-formulas / 1280 diagrams / 1536 detailed).
+  Choose max_px based on content type (512 text / 768 tables-formulas / 900 detailed).
 
 Step 3 — Generate the exam
   Respect the teacher's preferences exactly:

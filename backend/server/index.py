@@ -14,7 +14,7 @@ from backend.server.routes.attendance_route import router as attendance_router
 from backend.server.routes.timetable_route import router as timetable_router
 from backend.server.routes.exam_types_route import router as exam_types_router
 from backend.server.routes.grades_route import router as grades_router
-from backend.server.routes.agents_route import router as agents_router
+from backend.server.routes.pedagogical_route import router as pedagogical_router
 from backend.server.routes.grading_route import router as grading_router
 from backend.server.routes.creator_route import router as creator_router
 
@@ -129,6 +129,6 @@ app.include_router(attendance_router)
 app.include_router(timetable_router)
 app.include_router(exam_types_router)
 app.include_router(grades_router)
-app.include_router(agents_router)
+app.include_router(pedagogical_router)
 app.include_router(grading_router)
 app.include_router(creator_router)

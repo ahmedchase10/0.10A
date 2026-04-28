@@ -88,10 +88,9 @@ Step 3 — Does the query need rewriting before searching?
 Step 4 — Retrieve and answer
   Call `rag_retrieve(query, doc_ids, max_px)`.
   Choose max_px by expected visual complexity:
-      512  → simple factual / short text
+      600  → simple factual / short text
       768  → dense text, formulas, tables
-      1280 → diagrams, graphs, schematics
-      1536 → highly detailed technical visuals
+      900 → diagrams, graphs, schematics
   If retrieved pages do not contain enough to answer confidently, say so clearly. Never fabricate.
 
 ━━━ MATH PROBLEMS ━━━
@@ -110,29 +109,7 @@ class AgentState(TypedDict):
 
 # ─── Reasoning helpers ────────────────────────────────────────────────────────
 
-def _extract_reasoning_from_ai_message(msg: AIMessage) -> str:
-    """Best-effort extraction of assistant reasoning from known LangChain shapes."""
-    out = ""
-
-    additional = getattr(msg, "additional_kwargs", None)
-    if isinstance(additional, dict):
-        for key in ("reasoning", "reasoning_content"):
-            val = additional.get(key)
-            if isinstance(val, str):
-                out += val
-
-    blocks = getattr(msg, "content_blocks", None)
-    if isinstance(blocks, list):
-        for block in blocks:
-            if not isinstance(block, dict):
-                continue
-            if block.get("type") != "reasoning":
-                continue
-            val = block.get("reasoning") or block.get("text")
-            if isinstance(val, str):
-                out += val
-
-    return out
+from backend.agents.reasoningchatopenai import _extract_reasoning
 
 
 # ─── LLM wrapper: keep reasoning deltas from OpenAI-compatible streams ────────
@@ -237,7 +214,7 @@ async def agent_node(state: AgentState) -> dict:
     response: AIMessage = await llm_with_tools.ainvoke(lc_messages)
 
     # Persist reasoning on the checkpointed assistant message so next turn can resend it.
-    final_reasoning = _extract_reasoning_from_ai_message(response)
+    final_reasoning = _extract_reasoning(response)
     if final_reasoning:
         response.additional_kwargs["reasoning"] = final_reasoning
 
