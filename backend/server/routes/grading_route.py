@@ -68,12 +68,6 @@ _EXAM_PAPERS_DIR  = _BASE_DIR / "uploads" / "exam_papers"
 _EXAM_UPLOADS_DIR = _BASE_DIR / "uploads" / "exams"
 
 
-def _exam_papers_dir(teacher_id: int) -> Path:
-    p = _EXAM_PAPERS_DIR / str(teacher_id)
-    p.mkdir(parents=True, exist_ok=True)
-    return p
-
-
 def _exam_uploads_dir(teacher_id: int) -> Path:
     p = _EXAM_UPLOADS_DIR / str(teacher_id)
     p.mkdir(parents=True, exist_ok=True)
@@ -198,103 +192,19 @@ class ReviewRequest(BaseModel):
 #  EXAM PAPERS  (class-scoped)
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.post("/exam-papers")
-async def upload_exam_paper(
-    class_id: int = Form(...),
-    file: UploadFile = File(...),
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """
-    Upload an exam question paper PDF for a class.
-    Deduplicates by (class_id, sha256): returns existing row if duplicate.
-    """
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise AppError("GRADING_INVALID_FILE", "Only PDF files are accepted.", 400)
 
-    teacher_id = int(teacher["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
-
-    data = await file.read()
-    file_hash = _sha256(data)
-
-    existing = session.exec(
-        select(ExamPaper).where(
-            ExamPaper.class_id == class_id,
-            ExamPaper.file_hash == file_hash,
-        )
-    ).first()
-    if existing:
-        return {"success": True, "exam_paper": _serialize_exam_paper(existing), "duplicate": True}  # type: ignore[arg-type]
-
-    dest = _exam_papers_dir(teacher_id) / f"{uuid.uuid4()}.pdf"
-    dest.write_bytes(data)
-
-    row = ExamPaper(
-        class_id=class_id,
-        teacher_id=teacher_id,
-        filename=file.filename,
-        file_path=str(dest),
-        file_hash=file_hash,
-        size=len(data),
-    )
-    session.add(row)
-    session.commit()
-    session.refresh(row)
-    return {"success": True, "exam_paper": _serialize_exam_paper(row), "duplicate": False}
-
-
-@router.get("/exam-papers")
-def list_exam_papers(
-    class_id: int = Query(...),
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """List all exam papers for a class."""
-    teacher_id = int(teacher["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
-
-    rows = session.exec(
-        select(ExamPaper).where(ExamPaper.class_id == class_id)
-    ).all()
-    return {"success": True, "exam_papers": [_serialize_exam_paper(r) for r in rows]}
-
-
-@router.delete("/exam-papers/{paper_id}")
-def delete_exam_paper(
-    paper_id: int,
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """
-    Delete an exam paper row.
-    Only unlinks the file from disk if no other ExamPaper row references the same
-    file_hash — handles teachers who assign the same exam to multiple classes.
-    """
-    teacher_id = int(teacher["id"])
-    paper = _get_owned_exam_paper_or_404(session, paper_id, teacher_id)
-
-    other_refs = session.exec(
-        select(ExamPaper).where(
-            ExamPaper.file_hash == paper.file_hash,
-            ExamPaper.id != paper.id,
-        )
-    ).first()
-
-    if other_refs is None:
-        try:
-            Path(paper.file_path).unlink(missing_ok=True)
-        except Exception as exc:
-            logger.warning("Could not delete exam paper file %s: %s", paper.file_path, exc)
-
-    session.delete(paper)
-    session.commit()
-    return {"success": True, "deleted": paper_id}
-
+#in exam_route
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  BLUEPRINT  --  Phase 1 (/analyse)
 # ══════════════════════════════════════════════════════════════════════════════
+class AnalyseRequest(BaseModel):
+    exam_paper_id: int
+    lesson_file_ids: list[str] = []
+    preferences: str = ""
+    style_guide: str = ""
+    title: str
+    reasoning: bool = False
 
 @router.post("/analyse")
 async def analyse_blueprint(
@@ -327,7 +237,13 @@ async def analyse_blueprint(
         if not isinstance(doc_ids, list):
             raise ValueError
     except (json.JSONDecodeError, ValueError):
-        raise AppError("GRADING_INVALID_PARAMS", "lesson_file_ids must be a JSON array.", 400)
+        doc_ids = [item.strip() for item in lesson_file_ids.split(",") if item.strip()]
+    if not isinstance(doc_ids, list):
+        raise AppError(
+            "GRADING_INVALID_PARAMS",
+            "lesson_file_ids must be a JSON array or a comma-separated list of IDs.",
+            400
+        )
 
     for fid in doc_ids:
         upload = session.get(Upload, fid)
@@ -875,9 +791,9 @@ def _serialize_grading_session(r: GradingSession) -> Dict[str, Any]:
 def _get_owned_exam_paper_or_404(session: Session, paper_id: int, teacher_id: int) -> ExamPaper:
     paper = session.get(ExamPaper, paper_id)
     if paper is None:
-        raise AppError("GRADING_PAPER_NOT_FOUND", "Exam paper not found.", 404)
+        raise AppError("EXAM_PAPER_NOT_FOUND", "Exam paper not found.", 404)
     if paper.teacher_id != teacher_id:
-        raise AppError("GRADING_PAPER_FORBIDDEN", "Access denied.", 403)
+        raise AppError("EXAM_PAPER_FORBIDDEN", "Access denied.", 403)
     return paper  # type: ignore[return-value]
 
 

@@ -17,7 +17,7 @@ from backend.server.db.engine import get_session
 from backend.server.db.dbModels import AgentSession
 from backend.classes.access import get_owned_class_or_403
 
-router = APIRouter(prefix="/agents", tags=["agents"])
+router = APIRouter(prefix="/agents/pedagogical", tags=["pedagogical-agent"])
 logger = logging.getLogger(__name__)
 
 
@@ -115,7 +115,7 @@ def delete_session(
 
 # ─── Agent invoke — SSE streaming ────────────────────────────────────────────
 
-@router.post("/pedagogical")
+@router.post("/ask")
 async def pedagogical_agent(
     body: AgentRequest,
     teacher: Dict[str, Any] = Depends(require_auth),

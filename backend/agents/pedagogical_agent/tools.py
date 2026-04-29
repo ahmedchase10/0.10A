@@ -33,7 +33,7 @@ def _load_and_scale(image_path: str, max_px: int) -> str:
 
 
 @tool
-def rag_retrieve(query: str, doc_ids: List[str], max_px: int = 1024) -> List[dict]:
+def rag_retrieve(query: str, doc_ids: List[str], max_px: int = 780) -> List[dict]:
     """
     Search the course material for pages relevant to `query`.
 
@@ -42,7 +42,7 @@ def rag_retrieve(query: str, doc_ids: List[str], max_px: int = 1024) -> List[dic
         doc_ids: List of Upload IDs (= Weaviate doc_ids) to restrict the search to.
         max_px:  Maximum pixel size for the longest dimension of each page image.
                  Use smaller values (e.g. 512) for simple text questions to save
-                 context space; use larger values (e.g. 1536) when fine visual
+                 context space; use larger values (e.g. 900) when fine visual
                  detail matters (diagrams, equations, charts).
 
     Returns:

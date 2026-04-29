@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, UploadFile
