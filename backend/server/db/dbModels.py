@@ -232,6 +232,15 @@ class GeneratedExam(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class ProcessingJob(SQLModel, table=True):
+    __tablename__ = "processing_jobs"
+
+    file_hash: str = Field(primary_key=True, max_length=64, index=True)  # SHA256
+    embedding_in_progress: bool = Field(default=False)
+    overview_in_progress: bool = Field(default=False)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 __all__ = [
     "SQLModel",
     "Teacher",
@@ -250,4 +259,5 @@ __all__ = [
     "GradingSession",
     "GradingQuestionResult",
     "GeneratedExam",
+    "ProcessingJob",
 ]

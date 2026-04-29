@@ -46,6 +46,7 @@ class DocumentProcessor:
     def close(self):
         pass  # remote embedder — no persistent connection to close
 
+
     # ─── Process full PDF ─────────────────────────────────────────────────
 
     def process_pdf(

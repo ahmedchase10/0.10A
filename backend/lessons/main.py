@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import UploadFile
+from openai.types.beta.realtime import session
 from sqlalchemy import asc, desc
 from sqlmodel import Session, select
 
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
-from backend.server.db.dbModels import Upload
+from backend.server.db.dbModels import Upload,ProcessingJob
 
 logger = logging.getLogger(__name__)
 
@@ -230,49 +231,72 @@ def upload_lesson_file(
             temp_path.unlink()
 
 
-def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str) -> None:
-    """
-    Background task: embed a PDF into Weaviate and mark Upload.embedded = True.
-    Runs in a thread pool (FastAPI BackgroundTasks).
-    Uses its own DB session and RAG instances so it's isolated from the request.
-    """
-    import sqlalchemy
-    from sqlmodel import Session as SyncSession, create_engine
+def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, session:Session) -> None:
     from backend.rag.document_processor import DocumentProcessor
     from backend.rag.vector_store import VectorStore
 
-    engine = create_engine(db_url, echo=False)
-
-    processor = DocumentProcessor()
+    upload = session.get(Upload, upload_id)
+    if not upload:
+        logger.warning("Upload %s not found", upload_id)
+        return
+    job = session.exec(select(ProcessingJob).where(ProcessingJob.file_hash == upload.file_hash).with_for_update()).first()
+    if job is None:
+        job = ProcessingJob(file_hash=upload.file_hash)
+        session.add(job)
+        session.flush()
+    processor = None
     store = VectorStore()
-    try:
-        document, pages = processor.process_pdf(file_path, source="lesson", doc_id=doc_id)
-        store.store_pages_batch(pages, document)
-
-        with SyncSession(engine) as session:
-            upload = session.get(Upload, upload_id)
+    if job.embedding_in_progress:
+        logger.info(" Skip: Embedding for doc %s is already in progress.", doc_id)
+    elif store.doc_already_embedded(doc_id):
+        logger.info(" Skip: Doc %s is already embedded.", doc_id)
+        if upload and not upload.embedded:
+            upload.embedded = True
+            session.commit()
+    else:
+        try:
+            job.embedding_in_progress = True
+            session.commit()
+            processor = DocumentProcessor()
+            document, pages = processor.process_pdf(file_path, source="lesson", doc_id=doc_id)
+            store.store_pages_batch(pages, document)
             if upload:
                 upload.embedded = True
                 session.add(upload)
                 session.commit()
-        logger.info("Embedded doc %s (%s)", doc_id, upload_id)
-    except Exception as exc:
-        logger.error("Embedding failed for upload %s: %s", upload_id, exc)
-        # embedded stays False — frontend shows warning
-    finally:
-        processor.close()
-        store.close()
+                logger.info("Embedded doc %s (%s)", doc_id, upload_id)
+        except Exception as exc:
+            logger.error("Embedding failed for upload %s: %s", upload_id, exc)
+        finally:
+            if processor:
+                processor.close()
+            if store:
+                store.close()
+            job.embedding_in_progress = False
+            session.add(job)
+            session.commit()
 
-    # ── Generate doc overview (creator agent preprocessing) ───────────────────
-    # Runs after embedding so we already know the file is valid.
-    # Failure is non-fatal: Upload.overview stays null, retry available via API.
-    try:
-        from backend.agents.creator_agent.preprocessor import generate_overview_task
-        generate_overview_task(file_path, upload_id, db_url)
-    except Exception as exc:
-        logger.error("Overview task failed for upload %s: %s", upload_id, exc)
-    finally:
-        engine.dispose()
+    if job.overview_in_progress:
+        logger.info(" Skip: Overview for doc %s is already in progress.", doc_id)
+    elif upload.overview is not None:
+        logger.info(" Skip: Doc %s already has an overview.", doc_id)
+    else:
+        try:
+            job.overview_in_progress = True
+            session.add(job)
+            session.commit()
+            from backend.agents.creator_agent.preprocessor import generate_overview_task
+            generate_overview_task(file_path, upload_id, db_url)
+        except Exception as exc:
+            logger.error("Overview task failed for upload %s: %s", upload_id, exc)
+        finally:
+            job.overview_in_progress = False
+            session.add(job)
+            session.commit()
+    if not job.embedding_in_progress and not job.overview_in_progress:
+        session.delete(job)
+        session.commit()
+
 
 
 def delete_lesson_upload(
@@ -335,26 +359,30 @@ def retry_embed_uploads(
     session: Session,
     teacher_payload: Dict[str, Any],
     class_id: int,
-    db_url: str,
 ) -> Dict[str, Any]:
     """Queue background embedding for all unembedded uploads in a class."""
     teacher_id = int(teacher_payload["id"])
     get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
 
-    unembedded = session.exec(
+    unprocessed = session.exec(
         select(Upload).where(
             Upload.class_id == class_id,
-            Upload.embedded == False,  # noqa: E712
+            (Upload.embedded == False) | (Upload.overview is None),  # noqa: E712
         )
     ).all()
 
     queued: List[str] = []
-    for upload in unembedded:
-        absolute_path = str(UPLOADS_ROOT.parent / upload.file_path)
-        if Path(absolute_path).exists():
-            queued.append(upload.id)
-        else:
-            logger.warning("File missing for upload %s, skipping retry", upload.id)
 
-    return {"success": True, "queued": queued}
+    for upload in unprocessed:
+        absolute_path = str(UPLOADS_ROOT.parent / upload.file_path)
+        if not Path(absolute_path).exists():
+            logger.warning("File missing for upload %s, skipping", upload.id)
+            continue
+        if not upload.embedded or upload.overview is None:
+            queued.append(upload.id)
+
+    return {
+        "queued": queued,
+        "total_queued": len(queued),
+    }
 

@@ -6,7 +6,8 @@ from backend.models import Page, Document, SearchResult
 from backend.config import (
     WEAVIATE_COLLECTION
 )
-
+from logging import getLogger
+logger = getLogger(__name__)
 
 class VectorStore:
     def __init__(self):
@@ -111,8 +112,29 @@ class VectorStore:
                 )
 
         if self.collection.batch.failed_objects:
-            print(f"Failed: {len(self.collection.batch.failed_objects)}")
+            failed_count = len(self.collection.batch.failed_objects)
+            # Log each failure for debugging
+            for fail in self.collection.batch.failed_objects:
+                logger.error("Weaviate batch error: %s", fail.message)
 
+            # Raise so embed_upload_task catches it & keeps embedded=False
+            raise RuntimeError(f"Weaviate batch failed for {failed_count} pages")
+    # ──── Check existing ─────────────────────────────────────────────────────
+
+    def doc_already_embedded(self, doc_id: str) -> bool:
+        """Check if vectors for this doc_id already exist in Weaviate."""
+        try:
+            # Weaviate allows aggregate queries to count objects
+            result = self.collection.aggregate.over_all(
+                filters=Filter.by_property("doc_id").equal(doc_id),
+                total_count=True
+            )
+
+            # If total_count > 0, we have data
+            return result.total_count > 0
+        except Exception as e:
+            logger.warning("Could not check Weaviate status: %s", e)
+            return False  # If check fails, assume we need to run it to be safe
     # ─── Search ───────────────────────────────────────────────────────────
 
     def semantic_search(self,query_embedding: list,top_k: int = 5,filters: Filter = None) -> list[SearchResult]:

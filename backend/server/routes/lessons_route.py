@@ -101,17 +101,14 @@ def retry_embed_route(
         session=session,
         teacher_payload=teacher,
         class_id=class_id,
-        db_url=DATABASE_URL,
     )
 
     # Queue each unembedded upload
-    from pathlib import Path
-    from sqlmodel import select
     from backend.server.db.dbModels import Upload
 
     for upload_id in result["queued"]:
         upload = session.get(Upload, upload_id)
-        if upload:
+        if upload and not upload.embedded:
             absolute_path = str(UPLOADS_ROOT.parent / upload.file_path)
             background_tasks.add_task(
                 embed_upload_task,
@@ -119,6 +116,7 @@ def retry_embed_route(
                 doc_id=upload_id,
                 upload_id=upload_id,
                 db_url=DATABASE_URL,
+                session=session,
             )
 
     return result
