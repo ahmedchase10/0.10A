@@ -360,7 +360,8 @@ class ApiService {
   }
 
   async deleteLesson(lessonId) {
-    const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}`, {
+    const encodedLessonId = encodeURIComponent(String(lessonId));
+    const response = await fetch(`${API_BASE_URL}/lessons/${encodedLessonId}`, {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });

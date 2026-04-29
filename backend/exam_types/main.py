@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
-from backend.server.db.dbModels import ExamType
+from backend.server.db.dbModels import ExamType, Grade
 
 def _clean_text(value: str) -> str:
     return " ".join(value.strip().lower().split())
@@ -121,6 +121,12 @@ def delete_exam_type(
             "Exam type not found for this class.",
             404,
         )
+
+    related_grades = session.exec(
+        select(Grade).where(Grade.exam_type_id == exam_type_id)
+    ).all()
+    for grade in related_grades:
+        session.delete(grade)
 
     session.delete(row)
     session.commit()

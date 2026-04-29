@@ -187,7 +187,7 @@ function downloadAttachedFile(file) {
 async function deleteAttachedFile(file) {
   if (!confirm(`Delete "${file.name}" from this class?`)) return;
   try {
-    const lessonId = file.id || file.upload_id;
+    const lessonId = file.upload_id ?? file.id ?? file.uploadId ?? null;
     if (!lessonId) {
       throw new Error('Missing lesson id');
     }

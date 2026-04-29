@@ -218,7 +218,7 @@
 
                     <!-- Edit Mode -->
                     <template v-else>
-                      <form class="flex items-center gap-1" @submit.prevent="saveEdit">
+                      <form class="flex items-center gap-1" @submit.prevent="commitInlineEdit">
                         <input
                           ref="editInput"
                           v-model="editValue"
@@ -227,9 +227,11 @@
                           max="20"
                           step="0.25"
                           class="w-16 px-2 py-1 text-center border-2 border-primary-500 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-300"
+                          @keyup.enter.prevent.stop="commitInlineEdit"
                           @keydown.escape.prevent="cancelEdit"
-                          @blur="saveEdit"
+                          @blur="commitInlineEdit"
                         />
+                        <button type="submit" class="sr-only">Save grade</button>
                       </form>
                     </template>
                   </div>
@@ -313,7 +315,7 @@
                   <DialogTitle class="text-lg font-semibold text-grey-900">Add Exam Type</DialogTitle>
                   <p class="text-sm text-grey-600 mt-1">e.g. "Quiz 1", "Midterm", "Final Exam"</p>
                 </div>
-                <div class="p-6 space-y-4">
+                <form class="p-6 space-y-4" @submit.prevent="submitAddExamType">
                   <div>
                     <label class="block text-sm font-medium text-grey-700 mb-2">Name *</label>
                     <input
@@ -321,7 +323,7 @@
                       type="text"
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="Quiz 1"
-                      @keydown.enter="submitAddExamType"
+                      @keydown.enter.prevent.stop="submitAddExamType"
                     />
                   </div>
                   <div v-if="examTypeError" class="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -329,20 +331,21 @@
                   </div>
                   <div class="flex gap-3 pt-2">
                     <button
+                      type="button"
                       @click="showAddExamTypeModal = false"
                       class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
                     >
                       Cancel
                     </button>
                     <button
-                      @click="submitAddExamType"
+                      type="submit"
                       :disabled="creatingExamType || !newExamTypeName.trim()"
                       class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
                     >
                       {{ creatingExamType ? 'Adding...' : 'Add' }}
                     </button>
                   </div>
-                </div>
+                </form>
               </DialogPanel>
             </TransitionChild>
           </div>
@@ -365,7 +368,7 @@
                 <div class="p-6 border-b border-grey-200">
                   <DialogTitle class="text-lg font-semibold text-grey-900">Add / Update Grade</DialogTitle>
                 </div>
-                <div class="p-6 space-y-4">
+                <form class="p-6 space-y-4" @submit.prevent="submitGradeModal">
                   <div>
                     <label class="block text-sm font-medium text-grey-700 mb-2">Student *</label>
                     <select
@@ -396,25 +399,26 @@
                       step="0.25"
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g. 15.5"
+                      @keydown.escape.prevent="showAddGradeModal = false"
                     />
                   </div>
                   <div v-if="gradeError" class="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p class="text-sm text-red-700">{{ gradeError }}</p>
                   </div>
                   <div class="flex gap-3 pt-2">
-                    <button @click="showAddGradeModal = false"
+                    <button type="button" @click="showAddGradeModal = false"
                       class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition">
                       Cancel
                     </button>
                     <button
-                      @click="submitGradeModal"
+                      type="submit"
                       :disabled="savingGrade || gradeForm.student_id === null || gradeForm.exam_type_id === null || gradeForm.value === null"
                       class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
                     >
                       {{ savingGrade ? 'Saving...' : 'Save Grade' }}
                     </button>
                   </div>
-                </div>
+                </form>
               </DialogPanel>
             </TransitionChild>
           </div>
@@ -630,12 +634,14 @@ function startEdit(student, examType) {
   });
 }
 
-async function saveEdit() {
+async function commitInlineEdit() {
   if (!editingCell.value || savingInlineEdit.value) return;
   savingInlineEdit.value = true;
   try {
-    const { studentId, examTypeId } = editingCell.value;
-    const raw = editValue.value.trim();
+    const currentCell = editingCell.value;
+    const studentId = currentCell.studentId;
+    const examTypeId = currentCell.examTypeId;
+    const raw = String(editValue.value ?? '').trim();
 
     // Empty = delete grade if it exists
     if (raw === '') {
