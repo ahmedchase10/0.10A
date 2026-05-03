@@ -1,9 +1,9 @@
 from datetime import date, datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, List
 import uuid
 
-from sqlalchemy import JSON, UniqueConstraint
-from sqlmodel import SQLModel, Field
+from sqlalchemy import JSON, UniqueConstraint, Column, Integer, ForeignKey
+from sqlmodel import SQLModel, Field, Relationship, String
 
 
 class Teacher(SQLModel, table=True):
@@ -16,6 +16,15 @@ class Teacher(SQLModel, table=True):
     password_hash: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    classes: List["Class"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    timetables: List["Timetable"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    agent_sessions: List["AgentSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    exam_papers: List["ExamPaper"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    exam_uploads: List["ExamUpload"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    grading_blueprints: List["GradingBlueprint"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    generated_exams: List["GeneratedExam"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    email_credentials: List["UserEmailCredentials"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+
 
 class Class(SQLModel, table=True):
     __tablename__ = "classes"
@@ -26,10 +35,20 @@ class Class(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=120)
     subject: str = Field(max_length=120)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
-    color: Optional[str] = Field(default=None, max_length=20)   # hex or css color
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    color: Optional[str] = Field(default=None, max_length=20)
     school: Optional[str] = Field(default=None, max_length=150)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    uploads: List["Upload"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    student_classes: List["StudentClass"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    flags: List["Flags"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    timetables: List["Timetable"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    attendances: List["Attendance"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    exam_types: List["ExamType"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    agent_sessions: List["AgentSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    exam_papers: List["ExamPaper"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
 
 
 class Upload(SQLModel, table=True):
@@ -39,13 +58,13 @@ class Upload(SQLModel, table=True):
     )
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     filename: str = Field(max_length=255)
     file_path: str = Field(max_length=512)
     file_hash: str = Field(index=True, max_length=64)
     size: int
     embedded: bool = Field(default=False)
-    overview: Optional[Any] = Field(default=None, sa_type=JSON)  # structured doc overview, null until preprocessed
+    overview: Optional[Any] = Field(default=None, sa_type=JSON)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -57,15 +76,29 @@ class Student(SQLModel, table=True):
     email: str = Field(index=True, unique=True, max_length=150)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    student_classes: List["StudentClass"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    flags: List["Flags"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    attendances: List["Attendance"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    grades: List["Grade"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+
 
 class StudentClass(SQLModel, table=True):
     __tablename__ = "student_class"
 
-    class_id: int = Field(foreign_key="classes.id", primary_key=True)
-    student_id: int = Field(foreign_key="students.id", primary_key=True)
-    flagged: bool = Field(default=False)
-    flag_reason: str = Field(default="", max_length=500)
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True))
+    student_id: int = Field(sa_column=Column(Integer, ForeignKey("students.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True))
     display_name: str = Field(max_length=100)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class Flags(SQLModel, table=True):
+    __tablename__ = "flags"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    student_id: int = Field(sa_column=Column(Integer, ForeignKey("students.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    reason: str = Field(max_length=500)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -76,12 +109,12 @@ class Timetable(SQLModel, table=True):
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
-    day_of_week: int = Field(ge=0, le=6)  # 0 = Monday, 6 = Sunday
-    start_time: str = Field(max_length=5)  # HH:MM format
-    end_time: str = Field(max_length=5)  # HH:MM format
-    classroom: Optional[str] = Field(default=None, max_length=100)  # e.g. "Room 12"
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    day_of_week: int = Field(ge=0, le=6)
+    start_time: str = Field(max_length=5)
+    end_time: str = Field(max_length=5)
+    classroom: Optional[str] = Field(default=None, max_length=100)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -92,8 +125,8 @@ class Attendance(SQLModel, table=True):
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
-    student_id: int = Field(foreign_key="students.id", index=True)
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    student_id: int = Field(sa_column=Column(Integer, ForeignKey("students.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     session_date: date = Field(index=True)
     present: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -106,9 +139,12 @@ class ExamType(SQLModel, table=True):
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     name: str = Field(max_length=120)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    grades: List["Grade"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
 
 
 class Grade(SQLModel, table=True):
@@ -118,8 +154,8 @@ class Grade(SQLModel, table=True):
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    student_id: int = Field(foreign_key="students.id", index=True)
-    exam_type_id: int = Field(foreign_key="exam_types.id", index=True)
+    student_id: int = Field(sa_column=Column(Integer, ForeignKey("students.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    exam_type_id: int = Field(sa_column=Column(Integer, ForeignKey("exam_types.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     value: float
 
 
@@ -127,137 +163,130 @@ class AgentSession(SQLModel, table=True):
     __tablename__ = "agent_sessions"
 
     thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     title: str = Field(max_length=120)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-# ─── Grading Agent ────────────────────────────────────────────────────────────
-
 class ExamPaper(SQLModel, table=True):
-    """Class-scoped exam question paper. Uploaded before analysis. Separate from student answer PDFs."""
     __tablename__ = "exam_papers"
     __table_args__ = (
         UniqueConstraint("class_id", "file_hash", name="uq_exam_paper_class_hash"),
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     filename: str = Field(max_length=255)
-    file_path: str = Field(max_length=512)   # uploads/exam_papers/{teacher_id}/{uuid}.pdf
+    file_path: str = Field(max_length=512)
     file_hash: str = Field(index=True, max_length=64)
     size: int
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ExamUpload(SQLModel, table=True):
-    """Student exam PDFs — separate from Upload, never embedded in Weaviate."""
     __tablename__ = "exam_uploads"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     filename: str = Field(max_length=255)
-    file_path: str = Field(max_length=512)   # uploads/exams/{teacher_id}/{uuid}.pdf
+    file_path: str = Field(max_length=512)
     file_hash: str = Field(index=True, max_length=64)
     size: int
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+
 
 class GradingBlueprint(SQLModel, table=True):
-    """Teacher-scoped reusable correction blueprint. Not tied to any class."""
     __tablename__ = "grading_blueprints"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     title: str = Field(max_length=120)
-    analysis_thread_id: str = Field(default="", max_length=36)  # LangGraph thread for blueprint run
-    exam_paper_id: Optional[int] = Field(default=None, foreign_key="exam_papers.id", index=True)  # display ref
-    lesson_doc_ids: str = Field(default="[]")           # JSON array of Upload UUIDs
-    exam_file_path: str = Field(max_length=512)         # absolute path used by agent (survives paper deletion)
-    correction_file_path: Optional[str] = Field(default=None, max_length=512)  # null after analysis
-    preferences: str = Field(default="")               # teacher's grading criteria text
-    style_guide: str = Field(default="")               # essay / math style notes
-    blueprint_json: str = Field(default="")            # structured Q/criteria JSON from agent
-    deleted: bool = Field(default=False)               # soft-delete; checkpoint is hard-deleted
+    analysis_thread_id: str = Field(default="", max_length=36)
+    exam_paper_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("exam_papers.id", ondelete="SET NULL", onupdate="CASCADE"), index=True))
+    lesson_doc_ids: str = Field(default="[]")
+    exam_file_path: str = Field(max_length=512)
+    correction_file_path: Optional[str] = Field(default=None, max_length=512)
+    preferences: str = Field(default="")
+    style_guide: str = Field(default="")
+    blueprint_json: str = Field(default="")
+    deleted: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
 
 
 class GradingSession(SQLModel, table=True):
-    """One grading session per student per batch run."""
     __tablename__ = "grading_sessions"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    blueprint_id: int = Field(foreign_key="grading_blueprints.id", index=True)
-    class_id: int = Field(foreign_key="classes.id", index=True)
-    exam_type_id: int = Field(foreign_key="exam_types.id", index=True)
-    student_id: int = Field(foreign_key="students.id", index=True)
-    exam_upload_id: str = Field(foreign_key="exam_uploads.id", index=True)
-    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True)  # LangGraph checkpoint
-    batch_id: str = Field(index=True, max_length=36)   # groups all sessions from one /grade call
-    queue_position: int = Field(default=0)              # sort order within batch (alphabetical by student name)
-    status: str = Field(default="pending")              # pending | reviewing | approved | cancelled
+    blueprint_id: int = Field(sa_column=Column(Integer, ForeignKey("grading_blueprints.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    exam_type_id: int = Field(sa_column=Column(Integer, ForeignKey("exam_types.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    student_id: int = Field(sa_column=Column(Integer, ForeignKey("students.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    exam_upload_id: str = Field(sa_column=Column(String, ForeignKey("exam_uploads.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True)
+    batch_id: str = Field(index=True, max_length=36)
+    queue_position: int = Field(default=0)
+    status: str = Field(default="pending")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    question_results: List["GradingQuestionResult"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
 
 
 class GradingQuestionResult(SQLModel, table=True):
-    """Per-question grading outcome, written when teacher approves or edits."""
     __tablename__ = "grading_question_results"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    session_id: str = Field(foreign_key="grading_sessions.id", index=True)
+    session_id: str = Field(sa_column=Column(String, ForeignKey("grading_sessions.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     question_number: int
-    question_label: str = Field(max_length=20)      # e.g. "Q1a"
+    question_label: str = Field(max_length=20)
     max_points: float
     awarded_points: float
     reasoning: str = Field(default="")
-    teacher_override: bool = Field(default=False)   # True if teacher edited the agent's score
+    teacher_override: bool = Field(default=False)
 
-
-# ─── Creator Agent ────────────────────────────────────────────────────────────
 
 class GeneratedExam(SQLModel, table=True):
-    """Teacher-scoped generated exam. Stores the agent session + final exam JSON."""
     __tablename__ = "generated_exams"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    teacher_id: int = Field(foreign_key="teachers.id", index=True)
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()), index=True, max_length=36)
     title: str = Field(max_length=120)
-    doc_ids: str = Field(default="[]")        # JSON array of Upload UUIDs
-    preferences: str = Field(default="{}")    # full preferences JSON string
-    exam_json: str = Field(default="")        # final exam JSON produced by agent
-    loop_count: int = Field(default=0)        # how many evaluator loops ran (0, 1, or 2)
+    doc_ids: str = Field(default="[]")
+    preferences: str = Field(default="{}")
+    exam_json: str = Field(default="")
+    loop_count: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ProcessingJob(SQLModel, table=True):
     __tablename__ = "processing_jobs"
 
-    file_hash: str = Field(primary_key=True, max_length=64, index=True)  # SHA256
+    file_hash: str = Field(primary_key=True, max_length=64, index=True)
     embedding_in_progress: bool = Field(default=False)
     overview_in_progress: bool = Field(default=False)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class UserEmailCredentials(SQLModel, table=True):
+    __tablename__ = "user_email_credentials"
+
+    user_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True))
+    email: str = Field(primary_key=True)
+    access_token: Optional[str] = Field(default=None)
+    refresh_token: Optional[str] = Field(default=None)
+    token_expiry: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 __all__ = [
-    "SQLModel",
-    "Teacher",
-    "Class",
-    "Upload",
-    "Student",
-    "StudentClass",
-    "Timetable",
-    "Attendance",
-    "ExamType",
-    "Grade",
-    "AgentSession",
-    "ExamPaper",
-    "ExamUpload",
-    "GradingBlueprint",
-    "GradingSession",
-    "GradingQuestionResult",
-    "GeneratedExam",
-    "ProcessingJob",
+    "SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass",
+    "Flags", "Timetable", "Attendance", "ExamType", "Grade", "AgentSession",
+    "ExamPaper", "ExamUpload", "GradingBlueprint", "GradingSession",
+    "GradingQuestionResult", "GeneratedExam", "ProcessingJob", "UserEmailCredentials",
 ]
