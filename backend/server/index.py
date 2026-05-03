@@ -18,6 +18,10 @@ from backend.server.routes.pedagogical_route import router as pedagogical_router
 from backend.server.routes.grading_route import router as grading_router
 from backend.server.routes.creator_route import router as creator_router
 from backend.server.routes.exam_route import router as exam_router
+from backend.server.routes.gmail_route import router as gmail_router
+from backend.server.routes.email_gen_route import router as email_router
+from backend.server.routes.flags_route import router as flags_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,7 +42,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Vite frontend
-        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3000"
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],   # IMPORTANT (includes OPTIONS)
@@ -125,6 +130,7 @@ app.include_router(teachers_router)
 app.include_router(lessons_router)
 app.include_router(classes_router)
 app.include_router(students_router)
+app.include_router(flags_router)
 app.include_router(attendance_router)
 app.include_router(timetable_router)
 app.include_router(exam_types_router)
@@ -133,4 +139,8 @@ app.include_router(grades_router)
 app.include_router(pedagogical_router)
 app.include_router(grading_router)
 app.include_router(creator_router)
+app.include_router(gmail_router)
+app.include_router(email_router)
+
+
 

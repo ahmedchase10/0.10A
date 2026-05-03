@@ -1,0 +1,77 @@
+DATABASE CASCADE RELATIONSHIPS MAP
+====================================
+Format: PARENT_TABLE (action) → CHILD_TABLES (cascade behavior)
+All foreign keys include ON UPDATE CASCADE unless explicitly noted.
+
+[TEACHERS]
+teachers.id (DELETE/UPDATE) →
+  ├─ classes.teacher_id (CASCADE)
+  ├─ timetable.teacher_id (CASCADE)
+  ├─ agent_sessions.teacher_id (CASCADE)
+  ├─ exam_papers.teacher_id (CASCADE)
+  ├─ exam_uploads.teacher_id (CASCADE)
+  ├─ grading_blueprints.teacher_id (CASCADE)
+  ├─ generated_exams.teacher_id (CASCADE)
+  └─ user_email_credentials.user_id (CASCADE)
+
+[CLASSES]
+classes.id (DELETE/UPDATE) →
+  ├─ uploads.class_id (CASCADE)
+  ├─ student_class.class_id (CASCADE)
+  ├─ flags.class_id (CASCADE)
+  ├─ timetable.class_id (CASCADE)
+  ├─ attendance.class_id (CASCADE)
+  ├─ exam_types.class_id (CASCADE)
+  ├─ agent_sessions.class_id (CASCADE)
+  ├─ exam_papers.class_id (CASCADE)
+  └─ grading_sessions.class_id (CASCADE)
+
+[STUDENTS]
+students.id (DELETE/UPDATE) →
+  ├─ student_class.student_id (CASCADE)
+  ├─ flags.student_id (CASCADE)
+  ├─ attendance.student_id (CASCADE)
+  ├─ grades.student_id (CASCADE)
+  └─ grading_sessions.student_id (CASCADE)
+
+[EXAM TYPES]
+exam_types.id (DELETE/UPDATE) →
+  ├─ grades.exam_type_id (CASCADE)
+  └─ grading_sessions.exam_type_id (CASCADE)
+
+[EXAM PAPERS]
+exam_papers.id (DELETE/UPDATE) →
+  └─ grading_blueprints.exam_paper_id (SET NULL on DELETE, CASCADE on UPDATE)
+     Note: Blueprint survives paper deletion. Only the display reference is cleared.
+
+[EXAM UPLOADS]
+exam_uploads.id (DELETE/UPDATE) →
+  └─ grading_sessions.exam_upload_id (CASCADE)
+
+[GRADING BLUEPRINTS]
+grading_blueprints.id (DELETE/UPDATE) →
+  └─ grading_sessions.blueprint_id (CASCADE)
+
+[GRADING SESSIONS]
+grading_sessions.id (DELETE/UPDATE) →
+  └─ grading_question_results.session_id (CASCADE)
+
+[JUNCTION / LEAF TABLES (No downstream cascades)]
+- student_class (links classes ↔ students)
+- uploads
+- flags
+- timetable
+- attendance
+- grades
+- agent_sessions
+- grading_question_results
+- generated_exams
+- processing_jobs
+- user_email_credentials
+
+NOTES:
+- ON UPDATE CASCADE is applied to ALL foreign keys. Primary key changes (rare) will propagate automatically.
+- ON DELETE CASCADE means child rows are permanently removed when the parent is deleted.
+- ON DELETE SET NULL (exam_papers → grading_blueprints) preserves the blueprint but drops the paper reference.
+- PostgreSQL enforces these constraints at the database level. SQLAlchemy's passive_deletes=True optimizes ORM behavior to rely entirely on DB cascades (no extra SELECT/DELETE queries).
+- Deleting a root entity (Teacher/Class/Student) will recursively wipe all dependent records in a single DB transaction.
