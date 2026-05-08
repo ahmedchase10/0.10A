@@ -122,11 +122,7 @@ def delete_exam_type(
             404,
         )
 
-    related_grades = session.exec(
-        select(Grade).where(Grade.exam_type_id == exam_type_id)
-    ).all()
-    for grade in related_grades:
-        session.delete(grade)
+
 
     session.delete(row)
     session.commit()
