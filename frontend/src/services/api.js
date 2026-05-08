@@ -368,6 +368,88 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  // ─── Pedagogical Agent ────────────────────────────────────────────────────
+
+  async createAgentSession(classId, title) {
+    const response = await fetch(`${API_BASE_URL}/agents/pedagogical/sessions`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ class_id: classId, title }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async listAgentSessions(classId) {
+    const params = new URLSearchParams({ class_id: classId.toString() });
+    const response = await fetch(`${API_BASE_URL}/agents/pedagogical/sessions?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteAgentSession(threadId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}`,
+      { method: 'DELETE', headers: this.getHeaders(true) }
+    );
+    return this.handleResponse(response);
+  }
+
+  /**
+   * streamPedagogical — POST SSE for the pedagogical agent.
+   * Uses fetch + ReadableStream because EventSource doesn't support POST.
+   *
+   * @param {{ thread_id: string, file_ids: string[], prompt: string, reasoning: boolean }} body
+   * @param {function({ event: string, data: string }): void} onEvent
+   * @returns {Promise<void>} resolves when the stream ends (done event)
+   */
+  async streamPedagogical(body, onEvent) {
+    const res = await fetch(`${API_BASE_URL}/agents/pedagogical/ask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok || !res.body) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = j?.error?.message || msg; } catch { /* noop */ }
+      throw new Error(msg);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+
+      for (const frame of frames) {
+        if (!frame.trim()) continue;
+        let event = 'message';
+        let data = '';
+
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) data += line.slice(5).trimStart();
+        }
+
+        onEvent({ event, data });
+
+        if (event === 'done') return;
+        if (event === 'error') throw new Error(data || 'Stream error');
+      }
+    }
+  }
+
   // ─── Voice Processing ─────────────────────────────────────────────────────
 
   async processVoiceNote(audioBlob, classId) {
