@@ -235,52 +235,85 @@
                     <div class="flex items-center justify-between gap-3">
                       <div>
                         <h3 class="text-sm font-semibold text-grey-900">Timetable</h3>
-                        <p class="text-xs text-grey-500">Fill the schedule to update the class slot, or leave it blank to keep no schedule.</p>
+                        <p class="text-xs text-grey-500">Add one or more weekly sessions for this class.</p>
                       </div>
                       <span class="text-xs font-medium text-grey-500">
                         {{ classTimetableEntries.length }} slot{{ classTimetableEntries.length !== 1 ? 's' : '' }}
                       </span>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-grey-700 mb-2">Day</label>
-                        <select
-                          v-model="editForm.day_of_week"
-                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                        >
-                          <option :value="null">No schedule</option>
-                          <option v-for="day in dayOptions" :key="day.value" :value="day.value">
-                            {{ day.label }}
-                          </option>
-                        </select>
+
+                    <div class="space-y-3">
+                      <div
+                        v-for="(session, index) in editForm.sessions"
+                        :key="`edit-session-${index}`"
+                        class="rounded-lg border border-grey-200 bg-white p-3 space-y-3"
+                      >
+                        <div class="flex items-center justify-between gap-3">
+                          <p class="text-xs font-semibold uppercase tracking-wider text-grey-500">
+                            Session {{ index + 1 }}
+                          </p>
+                          <button
+                            v-if="editForm.sessions.length > 1"
+                            type="button"
+                            @click="removeEditSession(index)"
+                            class="text-xs font-medium text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-sm font-medium text-grey-700 mb-2">Day *</label>
+                            <select
+                              v-model="session.day_of_week"
+                              :required="index === 0"
+                              class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                            >
+                              <option :value="null" disabled>Select day</option>
+                              <option v-for="day in dayOptions" :key="day.value" :value="day.value">
+                                {{ day.label }}
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
+                            <input
+                              v-model="session.classroom"
+                              type="text"
+                              class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Room 12"
+                            />
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-sm font-medium text-grey-700 mb-2">Start Time *</label>
+                            <input
+                              v-model="session.start_time"
+                              type="time"
+                              :required="index === 0"
+                              class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-sm font-medium text-grey-700 mb-2">End Time *</label>
+                            <input
+                              v-model="session.end_time"
+                              type="time"
+                              :required="index === 0"
+                              class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
-                        <input
-                          v-model="editForm.classroom"
-                          type="text"
-                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="Room 12"
-                        />
-                      </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-grey-700 mb-2">Start Time</label>
-                        <input
-                          v-model="editForm.start_time"
-                          type="time"
-                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-grey-700 mb-2">End Time</label>
-                        <input
-                          v-model="editForm.end_time"
-                          type="time"
-                          class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
-                      </div>
+
+                      <button
+                        type="button"
+                        @click="addEditSession"
+                        class="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        + Add another session
+                      </button>
                     </div>
                   </div>
                   <div>
@@ -363,15 +396,22 @@ const timetableEntries = ref([]);
 const showEditModal = ref(false);
 const saving = ref(false);
 const editError = ref('');
+
+function createBlankSession() {
+  return {
+    day_of_week: null,
+    classroom: '',
+    start_time: '08:00',
+    end_time: '09:00'
+  };
+}
+
 const editForm = ref({
   name: '',
   subject: '',
   school: '',
   color: '#3b82f6',
-  day_of_week: null,
-  classroom: '',
-  start_time: '',
-  end_time: ''
+  sessions: [createBlankSession()]
 });
 
 const colors = [
@@ -391,15 +431,27 @@ const dayOptions = [
 ];
 
 const classTimetableEntries = computed(() =>
-  timetableEntries.value.filter((entry) => entry.class_id === classId.value)
+  timetableEntries.value
+    .filter((entry) => entry.class_id === classId.value)
+    .slice()
+    .sort((a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time))
 );
 
 const scheduleSummary = computed(() => {
-  const entry = classTimetableEntries.value[0];
-  if (!entry) return '';
-  const day = dayOptions.find((option) => option.value === entry.day_of_week)?.label || `Day ${entry.day_of_week}`;
-  const time = `${entry.start_time} - ${entry.end_time}`;
-  return entry.classroom ? `${day} - ${time} - ${entry.classroom}` : `${day} - ${time}`;
+  const entries = classTimetableEntries.value;
+  if (entries.length === 0) return '';
+
+  const preview = entries.slice(0, 2).map((entry) => {
+    const day = dayOptions.find((option) => option.value === entry.day_of_week)?.label || `Day ${entry.day_of_week}`;
+    const time = `${entry.start_time} - ${entry.end_time}`;
+    return entry.classroom ? `${day} - ${time} - ${entry.classroom}` : `${day} - ${time}`;
+  });
+
+  if (entries.length > 2) {
+    preview.push(`+${entries.length - 2} more`);
+  }
+
+  return preview.join(' · ');
 });
 
 function formatShortDate(dt) {
@@ -442,19 +494,62 @@ async function loadTimetable() {
 
 function openEdit() {
   if (!classData.value) return;
-  const timetableEntry = classTimetableEntries.value[0] || null;
   editForm.value = {
     name: classData.value.name || '',
     subject: classData.value.subject || '',
     school: classData.value.school || '',
     color: classData.value.color || '#3b82f6',
-    day_of_week: timetableEntry ? timetableEntry.day_of_week : null,
-    classroom: timetableEntry?.classroom || '',
-    start_time: timetableEntry?.start_time || '',
-    end_time: timetableEntry?.end_time || ''
+    sessions: classTimetableEntries.value.length > 0
+      ? classTimetableEntries.value.map((entry) => ({
+          day_of_week: entry.day_of_week,
+          classroom: entry.classroom || '',
+          start_time: entry.start_time || '08:00',
+          end_time: entry.end_time || '09:00'
+        }))
+      : [createBlankSession()]
   };
   editError.value = '';
   showEditModal.value = true;
+}
+
+function addEditSession() {
+  editForm.value.sessions.push(createBlankSession());
+}
+
+function removeEditSession(index) {
+  if (editForm.value.sessions.length === 1) {
+    editForm.value.sessions[0] = createBlankSession();
+    return;
+  }
+  editForm.value.sessions.splice(index, 1);
+}
+
+function normalizeSession(session) {
+  const day = session.day_of_week;
+  const start = String(session.start_time || '').trim();
+  const end = String(session.end_time || '').trim();
+  const classroom = String(session.classroom || '').trim();
+
+  const hasAny = day !== null || start !== '' || end !== '' || classroom !== '';
+  const hasComplete = day !== null && start !== '' && end !== '';
+
+  if (hasAny && !hasComplete) {
+    throw new Error('Please fill day, start time, and end time for each session, or leave that session blank.');
+  }
+
+  if (!hasComplete) return null;
+
+  return {
+    class_id: classId.value,
+    day_of_week: Number(day),
+    start_time: start,
+    end_time: end,
+    classroom: classroom || null
+  };
+}
+
+function buildTimetableEntries(sessions) {
+  return sessions.map(normalizeSession).filter(Boolean);
 }
 
 async function submitEdit() {
@@ -462,6 +557,8 @@ async function submitEdit() {
   saving.value = true;
 
   try {
+    const timetablePayload = buildTimetableEntries(editForm.value.sessions);
+
     const res = await api.updateClass(classId.value, {
       name: editForm.value.name,
       subject: editForm.value.subject,
@@ -473,29 +570,12 @@ async function submitEdit() {
 
     classesStore.update(classId.value, res.class);
 
-    const hasDay = editForm.value.day_of_week !== null && editForm.value.day_of_week !== '';
-    const hasStart = String(editForm.value.start_time || '').trim() !== '';
-    const hasEnd = String(editForm.value.end_time || '').trim() !== '';
-    const hasClassroom = String(editForm.value.classroom || '').trim() !== '';
-    const hasAnyScheduleValue = hasDay || hasStart || hasEnd || hasClassroom;
-    const hasCompleteSchedule = hasDay && hasStart && hasEnd;
-
-    if (hasAnyScheduleValue && !hasCompleteSchedule) {
-      throw new Error('Please fill day, start time, and end time together, or leave the schedule blank.');
-    }
-
     for (const entry of classTimetableEntries.value) {
       await api.deleteTimetable(entry.id);
     }
 
-    if (hasCompleteSchedule) {
-      await api.createTimetable([{
-        class_id: classId.value,
-        day_of_week: Number(editForm.value.day_of_week),
-        start_time: editForm.value.start_time,
-        end_time: editForm.value.end_time,
-        classroom: hasClassroom ? String(editForm.value.classroom).trim() : null
-      }]);
+    if (timetablePayload.length > 0) {
+      await api.createTimetable(timetablePayload);
     }
 
     await loadTimetable();

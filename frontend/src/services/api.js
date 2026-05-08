@@ -132,10 +132,15 @@ class ApiService {
   }
 
   async createTimetable(entries) {
+    const normalizedEntries = Array.isArray(entries)
+      ? entries
+      : entries
+        ? [entries]
+        : [];
     const response = await fetch(`${API_BASE_URL}/timetable`, {
       method: 'POST',
       headers: this.getHeaders(true),
-      body: JSON.stringify({ entries })
+      body: JSON.stringify({ entries: normalizedEntries })
     });
     return this.handleResponse(response);
   }

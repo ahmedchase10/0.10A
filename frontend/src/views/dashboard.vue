@@ -56,13 +56,13 @@
         </div>
 
         <div class="p-6 space-y-3">
-          <div class="flex items-center gap-2 text-sm text-grey-600">
-            <ClockIcon class="w-4 h-4" />
-            {{ formatScheduleSummary(getClassSchedule(cls.id)) }}
+          <div class="flex items-start gap-2 text-sm text-grey-600">
+            <ClockIcon class="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{{ formatScheduleSummary(getClassSchedules(cls.id)) }}</span>
           </div>
           <div class="flex items-center gap-2 text-sm text-grey-600">
             <HomeIcon class="w-4 h-4" />
-            {{ getClassSchedule(cls.id)?.classroom || 'No classroom set' }}
+            {{ formatClassrooms(getClassSchedules(cls.id)) }}
           </div>
           <div class="flex items-center gap-2 text-sm text-grey-600">
             <BuildingOfficeIcon class="w-4 h-4" />
@@ -129,49 +129,85 @@
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Day *</label>
-                      <select
-                        v-model="createForm.day_of_week"
-                        required
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                  <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 class="text-sm font-semibold text-grey-900">Timetable Sessions</h3>
+                        <p class="text-xs text-grey-500">Add one or more weekly sessions for this class.</p>
+                      </div>
+                      <button
+                        type="button"
+                        @click="addCreateSession"
+                        class="text-xs font-medium text-primary-600 hover:text-primary-700"
                       >
-                        <option :value="null" disabled>Select day</option>
-                        <option v-for="day in dayOptions" :key="day.value" :value="day.value">
-                          {{ day.label }}
-                        </option>
-                      </select>
+                        + Add session
+                      </button>
                     </div>
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
-                      <input
-                        v-model="createForm.classroom"
-                        type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="Room 204"
-                      />
-                    </div>
-                  </div>
 
-                  <div class="grid grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Start Time *</label>
-                      <input
-                        v-model="createForm.start_time"
-                        type="time"
-                        required
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">End Time *</label>
-                      <input
-                        v-model="createForm.end_time"
-                        type="time"
-                        required
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
+                    <div
+                      v-for="(session, index) in createForm.sessions"
+                      :key="`create-session-${index}`"
+                      class="rounded-lg border border-grey-200 bg-white p-3 space-y-3"
+                    >
+                      <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-grey-500">
+                          Session {{ index + 1 }}
+                        </p>
+                        <button
+                          v-if="createForm.sessions.length > 1"
+                          type="button"
+                          @click="removeCreateSession(index)"
+                          class="text-xs font-medium text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-4">
+                        <div>
+                          <label class="block text-sm font-medium text-grey-700 mb-2">Day *</label>
+                          <select
+                            v-model="session.day_of_week"
+                            :required="index === 0"
+                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                          >
+                            <option :value="null" disabled>Select day</option>
+                            <option v-for="day in dayOptions" :key="day.value" :value="day.value">
+                              {{ day.label }}
+                            </option>
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
+                          <input
+                            v-model="session.classroom"
+                            type="text"
+                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Room 204"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-4">
+                        <div>
+                          <label class="block text-sm font-medium text-grey-700 mb-2">Start Time *</label>
+                          <input
+                            v-model="session.start_time"
+                            type="time"
+                            :required="index === 0"
+                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium text-grey-700 mb-2">End Time *</label>
+                          <input
+                            v-model="session.end_time"
+                            type="time"
+                            :required="index === 0"
+                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -255,15 +291,21 @@ const dayOptions = [
   { value: 6, label: 'Sunday' }
 ];
 
+function createBlankSession() {
+  return {
+    day_of_week: null,
+    start_time: '08:00',
+    end_time: '09:00',
+    classroom: ''
+  };
+}
+
 const createForm = ref({
   name: '',
   subject: '',
   school: '',
   color: '#3b82f6',
-  day_of_week: null,
-  start_time: '08:00',
-  end_time: '09:00',
-  classroom: ''
+  sessions: [createBlankSession()]
 });
 
 function adjustColor(color, percent) {
@@ -279,13 +321,86 @@ function dayLabel(day) {
   return dayOptions.find(option => option.value === day)?.label || 'Unknown day';
 }
 
-function getClassSchedule(classId) {
-  return timetable.value.find(entry => entry.class_id === classId) || null;
+function getClassSchedules(classId) {
+  return timetable.value
+    .filter(entry => entry.class_id === classId)
+    .slice()
+    .sort((a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time));
 }
 
-function formatScheduleSummary(entry) {
-  if (!entry) return 'No schedule set';
-  return `${dayLabel(entry.day_of_week)} ${entry.start_time} - ${entry.end_time}`;
+function formatSession(entry) {
+  const base = `${dayLabel(entry.day_of_week)} ${entry.start_time} - ${entry.end_time}`;
+  return entry.classroom ? `${base} • ${entry.classroom}` : base;
+}
+
+function formatScheduleSummary(entries) {
+  if (!entries || entries.length === 0) return 'No schedule set';
+  const preview = entries.slice(0, 2).map(formatSession);
+  if (entries.length > 2) {
+    preview.push(`+${entries.length - 2} more`);
+  }
+  return preview.join(' · ');
+}
+
+function formatClassrooms(entries) {
+  if (!entries || entries.length === 0) return 'No classroom set';
+  const classrooms = entries
+    .map(entry => entry.classroom)
+    .filter(Boolean);
+  if (classrooms.length === 0) return 'No classroom set';
+  const preview = classrooms.slice(0, 2);
+  if (classrooms.length > 2) {
+    preview.push(`+${classrooms.length - 2} more`);
+  }
+  return preview.join(' · ');
+}
+
+function addCreateSession() {
+  createForm.value.sessions.push(createBlankSession());
+}
+
+function removeCreateSession(index) {
+  if (createForm.value.sessions.length === 1) {
+    createForm.value.sessions[0] = createBlankSession();
+    return;
+  }
+  createForm.value.sessions.splice(index, 1);
+}
+
+function normalizeSession(session) {
+  const day = session.day_of_week;
+  const start = String(session.start_time || '').trim();
+  const end = String(session.end_time || '').trim();
+  const classroom = String(session.classroom || '').trim();
+
+  const hasAny = day !== null || start !== '' || end !== '' || classroom !== '';
+  const hasComplete = day !== null && start !== '' && end !== '';
+
+  if (hasAny && !hasComplete) {
+    throw new Error('Please fill day, start time, and end time for each session, or leave that session blank.');
+  }
+
+  if (!hasComplete) return null;
+
+  return {
+    class_id: null,
+    day_of_week: Number(day),
+    start_time: start,
+    end_time: end,
+    classroom: classroom || null
+  };
+}
+
+function buildTimetableEntries(sessions) {
+  const normalized = sessions
+    .map(normalizeSession)
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    throw new Error('Please add at least one complete timetable session.');
+  }
+
+  return normalized;
 }
 
 async function loadTimetable() {
@@ -303,6 +418,8 @@ async function handleCreateClass() {
   creating.value = true;
   error.value = '';
   try {
+    const timetablePayload = buildTimetableEntries(createForm.value.sessions);
+
     const classResponse = await api.createClass({
       name: createForm.value.name,
       subject: createForm.value.subject,
@@ -314,15 +431,12 @@ async function handleCreateClass() {
       classesStore.add(classResponse.class);
 
       try {
-        await api.createTimetable([{
-          class_id: classResponse.class.id,
-          day_of_week: createForm.value.day_of_week,
-          start_time: createForm.value.start_time,
-          end_time: createForm.value.end_time,
-          classroom: createForm.value.classroom || null
-        }]);
+        await api.createTimetable(
+          timetablePayload.map((entry) => ({ ...entry, class_id: classResponse.class.id }))
+        );
       } catch (scheduleErr) {
         console.error('Failed to create timetable entry:', scheduleErr);
+        throw scheduleErr;
       }
 
       await loadTimetable();
@@ -332,10 +446,7 @@ async function handleCreateClass() {
         subject: '',
         school: '',
         color: '#3b82f6',
-        day_of_week: null,
-        start_time: '08:00',
-        end_time: '09:00',
-        classroom: ''
+        sessions: [createBlankSession()]
       };
     }
   } catch (err) {

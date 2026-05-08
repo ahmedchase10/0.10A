@@ -30,14 +30,15 @@
           <span class="w-2.5 h-2.5 rounded-full bg-primary-500"></span>
           {{ timetableEntries.length }} scheduled slot{{ timetableEntries.length !== 1 ? 's' : '' }}
         </div>
-        <div
+        <router-link
           v-for="cls in timetableClasses"
           :key="cls.id"
-          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-grey-200 shadow-sm text-sm text-grey-700"
+          :to="`/class/${cls.id}`"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-grey-200 shadow-sm text-sm text-grey-700 hover:border-primary-300 hover:text-primary-700 transition"
         >
           <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: getClassColor(cls.id) }"></span>
           {{ cls.name }}
-        </div>
+        </router-link>
       </div>
 
       <div class="overflow-x-auto rounded-2xl border border-grey-200 bg-white shadow-sm">
@@ -76,10 +77,11 @@
               class="min-h-[120px] p-2 border-r border-grey-100 last:border-r-0 bg-white"
             >
               <div v-if="getEntriesForSlot(day.index, slot).length > 0" class="space-y-2">
-                <article
+                <router-link
                   v-for="entry in getEntriesForSlot(day.index, slot)"
                   :key="entry.id"
-                  class="rounded-xl border p-3 shadow-sm"
+                  :to="`/class/${entry.class_id}`"
+                  class="rounded-xl border p-3 shadow-sm block hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                   :style="getEntryStyle(entry.class_id)"
                 >
                   <div class="flex items-start justify-between gap-2">
@@ -106,7 +108,7 @@
                       <span class="font-medium text-grey-900 truncate">{{ getClassSchool(entry.class_id) || 'Not set' }}</span>
                     </div>
                   </div>
-                </article>
+                </router-link>
               </div>
               <div
                 v-else
