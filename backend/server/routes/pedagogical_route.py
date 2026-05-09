@@ -28,10 +28,6 @@ class CreateSessionRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=120)
 
 
-class RenameSessionRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=120)
-
-
 class AgentRequest(BaseModel):
     thread_id: str
     file_ids: List[str] = Field(..., min_length=1)
@@ -103,23 +99,6 @@ def get_session_detail(
     return {"success": True, "session": _serialize_session(agent_session)}
 
 
-@router.patch("/sessions/{thread_id}")
-def rename_session(
-    thread_id: str,
-    body: RenameSessionRequest,
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """Rename a session's title."""
-    teacher_id = int(teacher["id"])
-    agent_session = _get_owned_session_or_404(session, thread_id, teacher_id)
-    agent_session.title = body.title.strip()
-    session.add(agent_session)
-    session.commit()
-    session.refresh(agent_session)
-    return {"success": True, "session": _serialize_session(agent_session)}
-
-
 @router.delete("/sessions/{thread_id}")
 def delete_session(
     thread_id: str,
@@ -132,74 +111,6 @@ def delete_session(
     session.delete(agent_session)
     session.commit()
     return {"success": True, "deleted": thread_id}
-
-
-@router.get("/sessions/{thread_id}/history")
-async def get_session_history(
-    thread_id: str,
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """
-    Return the serialized message history for a session by reading the
-    LangGraph checkpoint state for the given thread_id.
-
-    Each message is returned as:
-      { role: 'user'|'assistant'|'tool', content: str, reasoning?: str, tool_name?: str }
-    """
-    from backend.agents.pedagogical_agent.agent import get_graph
-    from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-
-    teacher_id = int(teacher["id"])
-    _get_owned_session_or_404(session, thread_id, teacher_id)
-
-    graph = await get_graph()
-    config = {"configurable": {"thread_id": thread_id}}
-
-    try:
-        state_snapshot = await graph.aget_state(config)
-    except Exception as exc:
-        logger.warning("aget_state failed for thread %s: %s", thread_id, exc)
-        return {"success": True, "messages": []}
-
-    if state_snapshot is None or not state_snapshot.values:
-        return {"success": True, "messages": []}
-
-    raw_messages = state_snapshot.values.get("messages", [])
-    out: List[Dict[str, Any]] = []
-
-    for msg in raw_messages:
-        if isinstance(msg, HumanMessage):
-            # Skip multimodal vision blocks fed back from rag_retrieve
-            content = msg.content
-            if isinstance(content, list):
-                # Extract only text blocks (image_url blocks are vision context)
-                text_parts = [
-                    b.get("text", "") for b in content
-                    if isinstance(b, dict) and b.get("type") == "text"
-                ]
-                content = " ".join(text_parts).strip()
-                if not content:
-                    continue  # skip pure-vision messages
-            out.append({"role": "user", "content": content})
-
-        elif isinstance(msg, AIMessage):
-            # Skip pure tool-call messages (no visible content)
-            content = msg.content or ""
-            if not content and getattr(msg, "tool_calls", None):
-                continue
-            reasoning = ""
-            if isinstance(msg.additional_kwargs, dict):
-                reasoning = msg.additional_kwargs.get("reasoning", "") or ""
-            out.append({"role": "assistant", "content": content, "reasoning": reasoning})
-
-        elif isinstance(msg, ToolMessage):
-            # Only surface rewrite_query results; skip rag_retrieve blobs
-            if getattr(msg, "name", None) == "rewrite_query":
-                content = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
-                out.append({"role": "tool", "tool_name": "rewrite_query", "content": content})
-
-    return {"success": True, "messages": out}
 
 
 # ─── Agent invoke — SSE streaming ────────────────────────────────────────────
