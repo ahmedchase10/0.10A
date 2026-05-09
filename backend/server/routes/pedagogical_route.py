@@ -27,6 +27,9 @@ class CreateSessionRequest(BaseModel):
     class_id: int
     title: str = Field(..., min_length=1, max_length=120)
 
+class UpdateSessionRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+
 
 class AgentRequest(BaseModel):
     thread_id: str
@@ -180,6 +183,23 @@ def delete_session(
     session.delete(agent_session)
     session.commit()
     return {"success": True, "deleted": thread_id}
+
+
+@router.patch("/sessions/{thread_id}")
+def update_session(
+    thread_id: str,
+    body: UpdateSessionRequest,
+    teacher: Dict[str, Any] = Depends(require_auth),
+    session: Session = Depends(get_session),
+):
+    """Update a session's title."""
+    teacher_id = int(teacher["id"])
+    agent_session = _get_owned_session_or_404(session, thread_id, teacher_id)
+    agent_session.title = body.title.strip()
+    session.add(agent_session)
+    session.commit()
+    session.refresh(agent_session)
+    return {"success": True, "session": _serialize_session(agent_session)}
 
 
 # ─── Agent invoke — SSE streaming ────────────────────────────────────────────

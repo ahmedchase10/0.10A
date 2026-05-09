@@ -206,13 +206,22 @@
                   <p class="text-sm font-medium text-grey-900 truncate">{{ s.title }}</p>
                   <p class="text-xs text-grey-500">{{ formatDate(s.created_at) }}</p>
                 </div>
-                <button
-                  @click.stop="deleteSession(s.thread_id)"
-                  class="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-50 text-red-500 transition"
-                  title="Delete session"
-                >
-                  <TrashIcon class="w-3.5 h-3.5" />
-                </button>
+                <div class="opacity-0 group-hover:opacity-100 flex items-center transition">
+                  <button
+                    @click.stop="renameSession(s)"
+                    class="p-1 rounded-lg hover:bg-grey-100 text-grey-500 transition mr-1"
+                    title="Rename session"
+                  >
+                    <PencilIcon class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click.stop="deleteSession(s.thread_id)"
+                    class="p-1 rounded-lg hover:bg-red-50 text-red-500 transition"
+                    title="Delete session"
+                  >
+                    <TrashIcon class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -361,6 +370,7 @@ import {
   DocumentIcon,
   DocumentTextIcon,
   TrashIcon,
+  PencilIcon,
   AcademicCapIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -490,9 +500,12 @@ async function loadSessions() {
 
 async function createNewSession() {
   if (!agent.selectedClassId) return;
+  const defaultTitle = `Session ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+  const title = prompt('Enter a name for the new session:', defaultTitle);
+  if (!title) return; // User cancelled
+  
   agent.creatingSession = true;
   try {
-    const title = `Session ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
     const res = await api.createAgentSession(agent.selectedClassId, title);
     if (res.success) {
       agent.sessions.unshift(res.session);
@@ -507,6 +520,27 @@ async function createNewSession() {
 
 function openSession(session) {
   agent.currentSessionId = session.thread_id;
+}
+
+async function renameSession(session) {
+  const newTitle = prompt('Enter a new name for the session:', session.title);
+  if (!newTitle || newTitle === session.title) return;
+  
+  try {
+    const res = await api.renameAgentSession(session.thread_id, newTitle);
+    if (res.success) {
+      const idx = agent.sessions.findIndex(s => s.thread_id === session.thread_id);
+      if (idx !== -1) {
+        agent.sessions[idx].title = res.session.title;
+        // Also update active session if it's currently open
+        if (agent.activeSession && agent.activeSession.thread_id === session.thread_id) {
+          agent.activeSession.title = res.session.title;
+        }
+      }
+    }
+  } catch (err) {
+    alert('Failed to rename session: ' + err.message);
+  }
 }
 
 async function deleteSession(threadId) {

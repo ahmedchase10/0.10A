@@ -401,6 +401,18 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async renameAgentSession(threadId, newTitle) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}`,
+      {
+        method: 'PATCH',
+        headers: this.getHeaders(true),
+        body: JSON.stringify({ title: newTitle }),
+      }
+    );
+    return this.handleResponse(response);
+  }
+
   async deleteAgentSession(threadId) {
     const response = await fetch(
       `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}`,
