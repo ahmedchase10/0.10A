@@ -51,6 +51,7 @@
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Student</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Email</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Added</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Status</th>
               <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -68,12 +69,31 @@
               <td class="px-6 py-4 text-grey-500">{{ formatDate(student.created_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <button
-                  @click="removeStudent(student)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium"
+                  @click="openFlagModal(student)"
+                  class="inline-flex items-center justify-center p-1.5 rounded-full transition"
+                  :class="student.flags?.length ? 'text-orange-600 bg-orange-100 hover:bg-orange-200' : 'text-grey-400 hover:text-orange-500 hover:bg-orange-50'"
+                  :title="student.flags?.length ? 'View Flags' : 'Add Flag'"
                 >
-                  <TrashIcon class="w-3.5 h-3.5" />
-                  Remove
+                  <FlagIcon class="w-5 h-5" :class="student.flags?.length ? 'fill-current' : ''" />
                 </button>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button
+                    @click="openEditModal(student)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition font-medium"
+                  >
+                    <PencilIcon class="w-3.5 h-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    @click="removeStudent(student)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium"
+                  >
+                    <TrashIcon class="w-3.5 h-3.5" />
+                    Remove
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -129,6 +149,116 @@
         </div>
       </Dialog>
     </TransitionRoot>
+
+    <!-- Edit Student Modal -->
+    <TransitionRoot :show="showEditModal" as="template">
+      <Dialog @close="showEditModal = false" class="relative z-50">
+        <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
+          leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
+          <div class="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+        </TransitionChild>
+        <div class="fixed inset-0 overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4">
+            <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
+              leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
+              <DialogPanel class="w-full max-w-sm bg-white rounded-2xl shadow-xl">
+                <div class="p-6 border-b border-grey-200">
+                  <DialogTitle class="text-lg font-semibold text-grey-900">Edit Student</DialogTitle>
+                </div>
+                <form @submit.prevent="submitEdit" class="p-6 space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-grey-700 mb-2">Full Name *</label>
+                    <input v-model="editForm.name" type="text" required
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-grey-700 mb-2">Email *</label>
+                    <input v-model="editForm.email" type="email" required
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div v-if="editError" class="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p class="text-sm text-red-700">{{ editError }}</p>
+                  </div>
+                  <div class="flex gap-3 pt-2">
+                    <button type="button" @click="showEditModal = false"
+                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition">
+                      Cancel
+                    </button>
+                    <button type="submit" :disabled="editing"
+                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50">
+                      {{ editing ? 'Saving…' : 'Save Changes' }}
+                    </button>
+                  </div>
+                </form>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </TransitionRoot>
+
+    <!-- Flag Modal -->
+    <TransitionRoot :show="showFlagModal" as="template">
+      <Dialog @close="showFlagModal = false" class="relative z-50">
+        <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
+          leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
+          <div class="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+        </TransitionChild>
+        <div class="fixed inset-0 overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4">
+            <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
+              leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
+              <DialogPanel class="w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col max-h-[80vh]">
+                <div class="p-6 border-b border-grey-200 flex-shrink-0">
+                  <DialogTitle class="text-lg font-semibold text-grey-900">
+                    Flags for {{ selectedStudent?.name }}
+                  </DialogTitle>
+                </div>
+                
+                <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                  <!-- Existing Flags -->
+                  <div v-if="studentFlags.length > 0" class="space-y-3 mb-6">
+                    <h4 class="text-sm font-medium text-grey-700">Current Flags</h4>
+                    <div v-for="flag in studentFlags" :key="flag.id" class="p-3 bg-orange-50 border border-orange-200 rounded-lg flex justify-between items-start gap-2">
+                      <div>
+                        <p class="text-sm text-orange-900 break-words">{{ flag.reason }}</p>
+                        <p class="text-xs text-orange-600 mt-1">{{ formatDate(flag.created_at) }}</p>
+                      </div>
+                      <button @click="removeFlag(flag.id)" class="text-orange-400 hover:text-orange-700 transition flex-shrink-0 p-1 bg-white rounded-md shadow-sm border border-orange-200">
+                        <TrashIcon class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="text-center py-4 mb-4">
+                    <p class="text-sm text-grey-500">No flags for this student.</p>
+                  </div>
+
+                  <!-- Add New Flag -->
+                  <div>
+                    <h4 class="text-sm font-medium text-grey-700 mb-2">Add New Flag</h4>
+                    <textarea v-model="newFlagReason" rows="3"
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+                      placeholder="Reason for flagging..."></textarea>
+                    <div v-if="flagError" class="mt-2 text-sm text-red-600">{{ flagError }}</div>
+                  </div>
+                </div>
+
+                <div class="p-6 border-t border-grey-200 flex gap-3 flex-shrink-0 bg-grey-50 rounded-b-2xl">
+                  <button type="button" @click="showFlagModal = false"
+                    class="flex-1 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-100 transition bg-white">
+                    Done
+                  </button>
+                  <button type="button" @click="submitFlag" :disabled="!newFlagReason.trim() || flagging"
+                    class="flex-1 bg-gradient-to-r from-orange-600 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:from-orange-700 hover:to-orange-600 transition disabled:opacity-50">
+                    {{ flagging ? 'Saving...' : 'Save Flag' }}
+                  </button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </TransitionRoot>
   </div>
 </template>
 
@@ -139,7 +269,9 @@ import {
   ChevronLeftIcon,
   PlusIcon,
   TrashIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  FlagIcon,
+  PencilIcon
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
 import api from '@/services/api';
@@ -155,6 +287,18 @@ const adding = ref(false);
 const addError = ref('');
 const addForm = ref({ name: '', email: '' });
 
+const showEditModal = ref(false);
+const editing = ref(false);
+const editError = ref('');
+const editForm = ref({ id: null, name: '', email: '' });
+
+const showFlagModal = ref(false);
+const selectedStudent = ref(null);
+const studentFlags = ref([]);
+const newFlagReason = ref('');
+const flagging = ref(false);
+const flagError = ref('');
+
 function formatDate(dt) {
   if (!dt) return '—';
   return new Date(dt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -164,7 +308,18 @@ async function loadStudents() {
   loading.value = true;
   try {
     const res = await api.getStudents(classId.value);
-    if (res.success) students.value = res.students || [];
+    if (res.success) {
+      const studs = res.students || [];
+      await Promise.all(studs.map(async (s) => {
+        try {
+          const flags = await api.getFlags(classId.value, s.id);
+          s.flags = flags || [];
+        } catch(e) {
+          s.flags = [];
+        }
+      }));
+      students.value = studs;
+    }
   } catch (e) {
     console.error(e);
   } finally {
@@ -178,6 +333,7 @@ async function submitAdd() {
   try {
     const res = await api.createStudent({ class_id: classId.value, ...addForm.value });
     if (res.success) {
+      res.student.flags = []; // Initialize flags for new student
       students.value.unshift(res.student);
       showAddModal.value = false;
       addForm.value = { name: '', email: '' };
@@ -189,6 +345,35 @@ async function submitAdd() {
   }
 }
 
+function openEditModal(student) {
+  editForm.value = { id: student.id, name: student.name, email: student.email };
+  editError.value = '';
+  showEditModal.value = true;
+}
+
+async function submitEdit() {
+  editError.value = '';
+  editing.value = true;
+  try {
+    const res = await api.updateStudent(classId.value, editForm.value.id, {
+      name: editForm.value.name,
+      email: editForm.value.email
+    });
+    if (res.success) {
+      const idx = students.value.findIndex(s => s.id === editForm.value.id);
+      if (idx !== -1) {
+        students.value[idx].name = res.student.name;
+        students.value[idx].email = res.student.email;
+      }
+      showEditModal.value = false;
+    }
+  } catch (err) {
+    editError.value = err.message || 'Failed to update student';
+  } finally {
+    editing.value = false;
+  }
+}
+
 async function removeStudent(student) {
   if (!confirm(`Remove "${student.name}" from this class?`)) return;
   try {
@@ -196,6 +381,44 @@ async function removeStudent(student) {
     students.value = students.value.filter(s => s.id !== student.id);
   } catch (err) {
     alert('Failed: ' + err.message);
+  }
+}
+
+async function openFlagModal(student) {
+  selectedStudent.value = student;
+  studentFlags.value = student.flags || [];
+  newFlagReason.value = '';
+  flagError.value = '';
+  showFlagModal.value = true;
+}
+
+async function submitFlag() {
+  if (!newFlagReason.value.trim() || !selectedStudent.value) return;
+  flagging.value = true;
+  flagError.value = '';
+  try {
+    await api.createFlag(classId.value, selectedStudent.value.id, newFlagReason.value.trim());
+    const flags = await api.getFlags(classId.value, selectedStudent.value.id);
+    selectedStudent.value.flags = flags;
+    studentFlags.value = flags;
+    newFlagReason.value = '';
+  } catch (err) {
+    flagError.value = err.message || 'Failed to add flag';
+  } finally {
+    flagging.value = false;
+  }
+}
+
+async function removeFlag(flagId) {
+  if (!confirm('Delete this flag?')) return;
+  try {
+    await api.deleteFlag(flagId);
+    if (selectedStudent.value) {
+      selectedStudent.value.flags = selectedStudent.value.flags.filter(f => f.id !== flagId);
+      studentFlags.value = selectedStudent.value.flags;
+    }
+  } catch (err) {
+    alert('Failed to delete flag: ' + err.message);
   }
 }
 

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel,EmailStr
 from sqlmodel import Session
 
-from backend.students.main import add_student, get_class_students, remove_student
+from backend.students.main import add_student, get_class_students, remove_student, edit_student
 from backend.server.auth.dependencies import require_auth
 from backend.server.db.engine import get_session
 
@@ -57,4 +57,22 @@ def remove_student_route(
 		teacher_payload=teacher,
 		student_id=student_id,
 		class_id=class_id,
+	)
+
+
+@router.put("/{class_id}/students/{student_id}")
+def edit_student_route(
+	class_id: int,
+	student_id: int,
+	payload: AddStudentRequest,
+	teacher: Dict[str, Any] = Depends(require_auth),
+	session: Session = Depends(get_session),
+):
+	return edit_student(
+		session=session,
+		teacher_payload=teacher,
+		class_id=class_id,
+		student_id=student_id,
+		name=payload.name,
+		email=payload.email,
 	)

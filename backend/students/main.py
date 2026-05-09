@@ -180,3 +180,80 @@ def remove_student(
 		"success": True,
 		"message": "Student removed from class successfully.",
 	}
+
+
+def edit_student(
+	session: Session,
+	teacher_payload: Dict[str, Any],
+	*,
+	student_id: int,
+	class_id: int,
+	name: str,
+	email: str,
+) -> Dict[str, Any]:
+	teacher_id = int(teacher_payload["id"])
+	clean_name = _clean_text(name)
+	clean_email = _clean_text(email).lower()
+
+	if len(clean_name) < 2:
+		raise AppError("STUDENTS_INVALID_NAME", "Student name is too short.", 400)
+	if len(clean_email) < 3 or "@" not in clean_email:
+		raise AppError("STUDENTS_INVALID_EMAIL", "Invalid email address.", 400)
+
+	# Verify teacher owns the class
+	class_record = session.exec(
+		select(Class).where(
+			Class.id == class_id,
+			Class.teacher_id == teacher_id,
+		)
+	).first()
+	if not class_record:
+		raise AppError(
+			"CLASSES_NOT_FOUND",
+			"Class not found or you don't have permission to access it.",
+			404,
+		)
+
+	# Find the student enrollment
+	student_class_record = session.exec(
+		select(StudentClass).where(
+			StudentClass.class_id == class_id,
+			StudentClass.student_id == student_id,
+		)
+	).first()
+	if not student_class_record:
+		raise AppError(
+			"STUDENTS_NOT_ENROLLED",
+			"Student is not enrolled in this class.",
+			404,
+		)
+
+	student_record = session.get(Student, student_id)
+	if not student_record:
+		raise AppError("STUDENTS_NOT_FOUND", "Student not found.", 404)
+
+	# Check if email is being changed and if it already exists
+	if student_record.email != clean_email:
+		existing_student = session.exec(select(Student).where(Student.email == clean_email)).first()
+		if existing_student:
+			raise AppError("STUDENTS_EMAIL_EXISTS", "A student with this email already exists.", 400)
+
+	student_record.name = clean_name
+	student_record.email = clean_email
+	student_class_record.display_name = clean_name
+
+	session.add(student_record)
+	session.add(student_class_record)
+	session.commit()
+	session.refresh(student_record)
+	session.refresh(student_class_record)
+
+	return {
+		"success": True,
+		"student": {
+			"id": student_record.id,
+			"name": student_class_record.display_name,
+			"email": student_record.email,
+			"created_at": student_class_record.created_at,
+		},
+	}

@@ -190,8 +190,45 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async updateStudent(classId, studentId, data) {
+    const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    return this.handleResponse(response);
+  }
+
   async deleteStudent(classId, studentId) {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/students/${studentId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
+  // ─── Flags ────────────────────────────────────────────────────────────────
+
+  async getFlags(classId, studentId) {
+    const params = new URLSearchParams({ class_id: classId.toString(), student_id: studentId.toString() });
+    const response = await fetch(`${API_BASE_URL}/flags?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
+  async createFlag(classId, studentId, reason) {
+    const response = await fetch(`${API_BASE_URL}/flags`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ class_id: classId, student_id: studentId, reason })
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteFlag(flagId) {
+    const response = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
       method: 'DELETE',
       headers: this.getHeaders(true)
     });
