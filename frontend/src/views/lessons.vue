@@ -255,12 +255,17 @@
 
           <!-- Messages -->
           <div ref="messagesEl" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-            <div v-if="agent.messages.length === 0" class="text-center py-12">
+            <div v-if="agent.loadingHistory" class="flex items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
+            </div>
+
+            <div v-else-if="agent.messages.length === 0" class="text-center py-12">
               <AcademicCapIcon class="w-10 h-10 text-grey-300 mx-auto mb-3" />
               <p class="text-sm text-grey-500">Ask me anything about the selected lesson files.</p>
             </div>
 
-            <div v-for="(msg, idx) in agent.messages" :key="idx">
+            <template v-else>
+              <div v-for="(msg, idx) in agent.messages" :key="idx">
               <!-- User message -->
               <div v-if="msg.role === 'user'" class="flex justify-end">
                 <div class="max-w-[80%] bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
@@ -308,6 +313,7 @@
                 </div>
               </div>
             </div>
+            </template>
           </div>
 
           <!-- Error banner -->
@@ -401,6 +407,7 @@ const agent = reactive({
   reasoning: true,
   isStreaming: false,
   streamError: null,
+  loadingHistory: false,
 });
 
 // ── Library helpers ───────────────────────────────────────────────────────────
@@ -521,6 +528,22 @@ function startChat() {
   agent.activeSession = session;
   agent.messages = [];
   agent.streamError = null;
+  loadHistory(session.thread_id);
+}
+
+async function loadHistory(threadId) {
+  agent.loadingHistory = true;
+  try {
+    const res = await api.getAgentSessionHistory(threadId);
+    if (res.success && res.history) {
+      agent.messages = res.history;
+      await scrollToBottom();
+    }
+  } catch (err) {
+    console.error('Failed to load history:', err);
+  } finally {
+    agent.loadingHistory = false;
+  }
 }
 
 function exitChat() {

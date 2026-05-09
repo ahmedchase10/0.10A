@@ -99,6 +99,75 @@ def get_session_detail(
     return {"success": True, "session": _serialize_session(agent_session)}
 
 
+@router.get("/sessions/{thread_id}/history")
+async def get_session_history(
+    thread_id: str,
+    teacher: Dict[str, Any] = Depends(require_auth),
+    session: Session = Depends(get_session),
+):
+    """Get message history for a given session."""
+    teacher_id = int(teacher["id"])
+    _get_owned_session_or_404(session, thread_id, teacher_id)
+
+    from backend.agents.pedagogical_agent.agent import get_graph
+    graph = await get_graph()
+    config = {"configurable": {"thread_id": thread_id}}
+    state = await graph.aget_state(config)
+    messages = state.values.get("messages", [])
+
+    frontend_messages = []
+    
+    for msg in messages:
+        if msg.type == "human":
+            # Some human messages might be lists of dicts (from vision) or strings
+            content = msg.content
+            if isinstance(content, list):
+                text_parts = [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
+                content = " ".join(text_parts)
+            else:
+                content = str(content)
+                
+            frontend_messages.append({
+                "role": "user",
+                "content": content
+            })
+        elif msg.type == "ai":
+            reasoning = msg.additional_kwargs.get("reasoning", "")
+            tool_events = []
+            for tc in getattr(msg, "tool_calls", []):
+                tool_events.append({
+                    "type": "tool_call",
+                    "name": tc.get("name", ""),
+                    "args": tc.get("args", {})
+                })
+            
+            content = msg.content if isinstance(msg.content, str) else ""
+            
+            if frontend_messages and frontend_messages[-1]["role"] == "assistant":
+                last_ast = frontend_messages[-1]
+                if reasoning:
+                    last_ast["thinking"] = last_ast.get("thinking", "") + reasoning
+                if content:
+                    last_ast["content"] = (last_ast.get("content", "") + "\n" + content).strip()
+                last_ast["toolEvents"].extend(tool_events)
+            else:
+                frontend_messages.append({
+                    "role": "assistant",
+                    "content": content,
+                    "thinking": reasoning,
+                    "toolEvents": tool_events,
+                    "streaming": False
+                })
+        elif msg.type == "tool":
+            if frontend_messages and frontend_messages[-1]["role"] == "assistant":
+                frontend_messages[-1]["toolEvents"].append({
+                    "type": "tool_result",
+                    "name": getattr(msg, "name", "tool"),
+                })
+
+    return {"success": True, "history": frontend_messages}
+
+
 @router.delete("/sessions/{thread_id}")
 def delete_session(
     thread_id: str,

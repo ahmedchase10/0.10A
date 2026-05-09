@@ -393,6 +393,14 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async getAgentSessionHistory(threadId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}/history`,
+      { method: 'GET', headers: this.getHeaders(true) }
+    );
+    return this.handleResponse(response);
+  }
+
   async deleteAgentSession(threadId) {
     const response = await fetch(
       `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}`,
