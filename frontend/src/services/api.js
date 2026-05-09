@@ -401,6 +401,26 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async renameAgentSession(threadId, title) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}`,
+      {
+        method: 'PATCH',
+        headers: this.getHeaders(true),
+        body: JSON.stringify({ title }),
+      }
+    );
+    return this.handleResponse(response);
+  }
+
+  async getSessionHistory(threadId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/pedagogical/sessions/${encodeURIComponent(threadId)}/history`,
+      { method: 'GET', headers: this.getHeaders(true) }
+    );
+    return this.handleResponse(response);
+  }
+
   /**
    * streamPedagogical — POST SSE for the pedagogical agent.
    * Uses fetch + ReadableStream because EventSource doesn't support POST.

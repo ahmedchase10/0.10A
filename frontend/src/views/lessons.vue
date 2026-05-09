@@ -195,24 +195,62 @@
               <div
                 v-for="s in agent.sessions"
                 :key="s.thread_id"
-                class="flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer group transition"
+                class="flex items-center gap-2 px-3 py-2 rounded-xl border transition"
                 :class="agent.currentSessionId === s.thread_id
                   ? 'border-primary-400 bg-primary-50 ring-1 ring-primary-200'
-                  : 'border-grey-200 hover:bg-grey-50'"
-                @click="openSession(s)"
+                  : 'border-grey-200 hover:bg-grey-50 cursor-pointer'"
+                @click="agent.renamingSessionId !== s.thread_id && openSession(s)"
               >
                 <ChatBubbleLeftRightIcon class="w-4 h-4 text-grey-400 flex-shrink-0" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-grey-900 truncate">{{ s.title }}</p>
-                  <p class="text-xs text-grey-500">{{ formatDate(s.created_at) }}</p>
-                </div>
-                <button
-                  @click.stop="deleteSession(s.thread_id)"
-                  class="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-50 text-red-500 transition"
-                  title="Delete session"
-                >
-                  <TrashIcon class="w-3.5 h-3.5" />
-                </button>
+
+                <!-- Inline rename input -->
+                <template v-if="agent.renamingSessionId === s.thread_id">
+                  <input
+                    :ref="el => { if (el) renameInputEl = el }"
+                    v-model="agent.renameValue"
+                    class="flex-1 min-w-0 px-1.5 py-0.5 text-sm border border-primary-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    @keydown.enter.prevent="submitRename(s.thread_id)"
+                    @keydown.escape.prevent="cancelRename"
+                    @blur="submitRename(s.thread_id)"
+                    @click.stop
+                  />
+                  <button
+                    @click.stop="submitRename(s.thread_id)"
+                    class="flex-shrink-0 p-1 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition"
+                    title="Save"
+                  >
+                    <CheckIcon class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click.stop="cancelRename"
+                    class="flex-shrink-0 p-1 rounded-lg hover:bg-grey-100 text-grey-400 transition"
+                    title="Cancel"
+                  >
+                    <XMarkIcon class="w-3.5 h-3.5" />
+                  </button>
+                </template>
+
+                <!-- Normal display -->
+                <template v-else>
+                  <div class="flex-1 min-w-0 group" @click="openSession(s)">
+                    <p class="text-sm font-medium text-grey-900 truncate">{{ s.title }}</p>
+                    <p class="text-xs text-grey-500">{{ formatDate(s.created_at) }}</p>
+                  </div>
+                  <button
+                    @click.stop="startRename(s)"
+                    class="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-primary-50 text-primary-500 transition"
+                    title="Rename session"
+                  >
+                    <PencilIcon class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click.stop="deleteSession(s.thread_id)"
+                    class="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-50 text-red-500 transition"
+                    title="Delete session"
+                  >
+                    <TrashIcon class="w-3.5 h-3.5" />
+                  </button>
+                </template>
               </div>
             </div>
           </div>
@@ -243,11 +281,52 @@
             >
               <ChevronLeftIcon class="w-4 h-4" />
             </button>
+
+            <!-- Editable title -->
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-indigo-900 truncate">{{ agent.activeSession.title }}</p>
-              <p class="text-xs text-indigo-500">{{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached</p>
+              <template v-if="agent.renamingSessionId === agent.activeSession.thread_id">
+                <div class="flex items-center gap-1.5">
+                  <input
+                    :ref="el => { if (el) renameInputEl = el }"
+                    v-model="agent.renameValue"
+                    class="flex-1 min-w-0 px-2 py-0.5 text-sm font-semibold border border-indigo-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-white"
+                    @keydown.enter.prevent="submitRename(agent.activeSession.thread_id)"
+                    @keydown.escape.prevent="cancelRename"
+                    @blur="submitRename(agent.activeSession.thread_id)"
+                  />
+                  <button
+                    @click="submitRename(agent.activeSession.thread_id)"
+                    class="flex-shrink-0 p-1 rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition"
+                    title="Save"
+                  >
+                    <CheckIcon class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="cancelRename"
+                    class="flex-shrink-0 p-1 rounded-lg hover:bg-white/70 text-indigo-400 transition"
+                    title="Cancel"
+                  >
+                    <XMarkIcon class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p class="text-xs text-indigo-500 mt-0.5">{{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached</p>
+              </template>
+              <template v-else>
+                <div class="flex items-center gap-1.5">
+                  <p class="text-sm font-semibold text-indigo-900 truncate">{{ agent.activeSession.title }}</p>
+                  <button
+                    @click="startRename(agent.activeSession)"
+                    class="flex-shrink-0 p-0.5 rounded hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 transition"
+                    title="Rename session"
+                  >
+                    <PencilIcon class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p class="text-xs text-indigo-500">{{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached</p>
+              </template>
             </div>
-            <span v-if="agent.isStreaming" class="flex items-center gap-1 text-xs text-indigo-500">
+
+            <span v-if="agent.isStreaming" class="flex items-center gap-1 text-xs text-indigo-500 flex-shrink-0">
               <span class="inline-block h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
               Thinking…
             </span>
@@ -255,7 +334,13 @@
 
           <!-- Messages -->
           <div ref="messagesEl" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-            <div v-if="agent.messages.length === 0" class="text-center py-12">
+            <!-- History loading -->
+            <div v-if="agent.loadingHistory" class="flex flex-col items-center justify-center py-12 gap-2">
+              <div class="animate-spin rounded-full h-7 w-7 border-2 border-primary-500 border-t-transparent"></div>
+              <p class="text-xs text-grey-500">Loading conversation history…</p>
+            </div>
+
+            <div v-else-if="agent.messages.length === 0" class="text-center py-12">
               <AcademicCapIcon class="w-10 h-10 text-grey-300 mx-auto mb-3" />
               <p class="text-sm text-grey-500">Ask me anything about the selected lesson files.</p>
             </div>
@@ -364,6 +449,8 @@ import {
   WrenchScrewdriverIcon,
   ExclamationCircleIcon,
   XMarkIcon,
+  PencilIcon,
+  CheckIcon,
 } from '@heroicons/vue/24/outline';
 import { useLessonLibraryStore } from '@/stores/lessonLibraryStore';
 import { useClassesStore } from '@/stores/classesstore';
@@ -381,6 +468,8 @@ const classes = computed(() => classesStore.classes);
 
 const messagesEl = ref(null);
 
+const renameInputEl = ref(null);
+
 const agent = reactive({
   // setup
   selectedClassId: null,
@@ -392,11 +481,16 @@ const agent = reactive({
   sessions: [],
   loadingSessions: false,
   creatingSession: false,
-  currentSessionId: null,   // thread_id selected in the session list
+  currentSessionId: null,     // thread_id highlighted in the session list
+
+  // rename
+  renamingSessionId: null,    // thread_id currently being renamed
+  renameValue: '',
 
   // chat
-  activeSession: null,       // full session object once user clicks "Start Chat"
-  messages: [],              // [{ role, content, thinking, toolEvents, streaming }]
+  activeSession: null,        // full session object once user opens the chat
+  messages: [],               // [{ role, content, thinking, toolEvents, streaming }]
+  loadingHistory: false,
   prompt: '',
   reasoning: true,
   isStreaming: false,
@@ -498,8 +592,48 @@ async function createNewSession() {
   }
 }
 
-function openSession(session) {
-  agent.currentSessionId = session.thread_id;
+function openSession(s) {
+  agent.currentSessionId = s.thread_id;
+}
+
+function startRename(s) {
+  agent.renamingSessionId = s.thread_id;
+  agent.renameValue = s.title;
+  // Focus the input on next tick
+  nextTick(() => {
+    if (renameInputEl.value) renameInputEl.value.focus();
+  });
+}
+
+async function submitRename(threadId) {
+  const newTitle = agent.renameValue.trim();
+  // If unchanged or empty, just cancel
+  const session = agent.sessions.find(s => s.thread_id === threadId);
+  if (!newTitle || (session && newTitle === session.title)) {
+    cancelRename();
+    return;
+  }
+  try {
+    const res = await api.renameAgentSession(threadId, newTitle);
+    if (res.success) {
+      // Update sessions list
+      const idx = agent.sessions.findIndex(s => s.thread_id === threadId);
+      if (idx !== -1) agent.sessions[idx] = { ...agent.sessions[idx], title: newTitle };
+      // Update active session if it's the one being renamed
+      if (agent.activeSession && agent.activeSession.thread_id === threadId) {
+        agent.activeSession = { ...agent.activeSession, title: newTitle };
+      }
+    }
+  } catch (err) {
+    console.error('Rename failed:', err);
+  } finally {
+    cancelRename();
+  }
+}
+
+function cancelRename() {
+  agent.renamingSessionId = null;
+  agent.renameValue = '';
 }
 
 async function deleteSession(threadId) {
@@ -515,12 +649,36 @@ async function deleteSession(threadId) {
 
 // ── Agent: chat ───────────────────────────────────────────────────────────────
 
-function startChat() {
+async function startChat() {
   const session = agent.sessions.find(s => s.thread_id === agent.currentSessionId);
   if (!session) return;
   agent.activeSession = session;
   agent.messages = [];
   agent.streamError = null;
+  agent.loadingHistory = true;
+
+  try {
+    const res = await api.getSessionHistory(session.thread_id);
+    if (res.success && res.messages.length > 0) {
+      // Map backend messages → frontend message objects
+      agent.messages = res.messages.map(m => {
+        if (m.role === 'user') {
+          return { role: 'user', content: m.content };
+        }
+        if (m.role === 'assistant') {
+          return { role: 'assistant', content: m.content, thinking: m.reasoning || '', toolEvents: [], streaming: false };
+        }
+        // tool (rewrite_query) — surface as an assistant annotation
+        return { role: 'assistant', content: `↳ rewrite_query: ${m.content}`, thinking: '', toolEvents: [], streaming: false };
+      });
+    }
+  } catch (err) {
+    console.error('Failed to load history:', err);
+    // Non-fatal: user can still chat, history just won't show
+  } finally {
+    agent.loadingHistory = false;
+    await scrollToBottom();
+  }
 }
 
 function exitChat() {
@@ -528,6 +686,8 @@ function exitChat() {
   agent.activeSession = null;
   agent.messages = [];
   agent.streamError = null;
+  agent.loadingHistory = false;
+  cancelRename();
 }
 
 async function sendMessage() {
