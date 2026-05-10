@@ -158,11 +158,16 @@ class GradingGraphState(TypedDict):
     preferences: str
     style_guide: str
     reasoning: bool
+    # assessment and topic context
+    exam_type: str  # "TD", "TP", "DS", "EXAMEN"
+    exam_id: str
+    student_id: str
+    course_topics: List[dict]  # [{"id": "t1", "name": "Functions", "slug": "functions"}, ...]
 
-    # ── Grading phase inputs (populated when resuming from blueprint interrupt) ──
+    # Grading phase inputs (populated when resuming from blueprint interrupt)
     student_exam_path: str
 
-    # ── Outputs ──
+    # Outputs
     breakdown: List[dict]      # per-question results emitted by grade_agent
     teacher_decisions: dict    # teacher review payload from grade_interrupt
 
@@ -191,10 +196,13 @@ and correction in your previous context. Now read only this student's answers.
    Choose max_px based on content: 512 plain text | 768 formulas/tables | 1280 diagrams.
 2. Grade EVERY question from the exam. Do not skip any.
 3. Compare each answer strictly against what you already know from the exam/correction.
-
+━━━ TOPIC MAPPING ━━━
+You MUST map each question to exactly one topic from this allowed list:
+{course_topics_json}
+Output the topic's "slug" as "topic_id". If a question doesn't match any topic, use "unmapped".
 ━━━ OUTPUT FORMAT ━━━
 For each question, output ONE JSON object on its own line (no extra text around it):
-{"question_number": 1, "label": "Q1", "max_points": 4.0, "awarded_points": 3.0, "reasoning": "Identified X correctly but missed Y (-1pt)."}
+{"question_number": 1, "label": "Q1", "topic_id":"functions", "max_points": 4.0, "awarded_points": 3.0, "reasoning": "Identified X correctly but missed Y (-1pt)."}
 
 After ALL questions output this exact line and nothing after it:
 GRADING_COMPLETE"""
@@ -225,7 +233,7 @@ def _build_lc_messages(state: GradingGraphState, system: str) -> list:
 
 # ─── Parse grading output ─────────────────────────────────────────────────────
 
-def _parse_grading_output(content: str) -> List[dict]:
+def _parse_grading_output(content: str,allowed_slugs:set) -> List[dict]:
     results = []
     for line in content.splitlines():
         line = line.strip()
@@ -234,6 +242,8 @@ def _parse_grading_output(content: str) -> List[dict]:
         try:
             obj = json.loads(line)
             if "question_number" in obj and "awarded_points" in obj:
+                topic = obj.get("topic_id", "unmapped")
+                obj["topic_id"] = topic if topic in allowed_slugs else "unmapped"
                 results.append(obj)
         except json.JSONDecodeError:
             pass
@@ -336,9 +346,11 @@ async def grade_agent_node(state: GradingGraphState) -> dict:
     writer = get_stream_writer()
     reasoning: bool = state.get("reasoning", False)
 
-    system = _GRADE_SYSTEM
-    system += f"\n\nstudent_exam_path = {state.get('student_exam_path', '')}"
+    topics = state.get("course_topics", [])
+    topics_json = json.dumps([{"slug": t["slug"], "name": t["name"]} for t in topics])
 
+    system = _GRADE_SYSTEM.replace("{course_topics_json}", topics_json)
+    system += f"\n\nstudent_exam_path = {state.get('student_exam_path', '')}"
     lc_messages = _build_lc_messages(state, system)
     if not reasoning:
         lc_messages.append(AIMessage(content="<think>\n</think>"))
@@ -355,10 +367,14 @@ async def grade_agent_node(state: GradingGraphState) -> dict:
                 "args": tc.get("args", {}), "id": tc.get("id", "")})
 
     # Parse breakdown when grading is complete
+
     breakdown: List[dict] = state.get("breakdown", [])
     content_str = response.content if isinstance(response.content, str) else ""
     if "GRADING_COMPLETE" in content_str and not getattr(response, "tool_calls", None):
-        breakdown = _parse_grading_output(content_str)
+        allowed_slugs = {t["slug"] for t in state.get("course_topics", [])}
+        if not allowed_slugs:
+            logger.warning("grade_agent_node: course_topics is empty. All questions will be marked 'unmapped'.")
+        breakdown = _parse_grading_output(content_str,allowed_slugs)
         for q in breakdown:
             writer({
                 "type": "question_result",
@@ -436,4 +452,5 @@ async def get_grading_graph() -> Any:
         checkpointer = await get_checkpointer()
         _graph = _build_graph(checkpointer)
     return _graph
+
 

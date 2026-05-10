@@ -86,7 +86,6 @@ def assign_global_upload_route(
         global_upload_id=global_upload_id,
         class_id=class_id,
     )
-from typing import Optional  # 🔥 Add if not already imported
 
 @router.delete("/{upload_id}")
 def delete_lesson_route(

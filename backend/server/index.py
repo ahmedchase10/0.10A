@@ -21,6 +21,8 @@ from backend.server.routes.exam_route import router as exam_router
 from backend.server.routes.gmail_route import router as gmail_router
 from backend.server.routes.email_gen_route import router as email_router
 from backend.server.routes.flags_route import router as flags_router
+from backend.server.routes.insights_route import router as insights_router
+
 
 
 @asynccontextmanager
@@ -141,6 +143,4 @@ app.include_router(grading_router)
 app.include_router(creator_router)
 app.include_router(gmail_router)
 app.include_router(email_router)
-
-
-
+app.include_router(insights_router)

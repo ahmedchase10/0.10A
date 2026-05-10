@@ -44,7 +44,7 @@ import uuid
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile ,BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
@@ -265,6 +265,11 @@ async def analyse_blueprint(
         corr_path.write_bytes(corr_data)
         correction_path_str = str(corr_path)
 
+    from backend.server.db.dbModels import GlobalUpload
+    from backend.agents.grading_agent.tools import flatten_overviews_to_topics
+
+    uploads = session.exec(select(GlobalUpload).where(GlobalUpload.id.in_(doc_ids))).all()
+    course_topics = flatten_overviews_to_topics(uploads)
     analysis_thread_id = str(uuid.uuid4())
     exam_file_path = paper.file_path
 
@@ -286,6 +291,7 @@ async def analyse_blueprint(
                 "student_exam_path": "",
                 "breakdown": [],
                 "teacher_decisions": {},
+                "course_topics": course_topics,
             }
 
             async for sse_frame in _stream_graph(graph, input_state, config):
@@ -700,6 +706,40 @@ async def review_session(
         exam_type_id=gs.exam_type_id,
         value=normalised,
     )
+    exam_type_obj = session.get(ExamType, gs.exam_type_id)
+    exam_type_name = getattr(exam_type_obj, "name", "TD").upper() if exam_type_obj else "TD"
+
+    # Map breakdown to aggregation format (safe fallback if topic_id missing)
+    aggregation_breakdown = []
+    for q in breakdown:
+        aggregation_breakdown.append({
+            "question_number": q.get("question_number", 0),
+            "topic_id": q.get("topic_id", "unmapped"),
+            "awarded_points": float(q.get("awarded_points", 0)),
+            "max_points": float(q.get("max_points", 0)),
+            "reasoning": q.get("reasoning", ""),
+        })
+
+    from backend.agents.grading_agent.insights import save_grading_and_trigger_insights
+    save_grading_and_trigger_insights(
+        session=session,
+        exam_id=str(gs.exam_type_id),
+        student_id=str(gs.student_id),
+        class_id=gs.class_id,
+        exam_type=exam_type_name,
+        breakdown=aggregation_breakdown,
+    )
+
+    # 🔥 COHORT AGGREGATION TRIGGER (runs when batch completes)
+    if next_session_id is None:
+        from backend.agents.grading_agent.aggregator import run_cohort_aggregation_for_class
+        if next_session_id is None:
+            BackgroundTasks.add_task(
+                run_cohort_aggregation_for_class,
+                session=session,
+                class_id=gs.class_id,
+                exam_type=exam_type_name,
+            )
 
     gs.status = "approved"
     session.add(gs)
