@@ -117,7 +117,7 @@ def retry_embed_route(
     for upload_id in result["queued"]:
         global_upload = session.get(GlobalUpload, upload_id)
         if global_upload and (not global_upload.embedded or global_upload.overview is None):
-            absolute_path = str(UPLOADS_ROOT.parent / global_upload.file_path)
+            absolute_path = str(UPLOADS_ROOT/ global_upload.file_path)
             background_tasks.add_task(
                 embed_upload_task,
                 file_path=absolute_path,

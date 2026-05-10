@@ -334,11 +334,11 @@ def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, 
             session.commit()
     else:
         try:
-            job.embedding_in_progress = True
-            session.commit()
             processor = DocumentProcessor()
             document, pages = processor.process_pdf(file_path, source="lesson", doc_id=doc_id)
             store.store_pages_batch(pages, document)
+            job.embedding_in_progress = True
+            session.commit()
             if upload:
                 upload.embedded = True
                 session.add(upload)
@@ -346,6 +346,8 @@ def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, 
                 logger.info("Embedded doc %s (%s)", doc_id, upload_id)
         except Exception as exc:
             logger.error("Embedding failed for upload %s: %s", upload_id, exc)
+            job.embedding_in_progress=False
+            session.commit()
         finally:
             if processor:
                 processor.close()
@@ -468,7 +470,7 @@ def retry_embed_uploads(
         if not needs_processing:
             continue
 
-        absolute_path = UPLOADS_ROOT.parent / upload.file_path
+        absolute_path = UPLOADS_ROOT / upload.file_path
         if not absolute_path.exists():
             logger.warning("File missing for upload %s, skipping", upload.id)
             continue
