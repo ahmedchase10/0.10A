@@ -24,6 +24,8 @@ class Teacher(SQLModel, table=True):
     grading_blueprints: List["GradingBlueprint"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
     generated_exams: List["GeneratedExam"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
     email_credentials: List["UserEmailCredentials"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    global_uploads: List["GlobalUpload"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+
 
 
 class Class(SQLModel, table=True):
@@ -51,21 +53,53 @@ class Class(SQLModel, table=True):
     grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
 
 
-class Upload(SQLModel, table=True):
-    __tablename__ = "uploads"
-    __table_args__ = (
-        UniqueConstraint("class_id", "file_hash", name="uq_upload_class_hash"),
-    )
+from typing import List, Optional, Any
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlmodel import SQLModel, Field, Relationship
+import uuid
+
+
+class GlobalUpload(SQLModel, table=True):
+    __tablename__ = "global_uploads"
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
+    teacher_id: int = Field(sa_column=Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     filename: str = Field(max_length=255)
     file_path: str = Field(max_length=512)
-    file_hash: str = Field(index=True, max_length=64)
+    file_hash: str = Field(unique=True, index=True, max_length=64)  # 🔥 MUST be unique for FK
     size: int
     embedded: bool = Field(default=False)
     overview: Optional[Any] = Field(default=None, sa_type=JSON)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    uploads: List["Upload"] = Relationship(
+        back_populates="global_upload",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
+
+
+class Upload(SQLModel, table=True):
+    __tablename__ = "uploads"
+    class_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"),
+            primary_key=True,
+            index=True,
+            nullable=False
+        )
+    )
+    file_hash: str = Field(
+        sa_column=Column(
+            String(64),
+            ForeignKey("global_uploads.file_hash", ondelete="CASCADE", onupdate="CASCADE"),
+            primary_key=True,
+            index=True
+        )
+    )
+
+    global_upload: "GlobalUpload" = Relationship(back_populates="uploads")
 
 
 class Student(SQLModel, table=True):
@@ -289,4 +323,5 @@ __all__ = [
     "Flags", "Timetable", "Attendance", "ExamType", "Grade", "AgentSession",
     "ExamPaper", "ExamUpload", "GradingBlueprint", "GradingSession",
     "GradingQuestionResult", "GeneratedExam", "ProcessingJob", "UserEmailCredentials",
+    "GlobalUpload"
 ]

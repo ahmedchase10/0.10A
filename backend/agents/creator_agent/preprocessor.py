@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 # ── Tesseract availability flag ───────────────────────────────────────────────
 _TESSERACT_AVAILABLE: bool | None = None
+_TESSERACT_LANG = "fra+eng"
 
 
 def _check_tesseract() -> bool:
@@ -33,6 +34,9 @@ def _check_tesseract() -> bool:
         return _TESSERACT_AVAILABLE
     try:
         import pytesseract
+        pytesseract.pytesseract.tesseract_cmd = (
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        )
         pytesseract.get_tesseract_version()
         _TESSERACT_AVAILABLE = True
     except Exception:
@@ -77,12 +81,15 @@ def _extract_text_from_pdf(file_path: str) -> str:
                 try:
                     import io
                     import pytesseract
+                    pytesseract.pytesseract.tesseract_cmd = (
+                        r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+                    )
                     from PIL import Image
 
                     mat = fitz.Matrix(1.5, 1.5)
                     pix = page.get_pixmap(matrix=mat, alpha=False)
                     img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    ocr_text = pytesseract.image_to_string(img, lang="fra+eng", config="--psm 3").strip()
+                    ocr_text = pytesseract.image_to_string(img, lang=_TESSERACT_LANG, config="--psm 3").strip()
                     if len(ocr_text) > len(text):
                         text = ocr_text
                 except Exception as ocr_exc:
@@ -98,8 +105,11 @@ def _extract_text_from_pdf(file_path: str) -> str:
 
 def _call_ollama_for_overview(full_text: str) -> dict:
     """Call local Ollama to produce the structured JSON overview."""
-    trimmed = full_text[:12_000] if len(full_text) > 12_000 else full_text
-
+    if len(full_text) > 20_000:
+        cutoff = full_text.rfind("=== Page", 0, 20_000)
+        trimmed = full_text[:cutoff] if cutoff > 0 else full_text[:20_000]
+    else:
+        trimmed = full_text
     payload = {
         "model": OLLAMA_MODEL,
         "messages": [
@@ -108,16 +118,22 @@ def _call_ollama_for_overview(full_text: str) -> dict:
         ],
         "stream": False,
         "think": False,
-        "options": {"temperature": 0.1, "top_p": 0.9, "num_predict": 2048},
+        "options": {"temperature": 0.1, "top_p": 0.9, "num_predict": 2048,"num_ctx": 6000},
     }
 
-    resp = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=120)
+    resp = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, timeout=300)
     resp.raise_for_status()
     raw: str = resp.json()["message"]["content"].strip()
 
-    # Strip accidental markdown fences
+    if not raw:
+        raise ValueError("Ollama returned empty response")
+
     raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
     raw = re.sub(r"```\s*$", "", raw, flags=re.MULTILINE).strip()
+
+    if not raw:
+        raise ValueError("Ollama response empty after markdown stripping")
+
 
     overview = json.loads(raw)
 
@@ -172,17 +188,19 @@ def generate_overview_task(file_path: str, upload_id: str, db_url: str) -> None:
             return
 
         with SyncSession(engine) as session:
-            upload = session.get(Upload, upload_id)
-            if upload:
-                upload.overview = overview
-                session.add(upload)
+            from backend.server.db.dbModels import GlobalUpload
+
+            global_upload = session.get(GlobalUpload, upload_id)
+            if global_upload:
+                global_upload.overview = overview
+                session.add(global_upload)
                 session.commit()
                 logger.info(
-                    "Overview stored for upload %s (%d sections)",
+                    "Overview stored for global upload %s (%d sections)",
                     upload_id, len(overview.get("sections", [])),
                 )
             else:
-                logger.warning("Overview: Upload %s not found in DB", upload_id)
+                logger.warning("Overview: GlobalUpload %s not found in DB", upload_id)
 
     except Exception as exc:
         logger.error("Overview: unexpected error for upload %s: %s", upload_id, exc)

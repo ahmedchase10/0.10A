@@ -5,6 +5,7 @@ from io import BytesIO
 from PIL import Image
 
 app = modal.App("colqwen-api")
+hf_cache_vol = modal.Volume.from_name("hf-model-cache", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -13,7 +14,8 @@ image = (
         "torch",
         "Pillow",
         "transformers",
-        "fastapi[standard]"
+        "fastapi[standard]",
+        "huggingface_hub"
     ])
     .pip_install([
         "git+https://github.com/illuin-tech/colpali.git"
@@ -23,10 +25,11 @@ image = (
 @app.cls(
     gpu="l4",
     cpu=2.0,
-    memory=2048,
+    memory=4096,
     image=image,
     secrets=[modal.Secret.from_name("digi_school")],
     scaledown_window=300,
+    volumes={"/root/.cache/huggingface": hf_cache_vol},
 )
 class ColQwenEmbedder:
 
@@ -95,3 +98,9 @@ class ColQwenEmbedder:
             self.model.rope_deltas = None
             embeddings = self.model(**batch)
         return {"vectors": embeddings[0].detach().cpu().float().numpy().tolist()}
+@app.function(volumes={"/root/.cache/huggingface": hf_cache_vol}, image=image)
+def warm_cache():
+    from huggingface_hub import snapshot_download
+    print("⏳ Downloading model to volume...")
+    snapshot_download("athrael-soju/colqwen3.5-4.5B-v3")
+    print("✅ Model cached to volume successfully!")

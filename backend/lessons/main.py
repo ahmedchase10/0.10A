@@ -3,16 +3,15 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List ,Optional
 
 from fastapi import UploadFile
-from openai.types.beta.realtime import session
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, or_
 from sqlmodel import Session, select
 
 from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
-from backend.server.db.dbModels import Upload,ProcessingJob
+from backend.server.db.dbModels import Upload,GlobalUpload,ProcessingJob
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +41,11 @@ def _next_available_filename(session: Session, class_id: int, preferred_name: st
 
     while True:
         in_db = session.exec(
-            select(Upload).where(
+            select(GlobalUpload).where(
                 Upload.class_id == class_id,
-                Upload.filename == candidate,
-            )
+                GlobalUpload.filename == candidate,
+            ). join(GlobalUpload.upload)
+
         ).first()
         on_disk = (class_dir / candidate).exists()
         if in_db is None and not on_disk:
@@ -56,12 +56,12 @@ def _next_available_filename(session: Session, class_id: int, preferred_name: st
 
 def _resolve_sort(sort: str):
     sort_map = {
-        "created_at_desc": desc(Upload.created_at),
-        "created_at_asc": asc(Upload.created_at),
-        "name_asc": asc(Upload.filename),
-        "name_desc": desc(Upload.filename),
-        "size_asc": asc(Upload.size),
-        "size_desc": desc(Upload.size),
+        "created_at_desc": desc(GlobalUpload.created_at),
+        "created_at_asc": asc(GlobalUpload.created_at),
+        "name_asc": asc(GlobalUpload.filename),
+        "name_desc": desc(GlobalUpload.filename),
+        "size_asc": asc(GlobalUpload.size),
+        "size_desc": desc(GlobalUpload.size),
     }
     order_clause = sort_map.get(sort)
     if order_clause is None:
@@ -70,11 +70,14 @@ def _resolve_sort(sort: str):
 
 
 def _cleanup_missing_uploads(session: Session, class_id: int) -> int:
+    # 🔥 Fixed: explicit join + correct chaining order
     all_rows = session.exec(
-        select(Upload).where(Upload.class_id == class_id)
+        select(GlobalUpload)
+        .join(Upload, GlobalUpload.file_hash == Upload.file_hash)
+        .where(Upload.class_id == class_id)
     ).all()
-    removed = 0
 
+    removed = 0
     for row in all_rows:
         absolute_path = UPLOADS_ROOT.parent / row.file_path
         if not absolute_path.exists():
@@ -86,15 +89,20 @@ def _cleanup_missing_uploads(session: Session, class_id: int) -> int:
     return removed
 
 
+from typing import Any, Dict, List, Optional   # 🔥 Add Optional
+
+from typing import Any, Dict, List, Optional  # 🔥 Ensure Optional is imported
+
+
 def list_lesson_uploads(
-    session: Session,
-    teacher_payload: Dict[str, Any],
-    *,
-    class_id: int,
-    limit: int,
-    offset: int,
-    sort: str,
-    refresh: bool,
+        session: Session,
+        teacher_payload: Dict[str, Any],
+        *,
+        class_id: Optional[int],
+        limit: int,
+        offset: int,
+        sort: str,
+        refresh: bool,
 ) -> Dict[str, Any]:
     if limit < 1 or limit > 100:
         raise AppError("LESSONS_INVALID_PAGINATION", "Limit must be between 1 and 100.", 400)
@@ -102,16 +110,27 @@ def list_lesson_uploads(
         raise AppError("LESSONS_INVALID_PAGINATION", "Offset must be 0 or greater.", 400)
 
     teacher_id = int(teacher_payload["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
-
-    if refresh:
-        _cleanup_missing_uploads(session, class_id)
-
     order_clause = _resolve_sort(sort)
+
+    # 🔹 Build base query
+    if class_id is not None:
+        get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+        if refresh:
+            _cleanup_missing_uploads(session, class_id)
+
+        query = (
+            select(GlobalUpload)
+            .join(Upload, GlobalUpload.file_hash == Upload.file_hash)
+            .where(Upload.class_id == class_id)
+        )
+    else:
+        # 🔹 Global library view
+        query = select(GlobalUpload)
+
+    # 🔹 Execute with pagination & sorting
     rows = session.exec(
-        select(Upload)
-        .where(Upload.class_id == class_id)
-        .order_by(order_clause, asc(Upload.id))
+        query
+        .order_by(order_clause, asc(GlobalUpload.id))
         .offset(offset)
         .limit(limit)
     ).all()
@@ -119,14 +138,14 @@ def list_lesson_uploads(
     return {
         "success": True,
         "uploads": [
-        {
-            "id": row.id,
-            "name": row.filename,
-            "size": row.size,
-            "embedded": row.embedded,
-            "overview_ready": row.overview is not None,
-            "created_at": row.created_at,
-        }
+            {
+                "id": row.id,
+                "name": row.filename,
+                "size": row.size,
+                "embedded": row.embedded,
+                "overview_ready": row.overview is not None,
+                "created_at": row.created_at,
+            }
             for row in rows
         ],
         "pagination": {
@@ -135,93 +154,77 @@ def list_lesson_uploads(
             "sort": sort,
         },
     }
-
-
 def upload_lesson_file(
     session: Session,
-    teacher_payload: Dict[str, Any],
     upload_file: UploadFile,
-    class_id: int,
+    teacher_id: int,
 ) -> Dict[str, Any]:
-    teacher_id = int(teacher_payload["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
-
     if not upload_file.filename:
         raise AppError("LESSONS_MISSING_FILENAME", "Uploaded file must have a filename.", 400)
 
     sanitized_name = _sanitize_filename(upload_file.filename)
-    class_dir = UPLOADS_ROOT / "classes" / str(class_id)
-    class_dir.mkdir(parents=True, exist_ok=True)
+    global_dir = UPLOADS_ROOT / "global"
+    global_dir.mkdir(parents=True, exist_ok=True)
 
-    temp_path = class_dir / f".tmp_{os.urandom(8).hex()}"
-
+    temp_path = global_dir / f".tmp_{os.urandom(8).hex()}"
     hasher = hashlib.sha256()
     total_size = 0
 
     try:
         with temp_path.open("wb") as temp_file:
-            while True:
-                chunk = upload_file.file.read(CHUNK_SIZE)
-                if not chunk:
-                    break
+            while chunk := upload_file.file.read(CHUNK_SIZE):
                 total_size += len(chunk)
                 if total_size > MAX_FILE_SIZE_BYTES:
-                    raise AppError(
-                        "LESSONS_FILE_TOO_LARGE",
-                        "File exceeds 150MB limit.",
-                        413,
-                    )
+                    raise AppError("LESSONS_FILE_TOO_LARGE", "File exceeds 150MB limit.", 413)
                 hasher.update(chunk)
                 temp_file.write(chunk)
 
         file_hash = hasher.hexdigest()
 
-        existing = session.exec(
-            select(Upload).where(
-                Upload.class_id == class_id,
-                Upload.file_hash == file_hash,
-            )
+        # 🔍 Check if file already exists globally
+        existing_global = session.exec(
+            select(GlobalUpload).where(GlobalUpload.file_hash == file_hash)
         ).first()
 
-        if existing:
-            if temp_path.exists():
-                temp_path.unlink()
+        if existing_global:
+            temp_path.unlink()
             return {
                 "success": True,
                 "upload": {
-                    "id": existing.id,
-                    "name": existing.filename,
-                    "size": existing.size,
-                    "created_at": existing.created_at,
+                    "id": existing_global.id,
+                    "name": existing_global.filename,
+                    "size": existing_global.size,
+                    "embedded": existing_global.embedded,
+                    "created_at": existing_global.created_at,
                     "already_exists": True,
                 },
             }
 
-        final_name = _next_available_filename(session, class_id, sanitized_name, class_dir)
-        final_path = class_dir / final_name
+        final_name = _next_available_filename_global(session, sanitized_name, global_dir)
+        final_path = global_dir / final_name
         os.replace(str(temp_path), str(final_path))
+        relative_path = str(Path("uploads") / "global" / final_name)
 
-        relative_path = str(Path("uploads") / "classes" / str(class_id) / final_name)
-        record = Upload(
-            class_id=class_id,
+        global_upload = GlobalUpload(
+            teacher_id=teacher_id,
             filename=final_name,
             file_path=relative_path,
             file_hash=file_hash,
             size=total_size,
         )
-        session.add(record)
+        session.add(global_upload)
         session.commit()
-        session.refresh(record)
+        session.refresh(global_upload)
 
         return {
             "success": True,
             "embed_queued": True,
             "upload": {
-                "id": record.id,
-                "name": record.filename,
-                "size": record.size,
-                "embedded": record.embedded,
-                "created_at": record.created_at,
+                "id": global_upload.id,
+                "name": global_upload.filename,
+                "size": global_upload.size,
+                "embedded": global_upload.embedded,
+                "created_at": global_upload.created_at,
                 "already_exists": False,
             },
         }
@@ -231,13 +234,81 @@ def upload_lesson_file(
             temp_path.unlink()
 
 
+def _next_available_filename_global(session: Session, preferred_name: str, global_dir: Path) -> str:
+    base, ext = os.path.splitext(preferred_name)
+    candidate = preferred_name
+    counter = 1
+    while True:
+        in_db = session.exec(
+            select(GlobalUpload).where(GlobalUpload.filename == candidate)
+        ).first()
+        on_disk = (global_dir / candidate).exists()
+        if in_db is None and not on_disk:
+            return candidate
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+
+def assign_global_upload_to_class(
+    session: Session,
+    teacher_payload: Dict[str, Any],
+    *,
+    global_upload_id: str,
+    class_id: int,
+) -> Dict[str, Any]:
+    teacher_id = int(teacher_payload["id"])
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+
+    global_upload = session.get(GlobalUpload, global_upload_id)
+    if not global_upload:
+        raise AppError("LESSONS_UPLOAD_NOT_FOUND", "Global upload not found.", 404)
+
+    existing_link = session.exec(
+        select(Upload).where(
+            Upload.class_id == class_id,
+            Upload.file_hash == global_upload.file_hash,
+        )
+    ).first()
+
+    if existing_link:
+        return {
+            "success": True,
+            "upload": {
+                "id": global_upload.id,
+                "name": global_upload.filename,
+                "size": global_upload.size,
+                "embedded": global_upload.embedded,
+                "created_at": global_upload.created_at,
+                "already_exists": True,
+            },
+        }
+
+    new_link = Upload(
+        class_id=class_id,
+        file_hash=global_upload.file_hash,
+    )
+    session.add(new_link)
+    session.commit()
+
+    return {
+        "success": True,
+        "embed_queued": False,  # Embedding/overview is managed at GlobalUpload level
+        "upload": {
+            "id": global_upload.id,
+            "name": global_upload.filename,
+            "size": global_upload.size,
+            "embedded": global_upload.embedded,
+            "created_at": global_upload.created_at,
+            "already_exists": False,
+        },
+    }
+
 def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, session:Session) -> None:
     from backend.rag.document_processor import DocumentProcessor
     from backend.rag.vector_store import VectorStore
 
-    upload = session.get(Upload, upload_id)
+    upload = session.get(GlobalUpload, upload_id)
     if not upload:
-        logger.warning("Upload %s not found", upload_id)
+        logger.warning("GlobalUpload %s not found", upload_id)
         return
     job = session.exec(select(ProcessingJob).where(ProcessingJob.file_hash == upload.file_hash).with_for_update()).first()
     if job is None:
@@ -248,8 +319,10 @@ def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, 
     store = VectorStore()
     if job.embedding_in_progress:
         logger.info(" Skip: Embedding for doc %s is already in progress.", doc_id)
+        store.close()
     elif store.doc_already_embedded(doc_id):
         logger.info(" Skip: Doc %s is already embedded.", doc_id)
+        store.close()
         if upload and not upload.embedded:
             upload.embedded = True
             session.commit()
@@ -303,38 +376,56 @@ def delete_lesson_upload(
     session: Session,
     teacher_payload: Dict[str, Any],
     upload_id: str,
+    class_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     from backend.rag.vector_store import VectorStore
     from backend.config import PAGES_STORAGE_PATH
 
     teacher_id = int(teacher_payload["id"])
-
-    upload = session.exec(select(Upload).where(Upload.id == upload_id)).first()
-    if upload is None:
+    global_upload = session.get(GlobalUpload, upload_id)
+    if not global_upload:
         raise AppError("LESSONS_UPLOAD_NOT_FOUND", "Upload not found.", 404)
 
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=upload.class_id)
+    if global_upload.teacher_id != teacher_id:
+        raise AppError("LESSONS_FORBIDDEN", "You do not own this upload.", 403)
 
-    # ── Delete PDF from disk ───────────────────────────────────────────────
-    absolute_path = UPLOADS_ROOT.parent / upload.file_path
+    if class_id is not None:
+        # 🔹 CLASS UNLINK: Only removes the linkage row
+        get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+        class_link = session.get(Upload, (class_id, global_upload.file_hash))
+        if not class_link:
+            raise AppError("LESSONS_UPLOAD_NOT_FOUND", "File not assigned to this class.", 404)
+
+        session.delete(class_link)
+        session.commit()
+        return {
+            "success": True,
+            "deleted": {
+                "id": upload_id,
+                "name": global_upload.filename,
+                "unlinked": True,
+                "global_kept": True,
+            },
+        }
+
+
+    absolute_path = UPLOADS_ROOT.parent / global_upload.file_path
     file_deleted = False
     try:
         if absolute_path.exists():
             absolute_path.unlink()
             file_deleted = True
     except OSError:
-        raise AppError("LESSONS_DELETE_FILE_FAILED", "Failed to delete file from disk.", 500)
+        logger.warning("Failed to delete file from disk: %s", absolute_path)
 
-    # ── Delete page images from disk ──────────────────────────────────────
     pages_dir = Path(PAGES_STORAGE_PATH)
     for page_img in pages_dir.glob(f"{upload_id}_page_*.png"):
         try:
             page_img.unlink()
         except OSError:
-            logger.warning("Could not delete page image %s", page_img)
+            pass
 
-    # ── Delete vectors from Weaviate ──────────────────────────────────────
-    if upload.embedded:
+    if global_upload.embedded:
         try:
             store = VectorStore()
             store.delete_by_doc_id(upload_id)
@@ -342,47 +433,40 @@ def delete_lesson_upload(
         except Exception as exc:
             logger.warning("Weaviate cleanup failed for %s: %s", upload_id, exc)
 
-    session.delete(upload)
+    session.delete(global_upload)
     session.commit()
 
     return {
         "success": True,
         "deleted": {
             "id": upload_id,
-            "name": upload.filename,
+            "name": global_upload.filename,
             "file_deleted": file_deleted,
+            "global_deleted": True,
         },
     }
-
 
 def retry_embed_uploads(
     session: Session,
     teacher_payload: Dict[str, Any],
-    class_id: int,
 ) -> Dict[str, Any]:
-    """Queue background embedding for all unembedded uploads in a class."""
     teacher_id = int(teacher_payload["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
 
-    unprocessed = session.exec(
-        select(Upload).where(
-            Upload.class_id == class_id,
-            (Upload.embedded == False) | (Upload.overview is None),  # noqa: E712
-        )
+    all_uploads = session.exec(
+        select(GlobalUpload).where(GlobalUpload.teacher_id == teacher_id)
     ).all()
 
     queued: List[str] = []
+    for upload in all_uploads:
+        needs_processing = (not upload.embedded) or (upload.overview is None)
+        if not needs_processing:
+            continue
 
-    for upload in unprocessed:
-        absolute_path = str(UPLOADS_ROOT.parent / upload.file_path)
-        if not Path(absolute_path).exists():
+        absolute_path = UPLOADS_ROOT.parent / upload.file_path
+        if not absolute_path.exists():
             logger.warning("File missing for upload %s, skipping", upload.id)
             continue
-        if not upload.embedded or upload.overview is None:
-            queued.append(upload.id)
 
-    return {
-        "queued": queued,
-        "total_queued": len(queued),
-    }
+        queued.append(upload.id)
 
+    return {"queued": queued, "total_queued": len(queued)}
