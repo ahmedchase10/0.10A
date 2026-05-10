@@ -317,11 +317,54 @@ class UserEmailCredentials(SQLModel, table=True):
     token_expiry: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ExamTopicPerformance(SQLModel, table=True):
+    __tablename__ = "exam_topic_performance"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    exam_id: str = Field(index=True)
+    student_id: str = Field(index=True)
+    class_id: int = Field(index=True)
+    exam_type: str = Field(index=True)
+    topic_id: str = Field(index=True)
+    score: float
+    max_score: float
+    feedback: str = Field(default="")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class StudentTopicInsight(SQLModel, table=True):
+    __tablename__ = "student_topic_insights"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    student_id: str = Field(index=True)
+    topic_id: str = Field(index=True)
+    mastery_pct: float
+    attempts: int
+    trend: str  # improving, stable, declining
+    insight_type: str  # individual_consistent_struggle, mastery_achieved, performance_decline
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "topic_id", name="uq_student_topic_insight"),
+    )
+
+class CohortTopicInsight(SQLModel, table=True):
+    __tablename__ = "cohort_topic_insights"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(index=True)
+    topic_id: str = Field(index=True)
+    exam_type_scope: str  # DS or EXAMEN
+    cohort_avg_pct: float
+    weak_student_pct: float  # % of class below 50%
+    insight_type: str  # cohort_topic_weakness, remediation_needed
+    recommendation: str = Field(default="")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint("class_id", "topic_id", "exam_type_scope", name="uq_cohort_topic_insight"),
+    )
 
 __all__ = [
     "SQLModel", "Teacher", "Class", "Upload", "Student", "StudentClass",
     "Flags", "Timetable", "Attendance", "ExamType", "Grade", "AgentSession",
     "ExamPaper", "ExamUpload", "GradingBlueprint", "GradingSession",
     "GradingQuestionResult", "GeneratedExam", "ProcessingJob", "UserEmailCredentials",
-    "GlobalUpload"
+    "GlobalUpload","ExamTopicPerformance","CohortTopicInsight","StudentTopicInsight"
 ]

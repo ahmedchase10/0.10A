@@ -8,9 +8,11 @@ Tools available to the grading agent:
 """
 import base64
 import logging
-from typing import List
+from typing import List,Any,Dict
 
 from langchain_core.tools import tool
+import re
+import unicodedata
 
 # Re-export RAG tool — identical implementation, shared code
 from backend.agents.pedagogical_agent.tools import rag_retrieve  # noqa: F401
@@ -69,4 +71,42 @@ def read_pdf_as_images(file_path: str, max_px: int = 1024) -> List[dict]:
 
     logger.info("read_pdf_as_images: %s → %d pages at max_px=%d", file_path, len(pages), max_px)
     return pages
+
+def _slugify(text: str) -> str:
+    """Unicode-safe slug generator (keeps Arabic/French/English)."""
+    text = unicodedata.normalize("NFKC", text)
+    text = re.sub(r"[^\w\s-]", "", text.lower())
+    text = re.sub(r"[\s_]+", "_", text).strip("_")
+    return text or "topic"
+
+
+
+def flatten_overviews_to_topics(uploads: List[Any]) -> List[Dict[str, str]]:
+    """
+    Merge multiple GlobalUpload.overview JSONs into a flat, deduplicated topic list.
+    Returns: [{"id": "t1", "slug": "functions_derivatives", "name": "Derivatives"}, ...]
+    """
+    seen_slugs = set()
+    topics = []
+    topic_counter = 1
+
+    for upload in uploads:
+        overview = getattr(upload, "overview", None)
+        if not overview or not isinstance(overview, dict):
+            continue
+        for section in overview.get("sections", []):
+            sec_title = section.get("title", "")
+            for sub in section.get("subsections", []):
+                sub_title = sub.get("title", "")
+                for topic_name in sub.get("topics", []):
+                    slug = _slugify(f"{sec_title}_{sub_title}_{topic_name}")
+                    if slug not in seen_slugs:
+                        seen_slugs.add(slug)
+                        topics.append({
+                            "id": f"t{topic_counter}",
+                            "slug": slug,
+                            "name": topic_name,
+                        })
+                        topic_counter += 1
+    return topics
 
