@@ -24,7 +24,7 @@
             <p class="text-sm text-grey-600">Upload files once, then reuse them from class pages.</p>
           </div>
           <div class="text-sm text-grey-600">
-            {{ lessonLibrary.assets.length }} asset{{ lessonLibrary.assets.length !== 1 ? 's' : '' }}
+            {{ globalAssets.length }} asset{{ globalAssets.length !== 1 ? 's' : '' }}
           </div>
         </div>
 
@@ -37,11 +37,11 @@
           @change="handleFilesSelected"
         />
 
-        <div v-if="lessonLibrary.loading" class="flex items-center justify-center py-16">
+        <div v-if="globalAssetsLoading" class="flex items-center justify-center py-16">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
         </div>
 
-        <div v-else-if="lessonLibrary.assets.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 rounded-2xl">
+        <div v-else-if="globalAssets.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 rounded-2xl">
           <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
           <h3 class="text-lg font-medium text-grey-900 mb-2">No assets yet</h3>
           <p class="text-grey-600 mb-6">Drop lesson files here to build a reusable library.</p>
@@ -56,7 +56,7 @@
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <article
-            v-for="asset in lessonLibrary.assets"
+            v-for="asset in globalAssets"
             :key="asset.id"
             class="rounded-xl border border-grey-200 overflow-hidden hover:shadow-md transition bg-grey-50/40"
           >
@@ -66,21 +66,15 @@
             <div class="p-4 space-y-3">
               <div>
                 <h3 class="font-semibold text-grey-900 truncate" :title="asset.name">{{ asset.name }}</h3>
-                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.createdAt) }}</p>
+                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.created_at) }}</p>
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="downloadAsset(asset)"
-                  class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-grey-200 text-grey-700 rounded-lg hover:bg-grey-50 transition text-sm font-medium"
-                >
-                  <ArrowDownTrayIcon class="w-4 h-4" />
-                  Download
-                </button>
-                <button
                   @click="deleteAsset(asset.id)"
-                  class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                  class="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition flex items-center justify-center gap-2 text-sm font-medium"
                 >
                   <TrashIcon class="w-4 h-4" />
+                  Delete
                 </button>
               </div>
             </div>
@@ -381,17 +375,17 @@ import {
   ExclamationCircleIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline';
-import { useLessonLibraryStore } from '@/stores/lessonLibraryStore';
 import { useClassesStore } from '@/stores/classesstore';
 import api from '@/services/api';
 
 // ── Stores ───────────────────────────────────────────────────────────────────
 
-const lessonLibrary = useLessonLibraryStore();
 const classesStore = useClassesStore();
 const fileInput = ref(null);
 
 const classes = computed(() => classesStore.classes);
+const globalAssets = ref([]);
+const globalAssetsLoading = ref(false);
 
 // ── Agent state ───────────────────────────────────────────────────────────────
 
@@ -424,10 +418,36 @@ const agent = reactive({
 
 function openFilePicker() { fileInput.value?.click(); }
 
+async function loadGlobalAssets() {
+  globalAssetsLoading.value = true;
+  try {
+    const res = await api.getLessons(null, { limit: 100, refresh: true });
+    if (res.success) {
+      globalAssets.value = res.uploads || [];
+    }
+  } catch (err) {
+    console.error('Failed to load global assets:', err);
+  } finally {
+    globalAssetsLoading.value = false;
+  }
+}
+
 async function handleFilesSelected(event) {
   const files = event.target.files;
   if (!files || files.length === 0) return;
-  await lessonLibrary.addFiles(files);
+  globalAssetsLoading.value = true;
+  try {
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api.uploadLesson(formData);
+    }
+  } catch (err) {
+    alert('Failed to upload some files: ' + err.message);
+  } finally {
+    await loadGlobalAssets();
+    globalAssetsLoading.value = false;
+  }
   event.target.value = '';
 }
 
@@ -442,18 +462,14 @@ function formatSize(bytes) {
   return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
 }
 
-function downloadAsset(asset) {
-  const url = URL.createObjectURL(asset.blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = asset.name;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 async function deleteAsset(assetId) {
   if (!confirm('Delete this reusable asset?')) return;
-  await lessonLibrary.remove(assetId);
+  try {
+    await api.deleteLesson(assetId);
+    await loadGlobalAssets();
+  } catch (err) {
+    alert('Failed to delete asset: ' + err.message);
+  }
 }
 
 // ── Agent: class change ───────────────────────────────────────────────────────
@@ -664,7 +680,7 @@ async function scrollToBottom() {
 
 onMounted(async () => {
   await Promise.all([
-    lessonLibrary.load(),
+    loadGlobalAssets(),
     classesStore.load(),
   ]);
 });

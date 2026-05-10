@@ -156,7 +156,8 @@ import {
   UserGroupIcon,
   ClipboardDocumentCheckIcon,
   ChartBarIcon,
-  DocumentArrowUpIcon
+  DocumentArrowUpIcon,
+  EnvelopeIcon
 } from '@heroicons/vue/24/outline';
 import { useAuthStore }    from '@/stores/auth';
 import { useClassesStore } from '@/stores/classesStore';
@@ -182,6 +183,7 @@ function classSubLinks(classId) {
     { label: 'Attendance', to: `/class/${classId}/attendance`, icon: ClipboardDocumentCheckIcon },
     { label: 'Grades',     to: `/class/${classId}/grades`,     icon: ChartBarIcon },
     { label: 'Lessons',    to: `/class/${classId}/lessons`,    icon: DocumentArrowUpIcon },
+    { label: 'Notifications', to: `/class/${classId}/parentnotification`, icon: EnvelopeIcon },
   ];
 }
 

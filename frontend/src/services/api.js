@@ -388,14 +388,28 @@ class ApiService {
   async getLessons(classId, options = {}) {
     const { limit = 20, offset = 0, sort = 'created_at_desc', refresh = true } = options;
     const params = new URLSearchParams({
-      class_id: classId,
       limit: limit.toString(),
       offset: offset.toString(),
       sort,
       refresh: refresh.toString()
     });
+    if (classId) {
+      params.append('class_id', classId);
+    }
     const response = await fetch(`${API_BASE_URL}/lessons?${params}`, {
       method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
+  async assignGlobalUpload(globalUploadId, classId) {
+    const params = new URLSearchParams({
+      global_upload_id: globalUploadId,
+      class_id: classId.toString()
+    });
+    const response = await fetch(`${API_BASE_URL}/lessons/assign?${params}`, {
+      method: 'POST',
       headers: this.getHeaders(true)
     });
     return this.handleResponse(response);
@@ -522,6 +536,26 @@ class ApiService {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${this.token}` },
       body: formData
+    });
+    return this.handleResponse(response);
+  }
+
+  // ─── Email Agent ──────────────────────────────────────────────────────────
+
+  async generateEmail(payload) {
+    const response = await fetch(`${API_BASE_URL}/emailagent/generate-email`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    return this.handleResponse(response);
+  }
+
+  async sendEmail(payload) {
+    const response = await fetch(`${API_BASE_URL}/gmail/send-email`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(payload)
     });
     return this.handleResponse(response);
   }

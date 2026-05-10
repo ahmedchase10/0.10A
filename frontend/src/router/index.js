@@ -65,6 +65,11 @@ const routes = [
         path: 'class/:id/lessons',
         name: 'ClassLessons',
         component: () => import('@/views/classlessons.vue')
+      },
+      {
+        path: 'class/:id/parentnotification',
+        name: 'ParentNotification',
+        component: () => import('@/views/parentnotification.vue')
       }
     ]
   }

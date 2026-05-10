@@ -89,14 +89,14 @@
             <h2 class="text-lg font-semibold text-grey-900">Lesson Library</h2>
             <p class="text-sm text-grey-600">Select reusable assets to attach to this class.</p>
           </div>
-          <span class="text-sm text-grey-600">{{ lessonLibrary.assets.length }} asset{{ lessonLibrary.assets.length !== 1 ? 's' : '' }}</span>
+          <span class="text-sm text-grey-600">{{ globalAssets.length }} asset{{ globalAssets.length !== 1 ? 's' : '' }}</span>
         </div>
 
-        <div v-if="lessonLibrary.loading" class="flex items-center justify-center py-12">
+        <div v-if="globalAssetsLoading" class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
         </div>
 
-        <div v-else-if="lessonLibrary.assets.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
+        <div v-else-if="globalAssets.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
           <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
           <h3 class="text-lg font-medium text-grey-900 mb-2">No reusable assets yet</h3>
           <p class="text-grey-600">Add assets from the main Lessons library first.</p>
@@ -104,7 +104,7 @@
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <article
-            v-for="asset in lessonLibrary.assets"
+            v-for="asset in globalAssets"
             :key="asset.id"
             class="rounded-xl border transition overflow-hidden"
             :class="selectedAssetIds.includes(asset.id) ? 'border-primary-500 ring-1 ring-primary-200' : 'border-grey-200'"
@@ -121,7 +121,7 @@
               </div>
               <div class="p-4 bg-white">
                 <h3 class="font-semibold text-grey-900 truncate" :title="asset.name">{{ asset.name }}</h3>
-                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.createdAt) }}</p>
+                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.created_at) }}</p>
               </div>
             </label>
           </article>
@@ -142,12 +142,13 @@ import {
   DocumentTextIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline';
-import { useLessonLibraryStore } from '@/stores/lessonLibraryStore';
 import api from '@/services/api';
 
 const route = useRoute();
 const classId = computed(() => parseInt(route.params.id));
-const lessonLibrary = useLessonLibraryStore();
+
+const globalAssets = ref([]);
+const globalAssetsLoading = ref(true);
 
 const attachedFiles = ref([]);
 const loadingAttached = ref(true);
@@ -198,23 +199,27 @@ async function deleteAttachedFile(file) {
   }
 }
 
+async function loadGlobalAssets() {
+  globalAssetsLoading.value = true;
+  try {
+    const res = await api.getLessons(null, { limit: 100, refresh: true });
+    if (res.success) {
+      globalAssets.value = res.uploads || [];
+    }
+  } catch (err) {
+    console.error('Failed to load global assets:', err);
+  } finally {
+    globalAssetsLoading.value = false;
+  }
+}
+
 async function attachSelectedAssets() {
   if (selectedAssetIds.value.length === 0) return;
   attaching.value = true;
   try {
     for (const assetId of selectedAssetIds.value) {
-      const asset = await lessonLibrary.getById(assetId);
-      if (!asset) continue;
-
-      const file = new File([asset.blob], asset.name, {
-        type: asset.type || 'application/octet-stream',
-      });
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('class_id', classId.value);
-      await api.uploadLesson(formData);
+      await api.assignGlobalUpload(assetId, classId.value);
     }
-
     selectedAssetIds.value = [];
     await loadAttachedFiles();
   } catch (err) {
@@ -225,7 +230,7 @@ async function attachSelectedAssets() {
 }
 
 onMounted(async () => {
-  await lessonLibrary.load();
+  await loadGlobalAssets();
   await loadAttachedFiles();
 });
 </script>

@@ -178,6 +178,24 @@
             </div>
           </div>
         </router-link>
+
+        <router-link :to="`/class/${classId}/parentnotification`" class="group">
+          <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-blue-300 transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 rounded-xl flex items-center justify-center transition">
+                <EnvelopeIcon class="w-6 h-6 text-blue-600" />
+              </div>
+              <ChevronRightIcon class="w-5 h-5 text-grey-400 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
+            </div>
+            <h3 class="text-lg font-semibold text-grey-900 mb-1">Parent Notifications</h3>
+            <p class="text-sm text-grey-500">Draft AI-assisted emails to parents.</p>
+            <div class="mt-4">
+              <span class="text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
+                Notify Parents
+              </span>
+            </div>
+          </div>
+        </router-link>
       </div>
     </template>
 
@@ -373,7 +391,8 @@ import {
   CalendarDaysIcon,
   ChevronRightIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  EnvelopeIcon
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
 import { useClassesStore } from '@/stores/classesStore';
