@@ -188,7 +188,6 @@ def upload_lesson_file(
 
         file_hash = hasher.hexdigest()
 
-        # 🔍 Check if file already exists globally
         existing_global = session.exec(
             select(GlobalUpload).where(GlobalUpload.file_hash == file_hash)
         ).first()
@@ -202,6 +201,7 @@ def upload_lesson_file(
                     "name": existing_global.filename,
                     "size": existing_global.size,
                     "embedded": existing_global.embedded,
+                    "overviewed":existing_global.overview is not None,
                     "created_at": existing_global.created_at,
                     "already_exists": True,
                 },
@@ -225,10 +225,12 @@ def upload_lesson_file(
         return {
             "success": True,
             "embed_queued": True,
+            "overview_queued":True,
             "upload": {
                 "id": global_upload.id,
                 "name": global_upload.filename,
                 "size": global_upload.size,
+                "overviewed":global_upload.overview is not None,
                 "embedded": global_upload.embedded,
                 "created_at": global_upload.created_at,
                 "already_exists": False,
@@ -283,6 +285,7 @@ def assign_global_upload_to_class(
                 "name": global_upload.filename,
                 "size": global_upload.size,
                 "embedded": global_upload.embedded,
+                "overviewed": global_upload.overview is not None,
                 "created_at": global_upload.created_at,
                 "already_exists": True,
             },
@@ -297,12 +300,12 @@ def assign_global_upload_to_class(
 
     return {
         "success": True,
-        "embed_queued": False,  # Embedding/overview is managed at GlobalUpload level
         "upload": {
             "id": global_upload.id,
             "name": global_upload.filename,
             "size": global_upload.size,
             "embedded": global_upload.embedded,
+            "overviewed": global_upload.overview is not None,
             "created_at": global_upload.created_at,
             "already_exists": False,
         },
