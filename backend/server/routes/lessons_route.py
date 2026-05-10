@@ -58,7 +58,8 @@ def upload_lesson_route(
         absolute_path = str(
             UPLOADS_ROOT.parent
             / Path("uploads")
-            / "global"
+            /"teachers"
+            / str(teacher["id"])
             / upload_info["name"]
         )
         background_tasks.add_task(

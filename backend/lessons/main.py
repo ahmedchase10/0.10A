@@ -34,25 +34,22 @@ def _sanitize_filename(filename: str) -> str:
     return f"{base}.pdf"
 
 
-def _next_available_filename(session: Session, class_id: int, preferred_name: str, class_dir: Path) -> str:
+def _next_available_filename_teacher(session: Session, teacher_id: int, preferred_name: str, teacher_dir: Path) -> str:
     base, ext = os.path.splitext(preferred_name)
     candidate = preferred_name
     counter = 1
-
     while True:
         in_db = session.exec(
             select(GlobalUpload).where(
-                Upload.class_id == class_id,
+                GlobalUpload.teacher_id == teacher_id,
                 GlobalUpload.filename == candidate,
-            ). join(GlobalUpload.upload)
-
+            )
         ).first()
-        on_disk = (class_dir / candidate).exists()
+        on_disk = (teacher_dir / candidate).exists()
         if in_db is None and not on_disk:
             return candidate
         candidate = f"{base} ({counter}){ext}"
         counter += 1
-
 
 def _resolve_sort(sort: str):
     sort_map = {
@@ -68,23 +65,31 @@ def _resolve_sort(sort: str):
         raise AppError("LESSONS_INVALID_SORT", "Invalid sort value.", 400)
     return order_clause
 
-
-def _cleanup_missing_uploads(session: Session, class_id: int) -> int:
-    # 🔥 Fixed: explicit join + correct chaining order
-    all_rows = session.exec(
-        select(GlobalUpload)
-        .join(Upload, GlobalUpload.file_hash == Upload.file_hash)
-        .where(Upload.class_id == class_id)
-    ).all()
+def _cleanup_missing_uploads(session: Session, teacher_id: int, class_id: Optional[int] = None) -> int:
+    if class_id is not None:
+        rows = session.exec(
+            select(GlobalUpload)
+            .join(Upload, GlobalUpload.file_hash == Upload.file_hash)
+            .where(Upload.class_id == class_id)
+        ).all()
+    else:
+        rows = session.exec(
+            select(GlobalUpload).where(GlobalUpload.teacher_id == teacher_id)
+        ).all()
 
     removed = 0
-    for row in all_rows:
-        absolute_path = UPLOADS_ROOT.parent / row.file_path
+    for row in rows:
+        rel_path = row.file_path
+
+        if rel_path.startswith("uploads/"):
+            rel_path = rel_path[len("uploads/"):]
+        absolute_path = (UPLOADS_ROOT / rel_path).resolve()
+
         if not absolute_path.exists():
             session.delete(row)
             removed += 1
 
-    if removed:
+    if removed > 0:
         session.commit()
     return removed
 
@@ -116,7 +121,7 @@ def list_lesson_uploads(
     if class_id is not None:
         get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
         if refresh:
-            _cleanup_missing_uploads(session, class_id)
+            _cleanup_missing_uploads(session, teacher_id,class_id=class_id)
 
         query = (
             select(GlobalUpload)
@@ -125,6 +130,8 @@ def list_lesson_uploads(
         )
     else:
         # 🔹 Global library view
+        if refresh:
+            _cleanup_missing_uploads(session, teacher_id, class_id=None)
         query = select(GlobalUpload)
 
     # 🔹 Execute with pagination & sorting
@@ -163,10 +170,10 @@ def upload_lesson_file(
         raise AppError("LESSONS_MISSING_FILENAME", "Uploaded file must have a filename.", 400)
 
     sanitized_name = _sanitize_filename(upload_file.filename)
-    global_dir = UPLOADS_ROOT / "global"
-    global_dir.mkdir(parents=True, exist_ok=True)
+    teacher_dir = UPLOADS_ROOT / "teachers" / str(teacher_id)
+    teacher_dir.mkdir(parents=True, exist_ok=True)
 
-    temp_path = global_dir / f".tmp_{os.urandom(8).hex()}"
+    temp_path = teacher_dir / f".tmp_{os.urandom(8).hex()}"
     hasher = hashlib.sha256()
     total_size = 0
 
@@ -200,11 +207,10 @@ def upload_lesson_file(
                 },
             }
 
-        final_name = _next_available_filename_global(session, sanitized_name, global_dir)
-        final_path = global_dir / final_name
+        final_name = _next_available_filename_global(session, sanitized_name, teacher_dir)
+        final_path = teacher_dir / final_name
         os.replace(str(temp_path), str(final_path))
-        relative_path = str(Path("uploads") / "global" / final_name)
-
+        relative_path = str(Path() / "teachers" / str(teacher_id) / final_name)
         global_upload = GlobalUpload(
             teacher_id=teacher_id,
             filename=final_name,
