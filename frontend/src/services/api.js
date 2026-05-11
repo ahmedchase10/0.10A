@@ -526,6 +526,98 @@ class ApiService {
     }
   }
 
+  // Creator Agent
+
+  async listCreatorSessions(options = {}) {
+    const { limit = 50, offset = 0 } = options;
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const response = await fetch(`${API_BASE_URL}/agents/creator/sessions?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getCreatorSession(sessionId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/creator/sessions/${encodeURIComponent(String(sessionId))}`,
+      {
+        method: 'GET',
+        headers: this.getHeaders(true),
+      }
+    );
+    return this.handleResponse(response);
+  }
+
+  async deleteCreatorSession(sessionId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/creator/sessions/${encodeURIComponent(String(sessionId))}`,
+      {
+        method: 'DELETE',
+        headers: this.getHeaders(true),
+      }
+    );
+    return this.handleResponse(response);
+  }
+
+  async retryCreatorOverview(classId) {
+    const response = await fetch(`${API_BASE_URL}/agents/creator/retry-overview`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ class_id: classId }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async streamCreatorGenerate(body, onEvent) {
+    const res = await fetch(`${API_BASE_URL}/agents/creator/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok || !res.body) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); msg = j?.error?.message || msg; } catch { /* noop */ }
+      throw new Error(msg);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+
+      for (const frame of frames) {
+        if (!frame.trim()) continue;
+        let event = 'message';
+        let data = '';
+
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) data += line.slice(5).trimStart();
+        }
+
+        onEvent({ event, data });
+
+        if (event === 'done') return;
+        if (event === 'error') throw new Error(data || 'Stream error');
+      }
+    }
+  }
+
   // ─── Voice Processing ─────────────────────────────────────────────────────
 
   async processVoiceNote(audioBlob, classId) {

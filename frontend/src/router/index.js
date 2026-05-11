@@ -27,7 +27,12 @@ const routes = [
       {
         path: 'lessons',
         name: 'Lessons',
-        component: () => import('@/views/lessons.vue')   // global view — see BUG-02
+        component: () => import('@/views/lessons.vue')   
+      },
+      {
+        path: 'creator',
+        name: 'Creator',
+        component: () => import('@/views/creator.vue')
       },
       {
         path: 'notifications',
@@ -44,7 +49,7 @@ const routes = [
       {
         path: 'class/:id',
         name: 'ClassPage',
-        component: () => import('@/views/classpage.vue')        // overview hub
+        component: () => import('@/views/classpage.vue')
       },
       {
         path: 'class/:id/students',
