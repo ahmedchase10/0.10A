@@ -148,6 +148,7 @@ import {
   CalendarIcon,
   DocumentTextIcon,
   SparklesIcon,
+  ClipboardDocumentListIcon,
   BellIcon,
   Cog6ToothIcon,
   ChevronLeftIcon,
@@ -176,6 +177,7 @@ const navigation = [
   { name: 'Timetable',     to: '/timetable',     icon: CalendarIcon },
   { name: 'Lessons',       to: '/lessons',       icon: DocumentTextIcon },
   { name: 'Creator',       to: '/creator',       icon: SparklesIcon },
+  { name: 'Grading',       to: '/grading',       icon: ClipboardDocumentListIcon },
   { name: 'Notifications', to: '/notifications', icon: BellIcon },
 ];
 

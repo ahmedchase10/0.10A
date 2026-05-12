@@ -1,4 +1,4 @@
-﻿"""
+"""
 backend/agents/grading_agent/agent.py
 ---------------------------------------
 ONE unified LangGraph graph for both blueprint creation and per-student grading.
@@ -166,6 +166,7 @@ class GradingGraphState(TypedDict):
 
     # Grading phase inputs (populated when resuming from blueprint interrupt)
     student_exam_path: str
+    student_notes: str         # per-student notes provided by teacher
 
     # Outputs
     breakdown: List[dict]      # per-question results emitted by grade_agent
@@ -313,7 +314,10 @@ async def bp_interrupt_node(state: GradingGraphState) -> dict:
     writer = get_stream_writer()
     writer({"type": "blueprint_ready"})
     resume = interrupt({"phase": "blueprint_complete"})
-    return {"student_exam_path": resume.get("student_exam_path", "")}
+    return {
+        "student_exam_path": resume.get("student_exam_path", ""),
+        "student_notes": resume.get("student_notes", "")
+    }
 
 
 def bp_should_continue(state: GradingGraphState) -> Literal["bp_tools", "bp_interrupt_node"]:
@@ -351,6 +355,9 @@ async def grade_agent_node(state: GradingGraphState) -> dict:
 
     system = _GRADE_SYSTEM.replace("{course_topics_json}", topics_json)
     system += f"\n\nstudent_exam_path = {state.get('student_exam_path', '')}"
+    if state.get("student_notes"):
+        system += f"\n\nTeacher Notes about this Student:\n{state['student_notes']}"
+
     lc_messages = _build_lc_messages(state, system)
     if not reasoning:
         lc_messages.append(AIMessage(content="<think>\n</think>"))
