@@ -268,7 +268,6 @@ class GradingSession(SQLModel, table=True):
     batch_id: str = Field(index=True, max_length=36)
     queue_position: int = Field(default=0)
     status: str = Field(default="pending")
-    student_notes: str = Field(default="")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     question_results: List["GradingQuestionResult"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
