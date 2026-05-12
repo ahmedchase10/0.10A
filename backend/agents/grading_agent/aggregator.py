@@ -1,29 +1,51 @@
 import logging
-from typing import Dict, List
-from sqlmodel import Session, select, func
 from datetime import datetime, timezone
-from backend.server.db.dbModels import ExamTopicPerformance, CohortTopicInsight
+from typing import Dict, List, Any
+
+from sqlmodel import Session, select
+from backend.server.db.dbModels import ExamTopicPerformance, StudentTopicInsight, ExamType, CohortTopicInsight
 
 logger = logging.getLogger(__name__)
 
-SCOPE_RULES = {"DS": ["TD", "TP"], "EXAMEN": ["TD", "TP", "DS"]}
+SCOPE_RULES = {
+    "MIDTERM": ["EXERCISE"],
+    "FINAL": ["EXERCISE", "MIDTERM"],
+}
+WEIGHTS = {"EXERCISE": 0.3, "MIDTERM": 0.7, "FINAL": 1.0}
+MIN_ATTEMPTS = 2
 WEAK_THRESHOLD = 0.5
+MASTER_THRESHOLD = 0.85
 COHORT_WEAK_PCT_THRESHOLD = 0.6
 
 
 def run_cohort_aggregation_for_class(session: Session, class_id: int, exam_type: str):
-    allowed_types = SCOPE_RULES.get(exam_type, ["TD", "TP"])
+    """Compute class-wide topic insights & remediation recommendations."""
+    base_allowed = SCOPE_RULES.get(exam_type, ["EXERCISE"])
+
+    #  Dynamic filter: only include exam types where teacher enabled insights
+    enabled_categories = session.exec(
+        select(ExamType.category).where(
+            ExamType.class_id == class_id,
+            ExamType.category.in_(base_allowed),
+            ExamType.use_for_insights == True
+        )
+    ).all()
+    allowed_categories = list(set(enabled_categories))
+
+    if not allowed_categories:
+        logger.info("No exam types enabled for cohort insights in this scope. Skipping.")
+        return
 
     rows = session.exec(
         select(ExamTopicPerformance)
         .where(
-            ExamTopicPerformance.class_id == class_id,  # 🔥 CRITICAL FILTER
-            ExamTopicPerformance.exam_type.in_(allowed_types)
+            ExamTopicPerformance.class_id == class_id,
+            ExamTopicPerformance.exam_type.in_(allowed_categories)
         )
     ).all()
 
     # Group by topic
-    topic_data: Dict[str, List[Dict]] = {}
+    topic_data: Dict[str, List[Dict[str, Any]]] = {}
     for r in rows:
         topic_data.setdefault(r.topic_id, []).append({
             "student_id": r.student_id,
@@ -39,15 +61,16 @@ def run_cohort_aggregation_for_class(session: Session, class_id: int, exam_type:
         # Compute per-student mastery for this topic
         student_mastery: Dict[str, List[float]] = {}
         for a in attempts:
-            sid = str(a["student_id"])  # Explicitly cast to string (hashable)
-            if sid not in student_mastery:
-                student_mastery[sid] = []
-            student_mastery[sid].append(a["score"] / a["max_score"] if a["max_score"] > 0 else 0)
+            sid = str(a["student_id"])
+            if a["max_score"] > 0:
+                student_mastery.setdefault(sid, []).append(a["score"] / a["max_score"])
+
+        if not student_mastery:
+            continue
 
         avg_per_student = {sid: sum(scores) / len(scores) for sid, scores in student_mastery.items()}
-        cohort_avg = sum(avg_per_student.values()) / len(avg_per_student) if avg_per_student else 0
-        weak_pct = sum(1 for v in avg_per_student.values() if v < WEAK_THRESHOLD) / len(
-            avg_per_student) if avg_per_student else 0
+        cohort_avg = sum(avg_per_student.values()) / len(avg_per_student)
+        weak_pct = sum(1 for v in avg_per_student.values() if v < WEAK_THRESHOLD) / len(avg_per_student)
 
         if weak_pct >= COHORT_WEAK_PCT_THRESHOLD:
             insights_to_save.append(CohortTopicInsight(
@@ -62,7 +85,6 @@ def run_cohort_aggregation_for_class(session: Session, class_id: int, exam_type:
             ))
 
     if insights_to_save:
-        # Upsert cohort insights
         for ins in insights_to_save:
             existing = session.exec(
                 select(CohortTopicInsight).where(
@@ -83,42 +105,38 @@ def run_cohort_aggregation_for_class(session: Session, class_id: int, exam_type:
         logger.info("Generated %d cohort insights for class %s", len(insights_to_save), class_id)
 
 
-# backend/agents/insights/aggregator.py
-import logging
-from typing import Dict, List, Any
-from sqlmodel import Session, select, func
-from sqlalchemy import case
-
-from backend.server.db.dbModels import ExamTopicPerformance, StudentTopicInsight
-
-logger = logging.getLogger(__name__)
-
-SCOPE_RULES = {
-    "DS": ["TD", "TP"],
-    "EXAMEN": ["TD", "TP", "DS"],
-}
-
-WEIGHTS = {"TD": 0.3, "TP": 0.3, "DS": 0.7, "EXAMEN": 1.0}
-MIN_ATTEMPTS = 2
-WEAK_THRESHOLD = 0.5
-MASTER_THRESHOLD = 0.85
-
-
-def run_aggregation_for_student(session: Session, student_id: str, latest_exam_type: str):
+def run_aggregation_for_student(
+    session: Session,
+    student_id: str,
+    latest_exam_type: str,
+    class_id: int
+):
     """Compute mastery %, trends, and flag insights for a student."""
-    allowed_types = SCOPE_RULES.get(latest_exam_type, ["TD", "TP"])
+    base_allowed = SCOPE_RULES.get(latest_exam_type, ["EXERCISE"])
 
-    # Fetch scoped performance rows
+    # 🔥 Dynamic filter: only include exam types where teacher enabled insights
+    enabled_categories = session.exec(
+        select(ExamType.category).where(
+            ExamType.class_id == class_id,
+            ExamType.category.in_(base_allowed),
+            ExamType.use_for_insights == True
+        )
+    ).all()
+    allowed_categories = list(set(enabled_categories))
+
+    if not allowed_categories:
+        logger.info("No exam types enabled for insights in this scope. Skipping aggregation.")
+        return
+
     rows = session.exec(
         select(ExamTopicPerformance)
         .where(
             ExamTopicPerformance.student_id == student_id,
-            ExamTopicPerformance.exam_type.in_(allowed_types),
+            ExamTopicPerformance.exam_type.in_(allowed_categories),
         )
         .order_by(ExamTopicPerformance.created_at)
     ).all()
 
-    # Group by topic
     topic_data: Dict[str, List[Dict[str, Any]]] = {}
     for r in rows:
         topic_data.setdefault(r.topic_id, []).append({
@@ -133,23 +151,23 @@ def run_aggregation_for_student(session: Session, student_id: str, latest_exam_t
         if len(attempts) < MIN_ATTEMPTS:
             continue
 
-        # Weighted mastery
-        weighted_sum = sum((a["score"] / a["max_score"]) * WEIGHTS.get(str(a["type"]), 0.3)for a in attempts if a["max_score"] > 0)
-        weight_total = sum(WEIGHTS.get(str(a["type"]), 0.3)for a in attempts if a["max_score"] > 0)
+        weighted_sum = sum(
+            (a["score"] / a["max_score"]) * WEIGHTS.get(str(a["type"]), 0.3)
+            for a in attempts if a["max_score"] > 0
+        )
+        weight_total = sum(
+            WEIGHTS.get(str(a["type"]), 0.3)
+            for a in attempts if a["max_score"] > 0
+        )
         mastery_pct = (weighted_sum / weight_total) * 100 if weight_total > 0 else 0
 
-        # Simple trend (last 2 attempts)
         trend = "stable"
         if len(attempts) >= 2:
-            last2 = attempts[-2:]
-            trend = "stable"
-            if len(attempts) >= 2:
-                last2 = [a for a in attempts[-2:] if a["max_score"] > 0]
-                if len(last2) == 2:
-                    delta = (last2[1]["score"] / last2[1]["max_score"]) - (last2[0]["score"] / last2[0]["max_score"])
-                    trend = "improving" if delta > 0.05 else ("declining" if delta < -0.05 else "stable")
+            last2 = [a for a in attempts[-2:] if a["max_score"] > 0]
+            if len(last2) == 2:
+                delta = (last2[1]["score"] / last2[1]["max_score"]) - (last2[0]["score"] / last2[0]["max_score"])
+                trend = "improving" if delta > 0.05 else ("declining" if delta < -0.05 else "stable")
 
-        # Flag insight type
         insight_type = None
         if mastery_pct < WEAK_THRESHOLD * 100:
             insight_type = "individual_consistent_struggle"
@@ -177,7 +195,6 @@ def run_aggregation_for_student(session: Session, student_id: str, latest_exam_t
                     StudentTopicInsight.topic_id == ins.topic_id
                 )
             ).first()
-
             if existing:
                 existing.mastery_pct = ins.mastery_pct
                 existing.attempts = ins.attempts
@@ -186,6 +203,5 @@ def run_aggregation_for_student(session: Session, student_id: str, latest_exam_t
                 existing.updated_at = ins.updated_at
             else:
                 session.add(ins)
-
         session.commit()
         logger.info("Generated %d insights for student %s", len(insights_to_save), student_id)

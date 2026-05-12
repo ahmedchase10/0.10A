@@ -41,7 +41,6 @@ def generate_email_service(
 ) -> dict:
     """Stateless, single-turn email generation. No memory, no tools."""
     
-    # 1️⃣ Fetch & format flags if not in custom mode
     flag_context = ""
     if not custom and student_id:
         stmt = select(Flags).where(Flags.student_id == student_id and Flags.class_id==class_id)

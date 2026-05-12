@@ -7,9 +7,11 @@ from backend.classes.access import get_owned_class_or_403
 from backend.models import AppError
 from backend.server.db.dbModels import ExamType, Grade
 
+ALLOWED_CATEGORIES = {"EXERCISE", "MIDTERM", "FINAL"}
+
+
 def _clean_text(value: str) -> str:
     return " ".join(value.strip().lower().split())
-
 
 
 def get_exam_types_for_class(
@@ -19,7 +21,6 @@ def get_exam_types_for_class(
     class_id: int,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
-
     get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
 
     rows = session.exec(
@@ -35,6 +36,8 @@ def get_exam_types_for_class(
                 "id": row.id,
                 "class_id": row.class_id,
                 "name": row.name,
+                "category": row.category,
+                "use_for_insights": row.use_for_insights,
                 "created_at": row.created_at,
             }
             for row in rows
@@ -48,13 +51,13 @@ def create_exam_type(
     *,
     class_id: int,
     name: str,
+    category: str,
+    use_for_insights: bool = True,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
-
     get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
 
     clean_name = _clean_text(name)
-
     if len(clean_name) < 2:
         raise AppError(
             "EXAM_TYPE_INVALID_NAME",
@@ -62,7 +65,16 @@ def create_exam_type(
             400,
         )
 
-    # enforce uniqueness per class (case-safe)
+    # 🔥 Validate & normalize category
+    category_upper = category.upper().strip()
+    if category_upper not in ALLOWED_CATEGORIES:
+        raise AppError(
+            "EXAM_TYPE_INVALID_CATEGORY",
+            f"Category must be one of: {', '.join(sorted(ALLOWED_CATEGORIES))}",
+            400,
+        )
+
+    # Enforce uniqueness per class (case-safe)
     existing = session.exec(
         select(ExamType).where(
             ExamType.class_id == class_id,
@@ -80,6 +92,8 @@ def create_exam_type(
     row = ExamType(
         class_id=class_id,
         name=clean_name,
+        category=category_upper,
+        use_for_insights=use_for_insights,
     )
 
     session.add(row)
@@ -92,6 +106,8 @@ def create_exam_type(
             "id": row.id,
             "class_id": row.class_id,
             "name": row.name,
+            "category": row.category,
+            "use_for_insights": row.use_for_insights,
             "created_at": row.created_at,
         },
     }
@@ -105,7 +121,6 @@ def delete_exam_type(
     exam_type_id: int,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])
-
     get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
 
     row = session.exec(
@@ -121,8 +136,6 @@ def delete_exam_type(
             "Exam type not found for this class.",
             404,
         )
-
-
 
     session.delete(row)
     session.commit()

@@ -12,7 +12,7 @@ def save_grading_and_trigger_insights(
     session: Session,
     exam_id: str,
     student_id: str,
-    class_id: int,          # 🔥 Added
+    class_id: int,
     exam_type: str,
     breakdown: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
@@ -41,6 +41,6 @@ def save_grading_and_trigger_insights(
     logger.info("Saved %d topic performance rows for student %s, exam %s", inserted, student_id, exam_id)
 
     # Trigger student-level aggregation
-    run_aggregation_for_student(session, student_id, exam_type)
+    run_aggregation_for_student(session, student_id, exam_type, class_id)
 
     return {"success": True, "rows_inserted": inserted}

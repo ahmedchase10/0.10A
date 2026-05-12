@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from backend.models import AppError
 from backend.server.auth.me import router as auth_router
 from backend.server.routes.teacher_route import router as login_router, teachers_router
-from backend.server.routes.lessons_route import router as lessons_router
+from backend.server.routes.lessons_route import router as lessons_router 
 from backend.server.routes.classes_route import router as classes_router
 from backend.server.routes.students_route import router as students_router
 from backend.server.routes.attendance_route import router as attendance_router

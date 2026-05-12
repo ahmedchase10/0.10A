@@ -707,7 +707,7 @@ async def review_session(
         value=normalised,
     )
     exam_type_obj = session.get(ExamType, gs.exam_type_id)
-    exam_type_name = getattr(exam_type_obj, "name", "TD").upper() if exam_type_obj else "TD"
+    exam_category = getattr(exam_type_obj, "category", "EXERCISE").upper() if exam_type_obj else "EXERCISE"
 
     # Map breakdown to aggregation format (safe fallback if topic_id missing)
     aggregation_breakdown = []
@@ -726,7 +726,7 @@ async def review_session(
         exam_id=str(gs.exam_type_id),
         student_id=str(gs.student_id),
         class_id=gs.class_id,
-        exam_type=exam_type_name,
+        exam_type=exam_category,
         breakdown=aggregation_breakdown,
     )
 
@@ -738,7 +738,7 @@ async def review_session(
                 run_cohort_aggregation_for_class,
                 session=session,
                 class_id=gs.class_id,
-                exam_type=exam_type_name,
+                exam_type=exam_category,
             )
 
     gs.status = "approved"

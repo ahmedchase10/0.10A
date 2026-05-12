@@ -175,6 +175,8 @@ class ExamType(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     class_id: int = Field(sa_column=Column(Integer, ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"), index=True))
     name: str = Field(max_length=120)
+    category: str = Field(max_length=20, index=True)
+    use_for_insights: bool = Field(default=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     grades: List["Grade"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})

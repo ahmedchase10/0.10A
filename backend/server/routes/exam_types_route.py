@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from backend.exam_types.main import create_exam_type, delete_exam_type, get_exam_types_for_class
@@ -13,6 +13,8 @@ router = APIRouter(prefix="/classes", tags=["exam-types"])
 
 class CreateExamTypeRequest(BaseModel):
     name: str
+    category: Literal["EXERCISE", "MIDTERM", "FINAL"]
+    use_for_insights: bool = Field(default=True)
 
 
 @router.get("/{class_id}/exam-types")
@@ -40,6 +42,8 @@ def create_exam_type_route(
         teacher_payload=teacher,
         class_id=class_id,
         name=payload.name,
+        category=payload.category,
+        use_for_insights=payload.use_for_insights,
     )
 
 
@@ -56,4 +60,3 @@ def delete_exam_type_route(
         class_id=class_id,
         exam_type_id=exam_type_id,
     )
-
