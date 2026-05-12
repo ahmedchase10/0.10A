@@ -68,6 +68,48 @@ class ApiService {
     return data;
   }
 
+  async streamResponse(response, onEvent) {
+    if (response.status === 401) {
+      await this._handle401();
+      throw new AuthError();
+    }
+
+    if (!response.ok || !response.body) {
+      let msg = `HTTP ${response.status}`;
+      try { const j = await response.json(); msg = j?.error?.message || msg; } catch { /* noop */ }
+      throw new Error(msg);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+
+      for (const frame of frames) {
+        if (!frame.trim()) continue;
+        let event = 'message';
+        let data = '';
+
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) data += line.slice(5).trimStart();
+        }
+
+        onEvent({ event, data });
+
+        if (event === 'done') return;
+        if (event === 'error') throw new Error(data || 'Stream error');
+      }
+    }
+  }
+
   // ─── Authentication ────────────────────────────────────────────────────────
 
   async register(name, email, password, initials = null) {
@@ -424,6 +466,32 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async uploadExamPaper(formData) {
+    const response = await fetch(`${API_BASE_URL}/exams/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.token}` },
+      body: formData
+    });
+    return this.handleResponse(response);
+  }
+
+  async listExamPapers(classId) {
+    const params = new URLSearchParams({ class_id: String(classId) });
+    const response = await fetch(`${API_BASE_URL}/exams?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteExamPaper(paperId) {
+    const response = await fetch(`${API_BASE_URL}/exams/delete/${encodeURIComponent(String(paperId))}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true)
+    });
+    return this.handleResponse(response);
+  }
+
   // ─── Pedagogical Agent ────────────────────────────────────────────────────
 
   async createAgentSession(classId, title) {
@@ -573,7 +641,7 @@ class ApiService {
   }
 
   async streamCreatorGenerate(body, onEvent) {
-    const res = await fetch(`${API_BASE_URL}/agents/creator/generate`, {
+    const response = await fetch(`${API_BASE_URL}/agents/creator/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -581,41 +649,75 @@ class ApiService {
       },
       body: JSON.stringify(body),
     });
+    return this.streamResponse(response, onEvent);
+  }
 
-    if (!res.ok || !res.body) {
-      let msg = `HTTP ${res.status}`;
-      try { const j = await res.json(); msg = j?.error?.message || msg; } catch { /* noop */ }
-      throw new Error(msg);
-    }
+  async listGradingBlueprints() {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/blueprints`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+  async deleteGradingBlueprint(blueprintId) {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/blueprints/${encodeURIComponent(String(blueprintId))}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+  async streamGradingAnalyse(formData, onEvent) {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/analyse`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.token}` },
+      body: formData,
+    });
+    return this.streamResponse(response, onEvent);
+  }
 
-      buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split('\n\n');
-      buffer = frames.pop() || '';
+  async startGradingBatch(formData) {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/grade`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.token}` },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
 
-      for (const frame of frames) {
-        if (!frame.trim()) continue;
-        let event = 'message';
-        let data = '';
-
-        for (const line of frame.split('\n')) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) data += line.slice(5).trimStart();
-        }
-
-        onEvent({ event, data });
-
-        if (event === 'done') return;
-        if (event === 'error') throw new Error(data || 'Stream error');
+  async streamGradingSession(sessionId, onEvent, options = {}) {
+    const params = new URLSearchParams();
+    if (options.forceRestart) params.set('force_restart', 'true');
+    const response = await fetch(
+      `${API_BASE_URL}/agents/grading/sessions/${encodeURIComponent(String(sessionId))}/stream${params.toString() ? `?${params}` : ''}`,
+      {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${this.token}` },
       }
-    }
+    );
+    return this.streamResponse(response, onEvent);
+  }
+
+  async reviewGradingSession(sessionId, payload) {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/sessions/${encodeURIComponent(String(sessionId))}/review`, {
+      method: 'POST',
+      headers: this.getHeaders(true),
+      body: JSON.stringify(payload),
+    });
+    return this.handleResponse(response);
+  }
+
+  async listGradingSessions(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.blueprint_id != null) params.set('blueprint_id', String(filters.blueprint_id));
+    if (filters.batch_id) params.set('batch_id', String(filters.batch_id));
+    if (filters.class_id != null) params.set('class_id', String(filters.class_id));
+    const response = await fetch(`${API_BASE_URL}/agents/grading/sessions${params.toString() ? `?${params}` : ''}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
   }
 
   // ─── Voice Processing ─────────────────────────────────────────────────────

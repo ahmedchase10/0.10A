@@ -1,4 +1,4 @@
-﻿"""
+"""
 backend/server/routes/grading_route.py
 ----------------------------------------
 REST + SSE endpoints for the two-phase grading agent.
@@ -406,6 +406,7 @@ async def start_grading(
     exam_type_id: int = Form(...),
     student_ids: List[int] = Form(...),
     exam_pdfs: List[UploadFile] = File(...),
+    student_notes: List[str] = Form([]),
     teacher: Dict[str, Any] = Depends(require_auth),
     session: Session = Depends(get_session),
 ):
@@ -413,10 +414,11 @@ async def start_grading(
     Create a batch of grading sessions — one per student.
 
     Accepts multipart/form-data with parallel lists:
-      student_ids[] : repeated int  Form field — one per student
-      exam_pdfs[]   : repeated PDF  File field — SAME index = same student
+      student_ids[]   : repeated int    Form field — one per student
+      exam_pdfs[]     : repeated PDF    File field — SAME index = same student
+      student_notes[] : repeated string Form field — optional notes for the agent
 
-    Backend validates enrollment, zips pairs, sorts alphabetically by student name,
+    Backend validates enrollment, zips triplets, sorts alphabetically by student name,
     saves PDFs permanently, creates ExamUpload + GradingSession rows with queue_position.
 
     Returns first_session_id so frontend can immediately open the first stream.
@@ -427,6 +429,17 @@ async def start_grading(
             f"student_ids count ({len(student_ids)}) must match exam_pdfs count ({len(exam_pdfs)}).",
             400,
         )
+    
+    # Pad notes with empty strings if count mismatch (or if empty)
+    if not student_notes:
+        student_notes = [""] * len(student_ids)
+    elif len(student_notes) != len(student_ids):
+         # If notes provided but count differs, pad or truncate
+         if len(student_notes) < len(student_ids):
+             student_notes.extend([""] * (len(student_ids) - len(student_notes)))
+         else:
+             student_notes = student_notes[:len(student_ids)]
+
     if len(student_ids) == 0:
         raise AppError("GRADING_INVALID_PARAMS", "At least one student is required.", 400)
     if len(student_ids) > 20:
@@ -469,13 +482,13 @@ async def start_grading(
             raise AppError("GRADING_INVALID_FILE", f"exam_pdfs[{i}] must be a PDF.", 400)
 
     # Zip + sort alphabetically by student name
-    pairs = sorted(zip(student_ids, exam_pdfs), key=lambda p: student_names[p[0]].lower())
+    triplets = sorted(zip(student_ids, exam_pdfs, student_notes), key=lambda p: student_names[p[0]].lower())
 
     batch_id = str(uuid.uuid4())
     dest_dir = _exam_uploads_dir(teacher_id)
     created = []
 
-    for position, (sid, pdf_file) in enumerate(pairs):
+    for position, (sid, pdf_file, notes) in enumerate(triplets):
         pdf_data = await pdf_file.read()
         dest_path = dest_dir / f"{uuid.uuid4()}.pdf"
         dest_path.write_bytes(pdf_data)
@@ -498,6 +511,7 @@ async def start_grading(
             exam_upload_id=exam_upload.id,
             batch_id=batch_id,
             queue_position=position,
+            student_notes=notes,
         )
         session.add(gs)
         session.flush()
@@ -507,6 +521,7 @@ async def start_grading(
             "student_id": sid,
             "student_name": student_names[sid],
             "queue_position": position,
+            "student_notes": notes,
         })
 
     session.commit()
@@ -569,6 +584,7 @@ async def stream_grading(
     blueprint_thread_id = bp.analysis_thread_id
     student_thread_id = gs.thread_id
     student_exam_path = exam_upload.file_path
+    student_notes = gs.student_notes
 
     gs.status = "reviewing"
     session.add(gs)
@@ -584,7 +600,10 @@ async def stream_grading(
 
             graph = await get_grading_graph()
             config = {"configurable": {"thread_id": student_thread_id}}
-            resume_cmd = Command(resume={"student_exam_path": student_exam_path})
+            resume_cmd = Command(resume={
+                "student_exam_path": student_exam_path,
+                "student_notes": student_notes,
+            })
 
             async for sse_frame in _stream_graph(graph, resume_cmd, config):
                 yield sse_frame
@@ -822,6 +841,7 @@ def _serialize_grading_session(r: GradingSession) -> Dict[str, Any]:
         "batch_id": r.batch_id,
         "queue_position": r.queue_position,
         "status": r.status,
+        "student_notes": r.student_notes,
         "created_at": r.created_at,
     }
 

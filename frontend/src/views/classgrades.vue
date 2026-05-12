@@ -17,6 +17,13 @@
           <p class="text-grey-600">{{ classData?.name }} — {{ classData?.subject }}</p>
         </div>
         <div class="flex items-center gap-3">
+          <router-link
+            :to="`/grading?classId=${classId}`"
+            class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+          >
+            <ClipboardDocumentListIcon class="w-4 h-4" />
+            Open Grading Agent
+          </router-link>
           <button
             @click="showAddExamTypeModal = true"
             class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"

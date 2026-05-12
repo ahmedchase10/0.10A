@@ -35,6 +35,11 @@ const routes = [
         component: () => import('@/views/creator.vue')
       },
       {
+        path: 'grading',
+        name: 'Grading',
+        component: () => import('@/views/grading.vue')
+      },
+      {
         path: 'notifications',
         name: 'Notifications',
         component: () => import('@/views/notifications.vue')
