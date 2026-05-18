@@ -736,6 +736,43 @@ class ApiService {
 
   // ─── Email Agent ──────────────────────────────────────────────────────────
 
+  // ─── Insights ─────────────────────────────────────────────────────────────
+
+  async getStudentReport(classId, studentId) {
+    const params = new URLSearchParams({
+      class_id: classId.toString(),
+      student_id: studentId.toString(),
+    });
+    const response = await fetch(`${API_BASE_URL}/insights/report?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getCohortInsights(classId, examTypeScope = null) {
+    const params = new URLSearchParams({ class_id: classId.toString() });
+    if (examTypeScope) params.set('exam_type_scope', examTypeScope);
+    const response = await fetch(`${API_BASE_URL}/insights/cohort?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getExamTopicPerformance(classId, { examId = null, studentId = null } = {}) {
+    const params = new URLSearchParams({ class_id: classId.toString() });
+    if (examId) params.set('exam_id', examId);
+    if (studentId) params.set('student_id', studentId.toString());
+    const response = await fetch(`${API_BASE_URL}/insights/exam-topic?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  // ─── Email Agent ──────────────────────────────────────────────────────────
+
   async generateEmail(payload) {
     const response = await fetch(`${API_BASE_URL}/emailagent/generate-email`, {
       method: 'POST',

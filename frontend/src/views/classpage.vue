@@ -43,6 +43,12 @@
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
+                @click="openReportModal"
+                class="flex items-center gap-2 px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition shadow-sm"
+              >
+                <LightBulbIcon class="w-4 h-4" />Class Report
+              </button>
+              <button
                 @click="openEdit"
                 class="flex items-center gap-2 px-4 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition"
               >
@@ -192,6 +198,24 @@
             <div class="mt-4">
               <span class="text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
                 Notify Parents
+              </span>
+            </div>
+          </div>
+        </router-link>
+
+        <router-link :to="`/class/${classId}/insights`" class="group">
+          <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 hover:shadow-md hover:border-indigo-300 transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-12 h-12 bg-indigo-50 group-hover:bg-indigo-100 rounded-xl flex items-center justify-center transition">
+                <LightBulbIcon class="w-6 h-6 text-indigo-600" />
+              </div>
+              <ChevronRightIcon class="w-5 h-5 text-grey-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
+            </div>
+            <h3 class="text-lg font-semibold text-grey-900 mb-1">Insights</h3>
+            <p class="text-sm text-grey-500">AI analytics from exam corrections: cohort & topic mastery.</p>
+            <div class="mt-4">
+              <span class="text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+                View Analytics
               </span>
             </div>
           </div>
@@ -372,6 +396,122 @@
         </div>
       </Dialog>
     </TransitionRoot>
+
+    <!-- ── Class Report Modal ─────────────────────────────────────────── -->
+    <TransitionRoot :show="showReportModal" as="template">
+      <Dialog @close="showReportModal = false" class="relative z-50">
+        <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
+          leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
+          <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+        </TransitionChild>
+        <div class="fixed inset-0 overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4">
+            <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
+              leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
+              <DialogPanel class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+
+                <!-- Header -->
+                <div class="p-6 border-b border-grey-200 flex items-center justify-between flex-shrink-0 bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-t-2xl">
+                  <div>
+                    <DialogTitle class="text-xl font-bold text-white flex items-center gap-2">
+                      <LightBulbIcon class="w-5 h-5" />
+                      Class Report
+                    </DialogTitle>
+                    <p class="text-indigo-200 text-sm mt-0.5">{{ classData?.name }}</p>
+                  </div>
+                  <button @click="showReportModal = false" class="text-indigo-200 hover:text-white transition p-1">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Loading -->
+                <div v-if="reportLoading" class="flex justify-center py-16">
+                  <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
+                </div>
+
+                <!-- Error -->
+                <div v-else-if="reportError" class="p-6 text-center text-red-600">
+                  <p>{{ reportError }}</p>
+                </div>
+
+                <!-- Content -->
+                <div v-else-if="reportData" class="overflow-y-auto flex-1 custom-scrollbar">
+
+                  <div class="p-6 border-b border-grey-100">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Cohort Overview</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                      <div class="bg-indigo-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold text-indigo-700">
+                          {{ reportData.length }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">Topics Analyzed</p>
+                      </div>
+                      <div class="bg-red-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold text-red-600">
+                          {{ reportData.filter(t => t.weak_student_pct >= 50).length }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">Needs Remediation</p>
+                      </div>
+                      <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold text-emerald-600">
+                          {{ reportData.filter(t => t.cohort_avg_pct >= 70).length }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">Well Mastered</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-6 border-b border-grey-100">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Top Topics for Remediation</h3>
+                    <div v-if="reportData.filter(t => t.weak_student_pct >= 50).length === 0" class="text-sm text-grey-500">
+                      No topics currently need critical remediation. Great job!
+                    </div>
+                    <div v-else class="space-y-3">
+                      <div v-for="t in reportData.filter(t => t.weak_student_pct >= 50).slice(0, 3)" :key="t.topic_id" class="p-4 bg-white border border-red-200 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                          <div>
+                            <span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium mb-1 inline-block">Class Weakness</span>
+                            <h4 class="text-sm font-bold text-grey-900">{{ t.topic_id }}</h4>
+                          </div>
+                          <div class="text-right">
+                            <span class="text-sm font-bold text-red-600">{{ t.cohort_avg_pct.toFixed(1) }}%</span>
+                            <p class="text-xs text-grey-500">Class Avg</p>
+                          </div>
+                        </div>
+                        <div class="w-full bg-grey-100 rounded-full h-1.5 mb-2">
+                          <div class="bg-red-500 h-1.5 rounded-full" :style="{ width: t.cohort_avg_pct + '%' }"></div>
+                        </div>
+                        <p v-if="t.recommendation" class="text-xs text-grey-600 mt-2 p-2 bg-grey-50 rounded-lg border border-grey-200">
+                          <strong class="text-grey-700">Suggestion:</strong> {{ t.recommendation }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="p-6">
+                     <button @click="goToInsights" class="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg transition border border-indigo-200 text-sm flex items-center justify-center gap-2">
+                       <LightBulbIcon class="w-4 h-4" />
+                       View Full Insights Dashboard
+                     </button>
+                  </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-grey-200 flex-shrink-0 bg-grey-50 rounded-b-2xl">
+                  <button @click="showReportModal = false"
+                    class="w-full px-4 py-2 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-100 transition bg-white">
+                    Close
+                  </button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </TransitionRoot>
   </div>
 </template>
 
@@ -392,7 +532,8 @@ import {
   ChevronRightIcon,
   PencilIcon,
   TrashIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  LightBulbIcon,
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
 import { useClassesStore } from '@/stores/classesStore';
@@ -415,6 +556,37 @@ const timetableEntries = ref([]);
 const showEditModal = ref(false);
 const saving = ref(false);
 const editError = ref('');
+
+// ── Report Modal State ──────────────────────────────────────────────────
+const showReportModal = ref(false);
+const reportLoading = ref(false);
+const reportError = ref('');
+const reportData = ref(null);
+
+async function openReportModal() {
+  showReportModal.value = true;
+  reportLoading.value = true;
+  reportError.value = '';
+  reportData.value = null;
+
+  try {
+    const res = await api.getCohortInsights(classId.value);
+    if (res.success) {
+      reportData.value = res.insights || [];
+    } else {
+      reportError.value = 'Failed to load report insights.';
+    }
+  } catch (err) {
+    reportError.value = err.message || 'Error loading report insights.';
+  } finally {
+    reportLoading.value = false;
+  }
+}
+
+function goToInsights() {
+  showReportModal.value = false;
+  router.push(`/class/${classId.value}/insights`);
+}
 
 function createBlankSession() {
   return {

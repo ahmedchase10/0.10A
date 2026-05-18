@@ -27,7 +27,7 @@ const routes = [
       {
         path: 'lessons',
         name: 'Lessons',
-        component: () => import('@/views/lessons.vue')   
+        component: () => import('@/views/lessons.vue')
       },
       {
         path: 'creator',
@@ -80,6 +80,11 @@ const routes = [
         path: 'class/:id/parentnotification',
         name: 'ParentNotification',
         component: () => import('@/views/parentnotification.vue')
+      },
+      {
+        path: 'class/:id/insights',
+        name: 'ClassInsights',
+        component: () => import('@/views/classinsights.vue')
       }
     ]
   }

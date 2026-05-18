@@ -51,7 +51,7 @@
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Student</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Email</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Added</th>
-              <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Flags</th>
               <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -79,6 +79,14 @@
               </td>
               <td class="px-6 py-4 text-center">
                 <div class="flex items-center justify-center gap-2">
+                  <button
+                    @click="openReport(student)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition font-medium"
+                    title="View Report"
+                  >
+                    <ChartBarIcon class="w-3.5 h-3.5" />
+                    Report
+                  </button>
                   <button
                     @click="openEditModal(student)"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition font-medium"
@@ -259,6 +267,183 @@
         </div>
       </Dialog>
     </TransitionRoot>
+
+    <!-- ── Student Report Modal ─────────────────────────────────────────── -->
+    <TransitionRoot :show="showReportModal" as="template">
+      <Dialog @close="showReportModal = false" class="relative z-50">
+        <TransitionChild enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100"
+          leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
+          <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+        </TransitionChild>
+        <div class="fixed inset-0 overflow-y-auto">
+          <div class="flex min-h-full items-center justify-center p-4">
+            <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
+              leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
+              <DialogPanel class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+
+                <!-- Header -->
+                <div class="p-6 border-b border-grey-200 flex items-center justify-between flex-shrink-0 bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-t-2xl">
+                  <div>
+                    <DialogTitle class="text-xl font-bold text-white flex items-center gap-2">
+                      <ChartBarIcon class="w-5 h-5" />
+                      Student Report
+                    </DialogTitle>
+                    <p class="text-indigo-200 text-sm mt-0.5">{{ reportStudent?.name }}</p>
+                  </div>
+                  <button @click="showReportModal = false" class="text-indigo-200 hover:text-white transition p-1">
+                    <XMarkIcon class="w-5 h-5" />
+                  </button>
+                </div>
+
+                <!-- Loading -->
+                <div v-if="reportLoading" class="flex justify-center py-16">
+                  <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
+                </div>
+
+                <!-- Error -->
+                <div v-else-if="reportError" class="p-6 text-center text-red-600">
+                  <p>{{ reportError }}</p>
+                </div>
+
+                <!-- Content -->
+                <div v-else-if="report" class="overflow-y-auto flex-1 custom-scrollbar">
+
+                  <!-- Summary Cards -->
+                  <div class="p-6 border-b border-grey-100">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Overview</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                      <div class="bg-indigo-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold" :class="gradeColor(report.summary.overall_average)">
+                          {{ report.summary.overall_average ?? '—' }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">Overall Avg</p>
+                      </div>
+                      <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold" :class="gradeColor(report.summary.ds_average)">
+                          {{ report.summary.ds_average ?? '—' }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">DS Average</p>
+                      </div>
+                      <div class="bg-violet-50 rounded-xl p-4 text-center">
+                        <p class="text-2xl font-bold" :class="gradeColor(report.summary.exam_average)">
+                          {{ report.summary.exam_average ?? '—' }}
+                        </p>
+                        <p class="text-xs text-grey-500 mt-1">Exam Average</p>
+                      </div>
+                    </div>
+                    <div class="flex gap-4 mt-3 text-xs text-grey-500">
+                      <span>📝 {{ report.summary.total_exams }} exam(s)</span>
+                      <span class="text-red-500">⚠ {{ report.summary.grades_below_10 }} below 10</span>
+                      <span class="text-emerald-600">✓ {{ report.summary.grades_above_14 }} above 14</span>
+                    </div>
+                  </div>
+
+                  <!-- Grades Table -->
+                  <div v-if="report.grades.length" class="p-6 border-b border-grey-100">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Grades by Exam</h3>
+                    <div class="space-y-2">
+                      <div v-for="g in report.grades" :key="g.exam_type_id"
+                        class="flex items-center justify-between px-4 py-2.5 rounded-lg bg-grey-50 border border-grey-100">
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                            :class="g.category === 'DS' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'">
+                            {{ g.category }}
+                          </span>
+                          <span class="text-sm text-grey-800 font-medium">{{ g.exam_type_name }}</span>
+                        </div>
+                        <span class="text-base font-bold" :class="gradeColor(g.value)">{{ g.value }}/20</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="p-6 border-b border-grey-100 text-sm text-grey-400 italic">No grades recorded yet.</div>
+
+                  <!-- Topic Insights -->
+                  <div class="p-6 border-b border-grey-100">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Topic Mastery Insights</h3>
+
+                    <!-- Weak Topics -->
+                    <div v-if="report.insights.weak_topics.length" class="mb-4">
+                      <p class="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1">
+                        <ExclamationTriangleIcon class="w-3.5 h-3.5" /> Weak Topics (below 50%)
+                      </p>
+                      <div v-for="t in report.insights.weak_topics" :key="t.topic_id"
+                        class="mb-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+                        <div class="flex justify-between items-center mb-1">
+                          <span class="text-sm font-medium text-grey-800">{{ t.topic_id }}</span>
+                          <span class="text-xs font-bold text-red-600">{{ t.mastery_pct }}%</span>
+                        </div>
+                        <div class="w-full bg-red-100 rounded-full h-1.5">
+                          <div class="bg-red-500 h-1.5 rounded-full" :style="{ width: t.mastery_pct + '%' }"></div>
+                        </div>
+                        <div class="flex gap-3 mt-1 text-xs text-grey-400">
+                          <span>{{ t.attempts }} attempt(s)</span>
+                          <span :class="trendClass(t.trend)">{{ trendLabel(t.trend) }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Declining Topics -->
+                    <div v-if="report.insights.declining_topics.length" class="mb-4">
+                      <p class="text-xs font-semibold text-orange-600 mb-2 flex items-center gap-1">
+                        <ArrowTrendingDownIcon class="w-3.5 h-3.5" /> Declining Performance
+                      </p>
+                      <div v-for="t in report.insights.declining_topics" :key="'d-'+t.topic_id"
+                        class="mb-2 px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg">
+                        <div class="flex justify-between items-center">
+                          <span class="text-sm font-medium text-grey-800">{{ t.topic_id }}</span>
+                          <span class="text-xs font-bold text-orange-600">{{ t.mastery_pct }}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Strong Topics -->
+                    <div v-if="report.insights.strong_topics.length" class="mb-2">
+                      <p class="text-xs font-semibold text-emerald-600 mb-2 flex items-center gap-1">
+                        <CheckCircleIcon class="w-3.5 h-3.5" /> Strong Topics (75%+)
+                      </p>
+                      <div v-for="t in report.insights.strong_topics" :key="'s-'+t.topic_id"
+                        class="mb-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                        <div class="flex justify-between items-center mb-1">
+                          <span class="text-sm font-medium text-grey-800">{{ t.topic_id }}</span>
+                          <span class="text-xs font-bold text-emerald-600">{{ t.mastery_pct }}%</span>
+                        </div>
+                        <div class="w-full bg-emerald-100 rounded-full h-1.5">
+                          <div class="bg-emerald-500 h-1.5 rounded-full" :style="{ width: t.mastery_pct + '%' }"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p v-if="!report.insights.all.length" class="text-sm text-grey-400 italic">No topic insights available yet. Run exam corrections to generate insights.</p>
+                  </div>
+
+                  <!-- Flags / Notes -->
+                  <div class="p-6">
+                    <h3 class="text-sm font-semibold text-grey-700 uppercase tracking-wider mb-3">Teacher Notes & Flags</h3>
+                    <div v-if="report.flags.length" class="space-y-2">
+                      <div v-for="f in report.flags" :key="f.id"
+                        class="px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p class="text-sm text-orange-900">{{ f.reason }}</p>
+                        <p class="text-xs text-orange-500 mt-1">{{ formatDate(f.created_at) }}</p>
+                      </div>
+                    </div>
+                    <p v-else class="text-sm text-grey-400 italic">No flags recorded for this student.</p>
+                  </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-grey-200 flex-shrink-0 bg-grey-50 rounded-b-2xl">
+                  <button @click="showReportModal = false"
+                    class="w-full px-4 py-2 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-100 transition bg-white">
+                    Close
+                  </button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </TransitionRoot>
   </div>
 </template>
 
@@ -271,7 +456,12 @@ import {
   TrashIcon,
   UserGroupIcon,
   FlagIcon,
-  PencilIcon
+  PencilIcon,
+  ChartBarIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ArrowTrendingDownIcon,
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue';
 import api from '@/services/api';
@@ -298,6 +488,13 @@ const studentFlags = ref([]);
 const newFlagReason = ref('');
 const flagging = ref(false);
 const flagError = ref('');
+
+// ── Report state ────────────────────────────────────────────────────────────
+const showReportModal = ref(false);
+const reportStudent = ref(null);
+const report = ref(null);
+const reportLoading = ref(false);
+const reportError = ref('');
 
 function formatDate(dt) {
   if (!dt) return '—';
@@ -420,6 +617,43 @@ async function removeFlag(flagId) {
   } catch (err) {
     alert('Failed to delete flag: ' + err.message);
   }
+}
+
+// ── Report helpers ──────────────────────────────────────────────────────────
+async function openReport(student) {
+  reportStudent.value = student;
+  report.value = null;
+  reportError.value = '';
+  reportLoading.value = true;
+  showReportModal.value = true;
+  try {
+    const res = await api.getStudentReport(classId.value, student.id);
+    if (res.success) report.value = res.report;
+    else reportError.value = 'Failed to load report.';
+  } catch (e) {
+    reportError.value = e.message || 'Failed to load report.';
+  } finally {
+    reportLoading.value = false;
+  }
+}
+
+function gradeColor(val) {
+  if (val === null || val === undefined) return 'text-grey-400';
+  if (val >= 14) return 'text-emerald-600';
+  if (val >= 10) return 'text-amber-600';
+  return 'text-red-600';
+}
+
+function trendLabel(trend) {
+  if (trend === 'improving')  return '↑ Improving';
+  if (trend === 'declining')  return '↓ Declining';
+  return '→ Stable';
+}
+
+function trendClass(trend) {
+  if (trend === 'improving') return 'text-emerald-500';
+  if (trend === 'declining') return 'text-red-500';
+  return 'text-grey-400';
 }
 
 onMounted(loadStudents);
