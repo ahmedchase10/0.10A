@@ -54,8 +54,8 @@ from backend.server.auth.dependencies import require_auth
 from backend.server.db.engine import get_session
 from backend.server.db.dbModels import (
     ExamPaper, ExamType, ExamUpload, GradingBlueprint, GradingQuestionResult,
-    GradingSession, StudentClass, Upload,
-)
+    GradingSession, StudentClass)
+
 from backend.classes.access import get_owned_class_or_403
 
 router = APIRouter(prefix="/agents/grading", tags=["grading-agent"])
@@ -244,16 +244,14 @@ async def analyse_blueprint(
             "lesson_file_ids must be a JSON array or a comma-separated list of IDs.",
             400
         )
+    from backend.server.db.dbModels import GlobalUpload
 
     for fid in doc_ids:
-        upload = session.get(Upload, fid)
-        if upload is None:
+        global_upload = session.get(GlobalUpload, fid)
+        if global_upload is None:
             raise AppError("GRADING_FILE_NOT_FOUND", f"Lesson file {fid} not found.", 404)
-        if not upload.embedded:
-            raise AppError(
-                "GRADING_FILE_NOT_EMBEDDED",
-                f"Lesson file '{upload.filename}' is not yet embedded.", 422,
-            )
+        if not global_upload.embedded:
+            raise AppError("GRADING_FILE_NOT_EMBEDDED", f"Lesson file '{global_upload.filename}' is not yet embedded.",422)
 
     # Save correction PDF temporarily (deleted after analysis)
     correction_path_str: Optional[str] = None
@@ -606,6 +604,7 @@ async def stream_grading(
 async def review_session(
     session_id: str,
     body: ReviewRequest,
+    background_tasks: BackgroundTasks,
     teacher: Dict[str, Any] = Depends(require_auth),
     session: Session = Depends(get_session),
 ):
@@ -730,16 +729,13 @@ async def review_session(
         breakdown=aggregation_breakdown,
     )
 
-    # 🔥 COHORT AGGREGATION TRIGGER (runs when batch completes)
     if next_session_id is None:
         from backend.agents.grading_agent.aggregator import run_cohort_aggregation_for_class
-        if next_session_id is None:
-            BackgroundTasks.add_task(
-                run_cohort_aggregation_for_class,
-                session=session,
-                class_id=gs.class_id,
-                exam_type=exam_category,
-            )
+        run_cohort_aggregation_for_class(
+            session=session,
+            class_id=gs.class_id,
+            exam_type=exam_category,
+        )
 
     gs.status = "approved"
     session.add(gs)
