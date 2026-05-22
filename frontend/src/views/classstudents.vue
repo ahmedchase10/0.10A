@@ -49,7 +49,8 @@
           <thead class="bg-grey-50 border-b border-grey-200">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Student</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Student Email</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Parent Email</th>
               <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider">Added</th>
               <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Flags</th>
               <th class="px-6 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider">Actions</th>
@@ -66,6 +67,7 @@
                 </div>
               </td>
               <td class="px-6 py-4 text-grey-600">{{ student.email }}</td>
+              <td class="px-6 py-4 text-grey-600">{{ student.parent_email || '-' }}</td>
               <td class="px-6 py-4 text-grey-500">{{ formatDate(student.created_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <button
@@ -137,6 +139,12 @@
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="student@school.tn" />
                   </div>
+                  <div>
+                    <label class="block text-sm font-medium text-grey-700 mb-2">Parent Email *</label>
+                    <input v-model="addForm.parent_email" type="email" required
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="parent@family.tn" />
+                  </div>
                   <div v-if="addError" class="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p class="text-sm text-red-700">{{ addError }}</p>
                   </div>
@@ -182,6 +190,11 @@
                   <div>
                     <label class="block text-sm font-medium text-grey-700 mb-2">Email *</label>
                     <input v-model="editForm.email" type="email" required
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-grey-700 mb-2">Parent Email *</label>
+                    <input v-model="editForm.parent_email" type="email" required
                       class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                   </div>
                   <div v-if="editError" class="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -475,12 +488,12 @@ const students = ref([]);
 const showAddModal = ref(false);
 const adding = ref(false);
 const addError = ref('');
-const addForm = ref({ name: '', email: '' });
+const addForm = ref({ name: '', email: '', parent_email: '' });
 
 const showEditModal = ref(false);
 const editing = ref(false);
 const editError = ref('');
-const editForm = ref({ id: null, name: '', email: '' });
+const editForm = ref({ id: null, name: '', email: '', parent_email: '' });
 
 const showFlagModal = ref(false);
 const selectedStudent = ref(null);
@@ -533,7 +546,7 @@ async function submitAdd() {
       res.student.flags = []; // Initialize flags for new student
       students.value.unshift(res.student);
       showAddModal.value = false;
-      addForm.value = { name: '', email: '' };
+      addForm.value = { name: '', email: '', parent_email: '' };
     }
   } catch (err) {
     addError.value = err.message || 'Failed to add student';
@@ -543,7 +556,12 @@ async function submitAdd() {
 }
 
 function openEditModal(student) {
-  editForm.value = { id: student.id, name: student.name, email: student.email };
+  editForm.value = {
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    parent_email: student.parent_email || '',
+  };
   editError.value = '';
   showEditModal.value = true;
 }
@@ -554,13 +572,15 @@ async function submitEdit() {
   try {
     const res = await api.updateStudent(classId.value, editForm.value.id, {
       name: editForm.value.name,
-      email: editForm.value.email
+      email: editForm.value.email,
+      parent_email: editForm.value.parent_email,
     });
     if (res.success) {
       const idx = students.value.findIndex(s => s.id === editForm.value.id);
       if (idx !== -1) {
         students.value[idx].name = res.student.name;
         students.value[idx].email = res.student.email;
+        students.value[idx].parent_email = res.student.parent_email;
       }
       showEditModal.value = false;
     }

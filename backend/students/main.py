@@ -47,6 +47,7 @@ def get_class_students(
 				"id": student.id,
 				"name": sc.display_name,
 				"email": student.email,
+				"parent_email": student.parent_email,
 				"created_at": sc.created_at,
 			}
 			for sc, student in student_class_records
@@ -61,15 +62,19 @@ def add_student(
 	class_id: int,
 	name: str,
 	email: str,
+	parent_email: str,
 ) -> Dict[str, Any]:
 	teacher_id = int(teacher_payload["id"])
 	clean_name = _clean_text(name)
 	clean_email = _clean_text(email).lower()
+	clean_parent_email = _clean_text(parent_email).lower()
 
 	if len(clean_name) < 2:
 		raise AppError("STUDENTS_INVALID_NAME", "Student name is too short.", 400)
 	if len(clean_email) < 3 or "@" not in clean_email:
 		raise AppError("STUDENTS_INVALID_EMAIL", "Invalid email address.", 400)
+	if len(clean_parent_email) < 3 or "@" not in clean_parent_email:
+		raise AppError("STUDENTS_INVALID_PARENT_EMAIL", "Invalid parent email address.", 400)
 
 	# Verify teacher owns the class
 	class_record = session.exec(
@@ -95,7 +100,13 @@ def add_student(
 		student_record = Student(
 			name=clean_name,
 			email=clean_email,
+			parent_email=clean_parent_email,
 		)
+		session.add(student_record)
+		session.commit()
+		session.refresh(student_record)
+	elif student_record.parent_email != clean_parent_email:
+		student_record.parent_email = clean_parent_email
 		session.add(student_record)
 		session.commit()
 		session.refresh(student_record)
@@ -130,6 +141,7 @@ def add_student(
 			"id": student_record.id,
 			"name": student_class_record.display_name,
 			"email": student_record.email,
+			"parent_email": student_record.parent_email,
 			"created_at": student_class_record.created_at,
 		},
 	}
@@ -190,15 +202,19 @@ def edit_student(
 	class_id: int,
 	name: str,
 	email: str,
+	parent_email: str,
 ) -> Dict[str, Any]:
 	teacher_id = int(teacher_payload["id"])
 	clean_name = _clean_text(name)
 	clean_email = _clean_text(email).lower()
+	clean_parent_email = _clean_text(parent_email).lower()
 
 	if len(clean_name) < 2:
 		raise AppError("STUDENTS_INVALID_NAME", "Student name is too short.", 400)
 	if len(clean_email) < 3 or "@" not in clean_email:
 		raise AppError("STUDENTS_INVALID_EMAIL", "Invalid email address.", 400)
+	if len(clean_parent_email) < 3 or "@" not in clean_parent_email:
+		raise AppError("STUDENTS_INVALID_PARENT_EMAIL", "Invalid parent email address.", 400)
 
 	# Verify teacher owns the class
 	class_record = session.exec(
@@ -240,6 +256,7 @@ def edit_student(
 
 	student_record.name = clean_name
 	student_record.email = clean_email
+	student_record.parent_email = clean_parent_email
 	student_class_record.display_name = clean_name
 
 	session.add(student_record)
@@ -254,6 +271,7 @@ def edit_student(
 			"id": student_record.id,
 			"name": student_class_record.display_name,
 			"email": student_record.email,
+			"parent_email": student_record.parent_email,
 			"created_at": student_class_record.created_at,
 		},
 	}

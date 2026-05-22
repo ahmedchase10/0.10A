@@ -287,11 +287,15 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  async createExamType(classId, name) {
+  async createExamType(classId, name, category = 'EXERCISE', useForInsights = true) {
     const response = await fetch(`${API_BASE_URL}/classes/${classId}/exam-types`, {
       method: 'POST',
       headers: this.getHeaders(true),
-      body: JSON.stringify({ name })
+      body: JSON.stringify({
+        name,
+        category,
+        use_for_insights: useForInsights
+      })
     });
     return this.handleResponse(response);
   }
@@ -734,7 +738,6 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // ─── Email Agent ──────────────────────────────────────────────────────────
 
   // ─── Insights ─────────────────────────────────────────────────────────────
 

@@ -31,9 +31,12 @@
           >
             <option :value="null" disabled>{{ loadingStudents ? 'Loading students...' : 'Select a student...' }}</option>
             <option v-for="student in students" :key="student.id" :value="student.id">
-              {{ student.name }} ({{ student.email }})
+              {{ student.name }} ({{ student.parent_email || 'missing parent email' }})
             </option>
           </select>
+          <p v-if="selectedStudentId && !selectedStudent?.parent_email" class="mt-3 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            This student does not have a parent email yet. Add it in the Students page before drafting or sending a notification.
+          </p>
         </div>
 
         <!-- Flags Selection (Only if student selected) -->
@@ -124,6 +127,7 @@
               type="email" 
               class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
+            <p class="mt-1 text-xs text-grey-500">This is filled from the selected student's parent email.</p>
           </div>
           
           <div>
@@ -194,6 +198,7 @@ const selectedFlags = ref([]);
 const teacherPrompt = ref('');
 const draftEmail = ref(null);
 const recipientEmail = ref('');
+const selectedStudent = computed(() => students.value.find((student) => student.id === selectedStudentId.value) || null);
 
 const isGenerating = ref(false);
 const isSending = ref(false);
@@ -239,9 +244,11 @@ async function handleStudentChange() {
   if (!selectedStudentId.value) return;
 
   // Auto-fill recipient email
-  const student = students.value.find(s => s.id === selectedStudentId.value);
-  if (student && student.email) {
-    recipientEmail.value = student.email;
+  const student = selectedStudent.value;
+  if (student && student.parent_email) {
+    recipientEmail.value = student.parent_email;
+  } else {
+    recipientEmail.value = '';
   }
 
   // Fetch flags
@@ -259,7 +266,7 @@ async function handleStudentChange() {
 }
 
 const canGenerate = computed(() => {
-  return !!selectedStudentId.value;
+  return !!selectedStudentId.value && !!selectedStudent.value?.parent_email;
 });
 
 const canSend = computed(() => {
@@ -288,6 +295,9 @@ async function generateDraft() {
       subject: res.subject || '',
       body: res.body || ''
     };
+    if (res.recipient_email) {
+      recipientEmail.value = res.recipient_email;
+    }
   } catch (err) {
     console.error("Email generation failed", err);
     errorMessage.value = err.message || "Failed to generate email.";

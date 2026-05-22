@@ -172,7 +172,7 @@
                     :disabled="retryingOverview"
                     class="text-sm font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
                   >
-                    {{ retryingOverview ? 'Retrying…' : 'Retry Overview' }}
+                    {{ retryingOverview ? 'Retrying...' : 'Retry Overview' }}
                   </button>
                 </div>
 
@@ -273,15 +273,35 @@
               </div>
 
               <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
-                <div>
-                  <h3 class="text-sm font-semibold text-grey-900">Difficulty Distribution</h3>
-                  <p class="text-xs text-grey-500 mt-1">Drag the two anchors to distribute the 100% across easy, medium, and hard.</p>
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-sm font-semibold text-grey-900">Difficulty Distribution</h3>
+                    <p class="text-xs text-grey-500 mt-1">Use the slider for quick changes or switch to manual entry to type exact percentages.</p>
+                  </div>
+                  <div class="flex rounded-lg border border-grey-200 bg-white p-1 text-xs font-medium text-grey-600">
+                    <button
+                      type="button"
+                      @click="setDifficultyInputMode('slider')"
+                      class="rounded-md px-3 py-1.5 transition"
+                      :class="difficultyInputMode === 'slider' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50'"
+                    >
+                      Slider
+                    </button>
+                    <button
+                      type="button"
+                      @click="setDifficultyInputMode('manual')"
+                      class="rounded-md px-3 py-1.5 transition"
+                      :class="difficultyInputMode === 'manual' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50'"
+                    >
+                      Manual
+                    </button>
+                  </div>
                 </div>
 
-                <div class="space-y-3">
+                <div v-if="difficultyInputMode === 'slider'" class="space-y-3">
                   <div
                     ref="difficultyTrackRef"
-                    class="relative h-12 select-none"
+                    class="relative h-12 select-none touch-none"
                     @pointerdown="onDifficultyTrackPointerDown"
                   >
                     <div class="absolute top-4 left-0 right-0 h-4 rounded-full overflow-hidden border border-grey-200 bg-white">
@@ -289,9 +309,16 @@
                     </div>
 
                     <div
-                      class="absolute top-3 -translate-x-1/2 cursor-pointer"
+                      class="absolute top-3 -translate-x-1/2 cursor-pointer touch-none outline-none"
                       :style="{ left: `${difficultyAnchors.easyEnd}%` }"
                       @pointerdown.stop.prevent="startDifficultyDrag('easy', $event)"
+                      @keydown="onDifficultyHandleKeydown('easy', $event)"
+                      tabindex="0"
+                      role="slider"
+                      aria-label="Easy difficulty boundary"
+                      :aria-valuemin="0"
+                      :aria-valuemax="99"
+                      :aria-valuenow="difficultyAnchors.easyEnd"
                     >
                       <div class="flex flex-col items-center gap-1">
                         <div class="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 shadow"></div>
@@ -300,9 +327,16 @@
                     </div>
 
                     <div
-                      class="absolute top-3 -translate-x-1/2 cursor-pointer"
+                      class="absolute top-3 -translate-x-1/2 cursor-pointer touch-none outline-none"
                       :style="{ left: `${difficultyAnchors.mediumEnd}%` }"
                       @pointerdown.stop.prevent="startDifficultyDrag('medium', $event)"
+                      @keydown="onDifficultyHandleKeydown('medium', $event)"
+                      tabindex="0"
+                      role="slider"
+                      aria-label="Medium difficulty boundary"
+                      :aria-valuemin="1"
+                      :aria-valuemax="100"
+                      :aria-valuenow="difficultyAnchors.mediumEnd"
                     >
                       <div class="flex flex-col items-center gap-1">
                         <div class="w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow"></div>
@@ -322,6 +356,79 @@
                     </div>
                     <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
                       <p class="text-xs font-semibold uppercase tracking-wider text-red-700">Hard</p>
+                      <p class="font-semibold text-red-900">{{ difficultySplit.hard }}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="space-y-4">
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div class="rounded-lg border border-emerald-200 bg-white p-3">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2">Easy %</label>
+                      <input
+                        v-model.number="manualDifficulty.easy"
+                        type="number"
+                        min="0"
+                        max="99"
+                        step="1"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-white p-3">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2">Medium %</label>
+                      <input
+                        v-model.number="manualDifficulty.medium"
+                        type="number"
+                        min="1"
+                        max="99"
+                        step="1"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    <div class="rounded-lg border border-red-200 bg-white p-3">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-red-700 mb-2">Hard %</label>
+                      <input
+                        v-model.number="manualDifficulty.hard"
+                        type="number"
+                        min="0"
+                        max="99"
+                        step="1"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3 rounded-lg border border-grey-200 bg-white px-4 py-3 text-sm">
+                    <div>
+                      <p class="font-medium text-grey-900">Manual total: {{ manualDifficultyTotal }}%</p>
+                      <p class="text-xs text-grey-500 mt-1">The values must add up to 100 before they can be applied.</p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="applyManualDifficultyDistribution"
+                      class="px-4 py-2 rounded-lg font-medium transition"
+                      :class="manualDifficultyIsValid ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-grey-200 text-grey-500 cursor-not-allowed'"
+                      :disabled="!manualDifficultyIsValid"
+                    >
+                      Apply values
+                    </button>
+                  </div>
+
+                  <div v-if="difficultyInputError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {{ difficultyInputError }}
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Current Easy</p>
+                      <p class="font-semibold text-emerald-900">{{ difficultySplit.easy }}%</p>
+                    </div>
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Current Medium</p>
+                      <p class="font-semibold text-amber-900">{{ difficultySplit.medium }}%</p>
+                    </div>
+                    <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-red-700">Current Hard</p>
                       <p class="font-semibold text-red-900">{{ difficultySplit.hard }}%</p>
                     </div>
                   </div>
@@ -370,10 +477,10 @@
               <div class="flex items-center gap-3">
                 <button
                   @click="generateNewSession"
-                  :disabled="stream.isStreaming"
+                  :disabled="stream.isStreaming || !canGenerateDraft"
                   class="flex-1 px-5 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50"
                 >
-                  {{ stream.isStreaming ? 'Generating…' : 'Generate Exam' }}
+                  {{ stream.isStreaming ? 'Generating...' : 'Generate Exam' }}
                 </button>
                 <button
                   @click="closeWorkspace"
@@ -411,11 +518,11 @@
                   </div>
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
                     <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Question Count</p>
-                    <p>{{ activeSession?.preferences?.question_count || '-' }}</p>
+                    <p>{{ activeSession?.preferences?.question_count ?? '-' }}</p>
                   </div>
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
                     <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Total Points</p>
-                    <p>{{ activeSession?.preferences?.total_points || '-' }}</p>
+                    <p>{{ activeSession?.preferences?.total_points ?? '-' }}</p>
                   </div>
                 </div>
 
@@ -449,10 +556,10 @@
               <div class="flex items-center gap-3">
                 <button
                   @click="refineSession"
-                  :disabled="stream.isStreaming"
+                  :disabled="stream.isStreaming || !canRefineSession"
                   class="flex-1 px-5 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50"
                 >
-                  {{ stream.isStreaming ? 'Refining…' : 'Refine Exam' }}
+                  {{ stream.isStreaming ? 'Refining...' : 'Refine Exam' }}
                 </button>
                 <button
                   @click="downloadPreviewPdf"
@@ -664,9 +771,10 @@
                     </button>
                     <button
                       type="submit"
-                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition"
+                      :disabled="creatingSession"
+                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
                     >
-                      Continue
+                      {{ creatingSession ? 'Opening...' : 'Continue' }}
                     </button>
                   </div>
                 </form>
@@ -713,6 +821,7 @@ const loadingPage = ref(true);
 const sessionsLoading = ref(false);
 const retryingOverview = ref(false);
 const showCreateModal = ref(false);
+const creatingSession = ref(false);
 const sessions = ref([]);
 const allUploads = ref([]);
 const activeSession = ref(null);
@@ -744,6 +853,13 @@ const difficultyAnchors = reactive({
   easyEnd: 30,
   mediumEnd: 80,
 });
+const difficultyInputMode = ref('slider');
+const difficultyInputError = ref('');
+const manualDifficulty = reactive({
+  easy: 30,
+  medium: 50,
+  hard: 20,
+});
 const difficultyTrackRef = ref(null);
 const activeDifficultyHandle = ref(null);
 
@@ -765,17 +881,44 @@ const stream = reactive({
 
 const classes = computed(() => classesStore.classes);
 const uploadsById = computed(() => new Map(allUploads.value.map((file) => [file.id, file])));
+const normalizedDifficultyAnchors = computed(() => {
+  const easy = clampInt(difficultyAnchors.easyEnd, 0, 99);
+  const mediumEnd = clampInt(difficultyAnchors.mediumEnd, easy + 1, 100);
+  return { easy, mediumEnd };
+});
 const difficultyTotal = computed(() => {
-  return Number(difficultySplit.easy || 0) + Number(difficultySplit.medium || 0) + Number(difficultySplit.hard || 0);
+  return Number(difficultySplit.value.easy || 0) + Number(difficultySplit.value.medium || 0) + Number(difficultySplit.value.hard || 0);
+});
+const manualDifficultyTotal = computed(() => {
+  return Number(manualDifficulty.easy || 0) + Number(manualDifficulty.medium || 0) + Number(manualDifficulty.hard || 0);
+});
+const manualDifficultyBoundsValid = computed(() => {
+  const easy = Number(manualDifficulty.easy);
+  const medium = Number(manualDifficulty.medium);
+  const hard = Number(manualDifficulty.hard);
+  return easy >= 0 && easy <= 99
+    && medium >= 1 && medium <= 99
+    && hard >= 0 && hard <= 99;
+});
+const manualDifficultyIsValid = computed(() => manualDifficultyBoundsValid.value && manualDifficultyTotal.value === 100);
+const canGenerateDraft = computed(() => {
+  return Boolean(draft.title.trim())
+    && Boolean(draft.classId)
+    && draft.docIds.length > 0
+    && draft.exerciseTypes.length > 0
+    && difficultyTotal.value === 100;
+});
+const canRefineSession = computed(() => {
+  return Boolean(activeSession.value?.session_id) && Boolean(buildRefinementPrompt().trim());
 });
 const difficultySplit = computed(() => ({
-  easy: clampInt(difficultyAnchors.easyEnd, 0, 99),
-  medium: clampInt(difficultyAnchors.mediumEnd - difficultyAnchors.easyEnd, 1, 99),
-  hard: clampInt(100 - difficultyAnchors.mediumEnd, 0, 99),
+  easy: normalizedDifficultyAnchors.value.easy,
+  medium: normalizedDifficultyAnchors.value.mediumEnd - normalizedDifficultyAnchors.value.easy,
+  hard: 100 - normalizedDifficultyAnchors.value.mediumEnd,
 }));
 const difficultyGradientStyle = computed(() => {
-  const easy = clampInt(difficultyAnchors.easyEnd, 0, 99);
-  const medium = clampInt(difficultyAnchors.mediumEnd, easy + 1, 100);
+  const easy = normalizedDifficultyAnchors.value.easy;
+  const medium = normalizedDifficultyAnchors.value.mediumEnd;
   return {
     background: `linear-gradient(to right,
       #16a34a 0%,
@@ -822,6 +965,10 @@ function resetDraft() {
   Object.assign(draft, createDefaultDraft());
   difficultyAnchors.easyEnd = 30;
   difficultyAnchors.mediumEnd = 80;
+  normalizeDifficultyAnchors();
+  syncManualDifficultyFromAnchors();
+  difficultyInputMode.value = 'slider';
+  difficultyInputError.value = '';
 }
 
 function resetStream() {
@@ -877,6 +1024,54 @@ function normalizeDifficultyAnchors() {
   const nextMediumEnd = clampInt(difficultyAnchors.mediumEnd, nextEasy + 1, 100);
   difficultyAnchors.easyEnd = nextEasy;
   difficultyAnchors.mediumEnd = nextMediumEnd;
+  draft.difficulty = { ...difficultySplit.value };
+}
+
+function syncManualDifficultyFromAnchors() {
+  manualDifficulty.easy = difficultySplit.value.easy;
+  manualDifficulty.medium = difficultySplit.value.medium;
+  manualDifficulty.hard = difficultySplit.value.hard;
+}
+
+function setDifficultyInputMode(mode) {
+  stopDifficultyDrag();
+  if (mode === 'manual') {
+    syncManualDifficultyFromAnchors();
+    difficultyInputError.value = '';
+  } else {
+    difficultyInputError.value = '';
+  }
+  difficultyInputMode.value = mode;
+}
+
+function applyManualDifficultyDistribution() {
+  const easy = Number(manualDifficulty.easy);
+  const medium = Number(manualDifficulty.medium);
+  const hard = Number(manualDifficulty.hard);
+
+  if (!Number.isFinite(easy) || !Number.isFinite(medium) || !Number.isFinite(hard)) {
+    difficultyInputError.value = 'Please enter numeric percentages only.';
+    return;
+  }
+
+  if (easy < 0 || easy > 99 || medium < 1 || medium > 99 || hard < 0 || hard > 99) {
+    difficultyInputError.value = 'Keep easy between 0 and 99, medium between 1 and 99, and hard between 0 and 99.';
+    return;
+  }
+
+  const total = easy + medium + hard;
+
+  if (total !== 100) {
+    difficultyInputError.value = `The manual values add up to ${total}%, not 100%.`;
+    return;
+  }
+
+  difficultyInputError.value = '';
+  difficultyAnchors.easyEnd = easy;
+  difficultyAnchors.mediumEnd = easy + medium;
+  normalizeDifficultyAnchors();
+  syncManualDifficultyFromAnchors();
+  difficultyInputMode.value = 'slider';
 }
 
 function getDifficultyPercentFromEvent(event) {
@@ -894,6 +1089,48 @@ function moveDifficultyHandle(handle, percent) {
     difficultyAnchors.mediumEnd = clampInt(percent, difficultyAnchors.easyEnd + 1, 100);
   }
   normalizeDifficultyAnchors();
+}
+
+function nudgeDifficultyHandle(handle, delta) {
+  if (handle === 'easy') {
+    moveDifficultyHandle(handle, difficultyAnchors.easyEnd + delta);
+  } else if (handle === 'medium') {
+    moveDifficultyHandle(handle, difficultyAnchors.mediumEnd + delta);
+  }
+}
+
+function onDifficultyHandleKeydown(handle, event) {
+  const step = event.shiftKey ? 5 : 1;
+  switch (event.key) {
+    case 'ArrowLeft':
+    case 'ArrowDown':
+      event.preventDefault();
+      nudgeDifficultyHandle(handle, -step);
+      break;
+    case 'ArrowRight':
+    case 'ArrowUp':
+      event.preventDefault();
+      nudgeDifficultyHandle(handle, step);
+      break;
+    case 'Home':
+      event.preventDefault();
+      moveDifficultyHandle(handle, handle === 'easy' ? 0 : difficultyAnchors.easyEnd + 1);
+      break;
+    case 'End':
+      event.preventDefault();
+      moveDifficultyHandle(handle, handle === 'easy' ? difficultyAnchors.mediumEnd - 1 : 100);
+      break;
+    case 'PageDown':
+      event.preventDefault();
+      nudgeDifficultyHandle(handle, -10);
+      break;
+    case 'PageUp':
+      event.preventDefault();
+      nudgeDifficultyHandle(handle, 10);
+      break;
+    default:
+      break;
+  }
 }
 
 function startDifficultyDrag(handle, event) {
@@ -985,24 +1222,32 @@ function openNewSessionModal() {
   activeSession.value = null;
   refinement.prompt = '';
   refinement.notes = '';
+  creatingSession.value = false;
   showCreateModal.value = true;
 }
 
 function closeCreateModal() {
+  creatingSession.value = false;
   showCreateModal.value = false;
 }
 
 async function startDraftWorkspace() {
   if (!draft.title.trim() || !draft.classId) return;
-  closeCreateModal();
-  resetStream();
-  activeSession.value = null;
-  workspace.mode = 'draft';
-  await loadDraftClassFiles();
+  creatingSession.value = true;
+  try {
+    closeCreateModal();
+    resetStream();
+    activeSession.value = null;
+    workspace.mode = 'draft';
+    await loadDraftClassFiles();
+  } finally {
+    creatingSession.value = false;
+  }
 }
 
 async function handleDraftClassChange() {
   draft.docIds = [];
+  stream.error = '';
   await loadDraftClassFiles();
 }
 
@@ -1016,6 +1261,7 @@ async function openSession(sessionId) {
       activeSession.value = response.session;
       stream.currentDraft = response.session.exam || null;
       updateDifficultyFromSessionPreferences(response.session.preferences);
+      difficultyInputMode.value = 'slider';
       workspace.mode = 'session';
     }
   } catch (error) {
@@ -1352,9 +1598,11 @@ function sanitizeFilename(value) {
 function updateDifficultyFromSessionPreferences(preferences) {
   const split = preferences?.difficulty_distribution || {};
   const easy = clampInt(split.easy ?? 30, 0, 99);
-  const medium = clampInt(split.medium ?? 50, 1, 99);
+  const medium = clampInt(split.medium ?? 50, 1, 100 - easy);
   difficultyAnchors.easyEnd = easy;
   difficultyAnchors.mediumEnd = clampInt(easy + medium, easy + 1, 100);
+  normalizeDifficultyAnchors();
+  syncManualDifficultyFromAnchors();
 }
 
 function difficultyDistributionForBackend() {

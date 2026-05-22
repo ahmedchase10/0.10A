@@ -13,7 +13,7 @@ router = APIRouter(prefix="/classes", tags=["exam-types"])
 
 class CreateExamTypeRequest(BaseModel):
     name: str
-    category: Literal["EXERCISE", "MIDTERM", "FINAL"]
+    category: Literal["EXERCISE", "MIDTERM", "FINAL"] = "EXERCISE"
     use_for_insights: bool = Field(default=True)
 
 

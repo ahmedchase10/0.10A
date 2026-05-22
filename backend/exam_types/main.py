@@ -51,7 +51,7 @@ def create_exam_type(
     *,
     class_id: int,
     name: str,
-    category: str,
+    category: str = "EXERCISE",
     use_for_insights: bool = True,
 ) -> Dict[str, Any]:
     teacher_id = int(teacher_payload["id"])

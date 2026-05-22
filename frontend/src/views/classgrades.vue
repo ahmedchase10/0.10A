@@ -333,6 +333,41 @@
                       @keydown.enter.prevent.stop="submitAddExamType"
                     />
                   </div>
+                  <div>
+                    <label class="block text-sm font-medium text-grey-700 mb-2">Category *</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <label
+                        v-for="option in examTypeCategoryOptions"
+                        :key="option.value"
+                        class="relative flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition"
+                        :class="newExamTypeCategory === option.value
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
+                          : 'border-grey-200 bg-white hover:border-primary-300 hover:bg-grey-50'"
+                      >
+                        <input
+                          v-model="newExamTypeCategory"
+                          type="radio"
+                          name="examTypeCategory"
+                          :value="option.value"
+                          class="sr-only"
+                        />
+                        <span
+                          class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition"
+                          :class="newExamTypeCategory === option.value
+                            ? 'border-primary-600 bg-primary-600'
+                            : 'border-grey-300 bg-white'"
+                        >
+                          <span
+                            class="h-2.5 w-2.5 rounded-full bg-white transition-opacity"
+                            :class="newExamTypeCategory === option.value ? 'opacity-100' : 'opacity-0'"
+                          ></span>
+                        </span>
+                        <div>
+                          <p class="text-sm font-semibold text-grey-900">{{ option.label }}</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
                   <div v-if="examTypeError" class="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p class="text-sm text-red-700">{{ examTypeError }}</p>
                   </div>
@@ -466,8 +501,14 @@ const filterExamTypeId = ref(null);
 // ── Exam Type Modal ──────────────────────────────────
 const showAddExamTypeModal = ref(false);
 const newExamTypeName = ref('');
+const newExamTypeCategory = ref('EXERCISE');
 const creatingExamType = ref(false);
 const examTypeError = ref('');
+const examTypeCategoryOptions = [
+  { value: 'EXERCISE', label: 'Exercise' },
+  { value: 'MIDTERM', label: 'Midterm' },
+  { value: 'FINAL', label: 'Final' },
+];
 
 // ── Grade Modal ──────────────────────────────────────
 const showAddGradeModal = ref(false);
@@ -569,10 +610,11 @@ async function submitAddExamType() {
   if (!name) return;
   creatingExamType.value = true;
   try {
-    const res = await api.createExamType(classId.value, name);
+    const res = await api.createExamType(classId.value, name, newExamTypeCategory.value);
     if (res.success) {
       examTypes.value.push(res.exam_type);
       newExamTypeName.value = '';
+      newExamTypeCategory.value = 'EXERCISE';
       showAddExamTypeModal.value = false;
     }
   } catch (err) {
@@ -700,6 +742,10 @@ function upsertGradeLocally(grade) {
 onMounted(loadAll);
 
 watch(showAddExamTypeModal, (val) => {
-  if (!val) { newExamTypeName.value = ''; examTypeError.value = ''; }
+  if (!val) {
+    newExamTypeName.value = '';
+    newExamTypeCategory.value = 'EXERCISE';
+    examTypeError.value = '';
+  }
 });
 </script>

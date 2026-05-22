@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Any, Dict
 from backend.server.auth.dependencies import require_auth
 from backend.attendance.main import _get_owned_class_or_404,_validate_enrolled_students
@@ -17,7 +17,9 @@ class GenerateEmailRequest(BaseModel):
     class_id: int
     student_id: Optional[int] = None
     selected_flags: Optional[List[int]] = None  # Flag IDs to include
-    recipient_email: Optional[str] = None
+    recipient_email: Optional[EmailStr] = None
+
+
 @router.post("/generate-email")
 def generate_email_endpoint(
     payload: GenerateEmailRequest,
@@ -40,6 +42,12 @@ def generate_email_endpoint(
             student_id=payload.student_id,
             selected_flags=payload.selected_flags,
         )
+        if payload.custom:
+            result["recipient_email"] = str(payload.recipient_email)
         return result
+    except RuntimeError as e:
+        message = str(e)
+        status_code = 400 if "Parent email is missing" in message or "Student not found" in message else 500
+        raise HTTPException(status_code, message)
     except Exception as e:
         raise HTTPException(500, str(e))

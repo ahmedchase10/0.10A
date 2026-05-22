@@ -22,6 +22,8 @@ from backend.server.routes.gmail_route import router as gmail_router
 from backend.server.routes.email_gen_route import router as email_router
 from backend.server.routes.flags_route import router as flags_router
 from backend.server.routes.insights_route import router as insights_router
+from backend.server.db.engine import engine
+from backend.server.db.migrations import ensure_student_parent_email_column
 
 
 
@@ -30,6 +32,7 @@ async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────────────────────
     from backend.agents.db import get_checkpointer
     await get_checkpointer()   # opens shared pool + creates checkpoint tables once for all agents
+    ensure_student_parent_email_column(engine)
     yield
     # ── Shutdown ──────────────────────────────────────────────────────────────
     from backend.agents.db import close_pool
@@ -44,7 +47,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Vite frontend
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
         "http://localhost:8000",
     ],
     allow_credentials=True,
