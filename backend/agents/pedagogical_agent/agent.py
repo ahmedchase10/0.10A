@@ -17,9 +17,8 @@ LLM: Qwen3.5 via HuggingFace endpoint (OpenAI-compatible).
 """
 import json
 import sys
-from typing import Annotated, Any, List, Literal
-
-# ── Windows: psycopg3 async requires SelectorEventLoop ────────────────────────
+from typing import Annotated, Any, Dict, List, Literal
+# Windows: psycopg3 async requires SelectorEventLoop
 if sys.platform == "win32":
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -105,6 +104,7 @@ Step 4 — Retrieve and answer
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     doc_ids: List[str]
+    doc_overviews: Dict[str, Any]
     reasoning: bool
 
 # ─── Reasoning helpers ────────────────────────────────────────────────────────
@@ -169,6 +169,14 @@ def _tool_result_to_image_content(tool_msg: ToolMessage) -> list | str:
     return blocks
 
 # ─── Agent node ───────────────────────────────────────────────────────────────
+def _format_overviews(overviews: Dict[str, Any], max_chars: int = 5000) -> str:
+    """Compact JSON representation of document overviews, safely truncated to protect context window."""
+    if not overviews:
+        return ""
+    raw = json.dumps(overviews, ensure_ascii=False, separators=(",", ":"))
+    if len(raw) > max_chars:
+        return raw[:max_chars] + "...[truncated]"
+    return raw
 
 async def agent_node(state: AgentState) -> dict:
     writer = get_stream_writer()
@@ -181,6 +189,16 @@ async def agent_node(state: AgentState) -> dict:
         system_content += (
             f"\n\n**Active document IDs for this session (always pass to rag_retrieve):** "
             f"{json.dumps(doc_ids)}"
+        )
+    #injecting the overview
+    doc_overviews = state.get("doc_overviews", {})
+    overview_block = _format_overviews(doc_overviews)
+    if overview_block:
+        system_content += (
+            f"\n\n━━━ DOCUMENT STRUCTURE AWARENESS ━━━\n"
+            f"Use this hierarchy to ground reasoning, plan precise retrieval queries, "
+            f"and avoid referencing topics or sections that do not exist in the provided materials:\n"
+            f"{overview_block}"
         )
 
     # Build the message list for the LLM

@@ -33,7 +33,7 @@ class UpdateSessionRequest(BaseModel):
 
 class AgentRequest(BaseModel):
     thread_id: str
-    file_ids: List[str] = Field(..., min_length=1)
+    file_ids: List[str] = Field(default=[])
     prompt: str = Field(..., min_length=1)
     reasoning: bool = False
 
@@ -224,35 +224,45 @@ async def pedagogical_agent(
       event: error       — fatal error
       event: done        — stream finished
     """
-    from backend.server.db.dbModels import Upload
+    from backend.server.db.dbModels import GlobalUpload
     from backend.agents.pedagogical_agent.agent import get_graph
 
     teacher_id = int(teacher["id"])
     _get_owned_session_or_404(session, body.thread_id, teacher_id)
 
-    for fid in body.file_ids:
-        upload = session.get(Upload, fid)
-        if upload is None:
-            raise AppError("AGENT_FILE_NOT_FOUND", f"File {fid} not found.", 404)
-        if not upload.embedded:
-            raise AppError(
-                "AGENT_FILE_NOT_EMBEDDED",
-                f"File '{upload.filename}' is not yet embedded. Please wait or retry.",
-                422,
-            )
-        get_owned_class_or_403(session, teacher_id=teacher_id, class_id=upload.class_id)
+    doc_overviews = {}
+    if body.file_ids:
+        for fid in body.file_ids:
+            global_upload = session.get(GlobalUpload, fid)
+            if global_upload is None:
+                raise AppError("AGENT_FILE_NOT_FOUND", f"File {fid} not found.", 404)
+            if not global_upload.embedded:
+                raise AppError(
+                    "AGENT_FILE_NOT_EMBEDDED",
+                    f"File '{global_upload.filename}' is not yet embedded. Please wait or retry.",
+                    422,
+                )
+            if global_upload.teacher_id != teacher_id:
+                raise AppError("AGENT_FILE_FORBIDDEN", "Access denied.", 403)
+            if global_upload.overview and isinstance(global_upload.overview, dict):
+                doc_overviews[fid] = global_upload.overview
 
     async def event_stream() -> AsyncIterator[str]:
         try:
             from langchain_core.messages import HumanMessage
-
             graph = await get_graph()
             config = {"configurable": {"thread_id": body.thread_id}}
-            input_state = {
+
+            # Base state always includes the new prompt
+            input_state: Dict[str, Any] = {
                 "messages": [HumanMessage(content=body.prompt)],
-                "doc_ids": body.file_ids,
                 "reasoning": body.reasoning,
             }
+            # Only inject doc context if explicitly provided.
+            if body.file_ids:
+                input_state["doc_ids"] = body.file_ids
+                input_state["doc_overviews"] = doc_overviews
+
 
             in_think = False
             saw_reasoning = False
