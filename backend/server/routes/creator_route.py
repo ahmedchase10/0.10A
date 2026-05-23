@@ -275,7 +275,7 @@ async def generate_exam(
             ]
         input_data = initial_state
     else:
-        # Resume: add the teacher's new message to existing checkpoint
+
         input_data = {"messages": [LCHumanMessage(content=body.prompt)]}
 
     async def event_stream() -> AsyncIterator[str]:
@@ -284,7 +284,6 @@ async def generate_exam(
             async for sse_chunk in _stream_graph(graph, input_data, config):
                 yield sse_chunk
 
-            # ── After stream completes: persist final exam_json to DB ─────────
             try:
                 # Read final state from checkpoint
                 final_state = await graph.aget_state(config)

@@ -45,7 +45,7 @@ def get_doc_overviews(doc_ids: List[str]) -> List[dict]:
           - overview_ready: bool — False means Ollama preprocessing hasn't run yet
     """
     from sqlmodel import Session, create_engine
-    from backend.server.db.dbModels import GlobalUpload  # 🔥 CHANGED: was Upload
+    from backend.server.db.dbModels import GlobalUpload  
     from backend.config import POSTGRES_URL
 
     engine = create_engine(POSTGRES_URL, echo=False)

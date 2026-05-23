@@ -1,18 +1,39 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field
 
 from backend.server.auth.dependencies import require_auth
 from backend.server.db.engine import get_session
 from backend.server.db.dbModels import (
     StudentTopicInsight, CohortTopicInsight, ExamTopicPerformance, StudentClass,
-    Grade, ExamType, Flags, Student
+    Grade, ExamType, Flags, Student, ClassInsightConfig
 )
 from backend.classes.access import get_owned_class_or_403
+from backend.agents.grading_agent.aggregator import (
+    resolve_insight_config,
+    run_aggregation_for_student,
+    run_cohort_aggregation_for_class,
+    DEFAULT_INSIGHT_CONFIG
+)
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
 
+# Pydantic schema
+class InsightConfigUpdate(BaseModel):
+    weight_exercise: Optional[float] = Field(None, ge=0.0, le=1.0)
+    weight_midterm: Optional[float] = Field(None, ge=0.0, le=1.0)
+    weight_final: Optional[float] = Field(None, ge=0.0, le=1.0)
+    min_attempts: Optional[int] = Field(None, ge=1, le=10)
+    weak_threshold: Optional[float] = Field(None, ge=0.0, le=1.0)
+    master_threshold: Optional[float] = Field(None, ge=0.0, le=1.0)
+    cohort_weak_pct: Optional[float] = Field(None, ge=0.0, le=1.0)
+    scope_rules: Optional[Dict[str, List[str]]] = None
+
+
+# Student Insights
 @router.get("/students")
 def get_student_insights(
     class_id: int = Query(...),
@@ -57,6 +78,7 @@ def get_student_insights(
     }
 
 
+# Cohort Insights
 @router.get("/cohort")
 def get_cohort_insights(
     class_id: int = Query(...),
@@ -92,135 +114,7 @@ def get_cohort_insights(
     }
 
 
-@router.get("/report")
-def get_student_report(
-    class_id: int = Query(...),
-    student_id: int = Query(...),
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
-):
-    """
-    Comprehensive per-student academic report for a given class.
-    Returns: grades (per exam type), topic insights, flags, and summary stats.
-    """
-    teacher_id = int(teacher["id"])
-    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
-
-    # ── Verify student is enrolled ────────────────────────────────────────────
-    enrollment = session.exec(
-        select(StudentClass, Student)
-        .join(Student, StudentClass.student_id == Student.id)
-        .where(
-            StudentClass.class_id == class_id,
-            StudentClass.student_id == student_id,
-        )
-    ).first()
-
-    if not enrollment:
-        from backend.models import AppError
-        raise AppError("STUDENT_NOT_ENROLLED", "Student not enrolled in this class.", 404)
-
-    student_class, student = enrollment
-
-    # ── Grades ────────────────────────────────────────────────────────────────
-    grade_rows = session.exec(
-        select(Grade, ExamType)
-        .join(ExamType, ExamType.id == Grade.exam_type_id)
-        .where(
-            Grade.student_id == student_id,
-            ExamType.class_id == class_id,
-        )
-        .order_by(ExamType.category, ExamType.name)
-    ).all()
-
-    grades = [
-        {
-            "exam_type_id": et.id,
-            "exam_type_name": et.name,
-            "category": et.category,
-            "value": g.value,
-        }
-        for g, et in grade_rows
-    ]
-
-    # ── Summary stats ─────────────────────────────────────────────────────────
-    all_values = [g["value"] for g in grades]
-    ds_values  = [g["value"] for g in grades if g["category"] == "DS"]
-    ex_values  = [g["value"] for g in grades if g["category"] == "EXAMEN"]
-
-    def _avg(vals):
-        return round(sum(vals) / len(vals), 2) if vals else None
-
-    summary = {
-        "overall_average": _avg(all_values),
-        "ds_average": _avg(ds_values),
-        "exam_average": _avg(ex_values),
-        "total_exams": len(grades),
-        "grades_below_10": sum(1 for v in all_values if v < 10),
-        "grades_above_14": sum(1 for v in all_values if v >= 14),
-    }
-
-    # ── Topic insights ────────────────────────────────────────────────────────
-    insight_rows = session.exec(
-        select(StudentTopicInsight).where(
-            StudentTopicInsight.student_id == str(student_id)
-        ).order_by(StudentTopicInsight.mastery_pct)
-    ).all()
-
-    insights = [
-        {
-            "topic_id": r.topic_id,
-            "mastery_pct": r.mastery_pct,
-            "attempts": r.attempts,
-            "trend": r.trend,
-            "insight_type": r.insight_type,
-            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-        }
-        for r in insight_rows
-    ]
-
-    weak_topics   = [i for i in insights if i["mastery_pct"] < 50]
-    strong_topics = [i for i in insights if i["mastery_pct"] >= 75]
-    declining     = [i for i in insights if i["trend"] == "declining"]
-
-    # ── Flags ─────────────────────────────────────────────────────────────────
-    flag_rows = session.exec(
-        select(Flags).where(
-            Flags.class_id == class_id,
-            Flags.student_id == student_id,
-        ).order_by(Flags.created_at.desc())
-    ).all()
-
-    flags = [
-        {
-            "id": f.id,
-            "reason": f.reason,
-            "created_at": f.created_at.isoformat() if f.created_at else None,
-        }
-        for f in flag_rows
-    ]
-
-    return {
-        "success": True,
-        "report": {
-            "student": {
-                "id": student.id,
-                "name": student_class.display_name,
-                "email": student.email,
-            },
-            "summary": summary,
-            "grades": grades,
-            "insights": {
-                "all": insights,
-                "weak_topics": weak_topics,
-                "strong_topics": strong_topics,
-                "declining_topics": declining,
-            },
-            "flags": flags,
-        },
-    }
-
-
+# Raw Exam Topic Performance
 @router.get("/exam-topic")
 def get_exam_topic_performance(
     class_id: int = Query(...),
@@ -300,4 +194,74 @@ def get_exam_topic_performance(
             for r in rows
         ],
         "topic_summary": topic_summary,
+    }
+
+
+# Insight Configuration
+@router.get("/classes/{class_id}/config")
+def get_insight_config(
+    class_id: int,
+    teacher: Dict[str, Any] = Depends(require_auth),
+    session: Session = Depends(get_session),
+):
+    """Return resolved config + system defaults for UI rendering."""
+    teacher_id = int(teacher["id"])
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+
+    resolved = resolve_insight_config(session, class_id)
+    return {
+        "success": True,
+        "config": resolved,
+        "defaults": DEFAULT_INSIGHT_CONFIG,
+    }
+
+
+@router.patch("/classes/{class_id}/config")
+def update_insight_config(
+    class_id: int,
+    body: InsightConfigUpdate,
+    teacher: Dict[str, Any] = Depends(require_auth),
+    session: Session = Depends(get_session),
+):
+    """
+    Partially update insight config. Null fields revert to defaults.
+    Triggers synchronous recalculation of all student & cohort insights.
+    """
+    teacher_id = int(teacher["id"])
+    get_owned_class_or_403(session, teacher_id=teacher_id, class_id=class_id)
+
+    # Upsert config row
+    cfg = session.exec(select(ClassInsightConfig).where(ClassInsightConfig.class_id == class_id)).first()
+    if not cfg:
+        cfg = ClassInsightConfig(class_id=class_id)
+        session.add(cfg)
+
+    update_data = body.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(cfg, key, value)
+    cfg.updated_at = datetime.now(timezone.utc)
+    session.add(cfg)
+    session.commit()
+
+    # Recalculate student insights
+    enrolled = session.exec(
+        select(StudentClass.student_id).where(StudentClass.class_id == class_id)
+    ).all()
+
+    updated_students = 0
+    for sid in enrolled:
+        run_aggregation_for_student(session, str(sid), "FINAL", class_id)
+        updated_students += 1
+
+    # Recalculate cohort insights using canonical scope names
+    for scope in ["MIDTERM", "FINAL"]:
+        run_cohort_aggregation_for_class(session, class_id, scope)
+
+    return {
+        "success": True,
+        "config": resolve_insight_config(session, class_id),
+        "recalculated": {
+            "students": updated_students,
+            "cohort_scopes": ["MIDTERM", "FINAL"]
+        }
     }

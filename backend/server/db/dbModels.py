@@ -51,6 +51,7 @@ class Class(SQLModel, table=True):
     agent_sessions: List["AgentSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
     exam_papers: List["ExamPaper"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
     grading_sessions: List["GradingSession"] = Relationship(sa_relationship_kwargs={"passive_deletes": True})
+    insight_config: Optional["ClassInsightConfig"] = Relationship(back_populates="class_rel",sa_relationship_kwargs={"passive_deletes": True})
 
 
 from typing import List, Optional, Any
@@ -320,6 +321,34 @@ class UserEmailCredentials(SQLModel, table=True):
     token_expiry: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
+class ClassInsightConfig(SQLModel, table=True):
+    __tablename__ = "class_insight_configs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    class_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("classes.id", ondelete="CASCADE", onupdate="CASCADE"),
+            unique=True,
+            index=True,
+            nullable=False
+        )
+    )
+    weight_exercise: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    weight_midterm: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    weight_final: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+
+    min_attempts: Optional[int] = Field(default=None, ge=1, le=10)
+    weak_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    master_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    cohort_weak_pct: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+
+    scope_rules: Optional[Any] = Field(default=None, sa_type=JSON)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class_rel: "Class" = Relationship(back_populates="insight_config")
+
 class ExamTopicPerformance(SQLModel, table=True):
     __tablename__ = "exam_topic_performance"
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -353,7 +382,7 @@ class CohortTopicInsight(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     class_id: int = Field(index=True)
     topic_id: str = Field(index=True)
-    exam_type_scope: str  # DS or EXAMEN
+    exam_type_scope: str  # MIDTERM or FINAL
     cohort_avg_pct: float
     weak_student_pct: float  # % of class below 50%
     insight_type: str  # cohort_topic_weakness, remediation_needed
@@ -369,5 +398,5 @@ __all__ = [
     "Flags", "Timetable", "Attendance", "ExamType", "Grade", "AgentSession",
     "ExamPaper", "ExamUpload", "GradingBlueprint", "GradingSession",
     "GradingQuestionResult", "GeneratedExam", "ProcessingJob", "UserEmailCredentials",
-    "GlobalUpload","ExamTopicPerformance","CohortTopicInsight","StudentTopicInsight"
+    "GlobalUpload","ExamTopicPerformance","CohortTopicInsight","StudentTopicInsight","ClassInsightConfig"
 ]

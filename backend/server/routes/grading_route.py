@@ -263,8 +263,8 @@ async def analyse_blueprint(
         corr_path.write_bytes(corr_data)
         correction_path_str = str(corr_path)
 
-    from backend.server.db.dbModels import GlobalUpload
     from backend.agents.grading_agent.tools import flatten_overviews_to_topics
+    doc_ids = [str(fid) for fid in doc_ids]
 
     uploads = session.exec(select(GlobalUpload).where(GlobalUpload.id.in_(doc_ids))).all()
     course_topics = flatten_overviews_to_topics(uploads)

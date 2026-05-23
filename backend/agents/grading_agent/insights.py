@@ -26,7 +26,7 @@ def save_grading_and_trigger_insights(
         row = ExamTopicPerformance(
             exam_id=exam_id,
             student_id=student_id,
-            class_id=class_id,  # 🔥 Use passed class_id directly
+            class_id=class_id,
             exam_type=exam_type,
             topic_id=topic_id,
             score=float(q.get("awarded_points", 0)),

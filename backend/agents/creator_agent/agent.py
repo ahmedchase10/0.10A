@@ -142,6 +142,8 @@ def _extract_exam_json(text: str) -> Optional[dict]:
     obj = _extract_json_object(text)
     if obj and "questions" in obj and isinstance(obj["questions"], list):
         return obj
+    if isinstance(obj, list) and len(obj) > 0 and isinstance(obj[0], dict):
+        return {"questions": obj}
     return None
 
 
@@ -213,6 +215,14 @@ Keep all passing questions unchanged.
 - Difficulty must be proportional to cognitive demand, not just length
 - MCQ distractors must be plausible (not obviously wrong)
 - Never fabricate answers — only use what the retrieved pages actually contain
+
+━━━ TEACHER REFINEMENT (HUMAN-IN-THE-LOOP) ━━━
+If the teacher sends a follow-up instruction to modify the exam:
+- Apply the requested changes to the existing draft
+- You MUST output the COMPLETE updated exam JSON (all questions, not just modified ones)
+- Maintain the exact JSON structure. Do NOT output conversational text, explanations, or markdown outside the JSON block.
+- If a requested change conflicts with the source material, note it in the question's source_hint but still apply the structural change.
+
 """
 
 _EVALUATOR_SYSTEM = """\
@@ -354,7 +364,10 @@ async def creator_node(state: CreatorState) -> dict:
             updates["exam_draft"] = exam
             writer({"type": "exam_draft", "questions": exam.get("questions", [])})
         else:
-            logger.warning("creator_node: could not parse exam JSON from response")
+            logger.warning(
+                "creator_node: could not parse exam JSON. Raw response preview: %s",
+                (response.content or "")[:300].replace("\n", " "),
+            )
 
     return updates
 
