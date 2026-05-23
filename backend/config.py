@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+from pathlib import Path
+
 
 load_dotenv()
 
@@ -10,7 +12,7 @@ OLLAMA_MODEL    = os.getenv("OLLAMA_MODEL",    "llama3.1:8b")
 
 # ── ColQwen ───────────────────────────────────────────────────────────────
 COLQWEN_MODEL = "athrael-soju/colqwen3.5-4.5B-v3"
-PAGES_STORAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "storage", "pages")
+PAGES_STORAGE_PATH = str(Path(__file__).resolve().parents[1] / "storage" / "pages")
 
 # ── Weaviate ──────────────────────────────────────────────────────────────
 WEAVIATE_PERSISTENCE_PATH = "./.collections"  # ← removed WEAVIATE_URL, using embedded

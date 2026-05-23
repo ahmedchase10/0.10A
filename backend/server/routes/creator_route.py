@@ -35,7 +35,7 @@ from sqlmodel import Session, select
 from backend.models import AppError
 from backend.server.auth.dependencies import require_auth
 from backend.server.db.engine import get_session
-from backend.server.db.dbModels import GeneratedExam, Upload
+from backend.server.db.dbModels import GeneratedExam, GlobalUpload, Upload
 from backend.config import POSTGRES_URL
 
 router = APIRouter(prefix="/agents/creator", tags=["creator-agent"])
@@ -200,12 +200,15 @@ async def generate_exam(
     teacher_id = int(teacher["id"])
 
     # ── Validate doc_ids ──────────────────────────────────────────────────────
+    # ── Validate doc_ids ──────────────────────────────────────────────────────
     not_embedded = []
     for doc_id in body.doc_ids:
-        upload = db.get(Upload, doc_id)
-        if upload is None:
-            raise AppError("CREATOR_DOC_NOT_FOUND", f"Upload {doc_id} not found.", 404)
-        if not upload.embedded:
+        global_upload = db.get(GlobalUpload, doc_id)
+        if global_upload is None:
+            raise AppError("CREATOR_DOC_NOT_FOUND", f"Document {doc_id} not found.", 404)
+        if global_upload.teacher_id != teacher_id:
+            raise AppError("CREATOR_DOC_FORBIDDEN", "Access denied.", 403)
+        if not global_upload.embedded:
             not_embedded.append(doc_id)
     if not_embedded:
         raise AppError(
@@ -239,10 +242,9 @@ async def generate_exam(
     # ── Warn about missing overviews (non-fatal) ──────────────────────────────
     missing_overviews = []
     for doc_id in body.doc_ids:
-        upload = db.get(Upload, doc_id)
-        if upload and upload.overview is None:
+        global_upload = db.get(GlobalUpload, doc_id)
+        if global_upload and global_upload.overview is None:
             missing_overviews.append(doc_id)
-
     # Build LangGraph config
     config = {"configurable": {"thread_id": thread_id}}
 
@@ -451,29 +453,32 @@ def retry_overview(
     teacher_id = int(teacher["id"])
     get_owned_class_or_403(db, teacher_id=teacher_id, class_id=body.class_id)
 
+    # 🔥 Join GlobalUpload (holds overview/embedded) with Upload (class linkage)
     uploads = db.exec(
-        select(Upload).where(
+        select(GlobalUpload)
+        .join(Upload, GlobalUpload.file_hash == Upload.file_hash)
+        .where(
             Upload.class_id == body.class_id,
-            Upload.overview == None,  # noqa: E711 — SQLAlchemy IS NULL
-            Upload.embedded == True,  # noqa: E712
+            GlobalUpload.overview == None,  # noqa: E711
+            GlobalUpload.embedded == True,  # noqa: E712
         )
     ).all()
 
     _BASE_DIR = Path(__file__).resolve().parents[3]
     queued: List[str] = []
 
-    for upload in uploads:
-        abs_path = str(_BASE_DIR / upload.file_path)
+    for global_upload in uploads:
+        abs_path = str(_BASE_DIR / "uploads" / global_upload.file_path)
         if Path(abs_path).exists():
             background_tasks.add_task(
                 generate_overview_task,
                 file_path=abs_path,
-                upload_id=upload.id,
+                upload_id=global_upload.id,
                 db_url=POSTGRES_URL,
             )
-            queued.append(upload.id)
+            queued.append(global_upload.id)
         else:
-            logger.warning("retry-overview: file missing for upload %s", upload.id)
+            logger.warning("retry-overview: file missing for upload %s", global_upload.id)
 
     return {"success": True, "queued": queued}
 

@@ -311,76 +311,91 @@ def assign_global_upload_to_class(
         },
     }
 
-def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str, session:Session) -> None:
+
+def embed_upload_task(file_path: str, doc_id: str, upload_id: str, db_url: str) -> None:
+    """Background embedding task. Creates its own DB session to avoid FastAPI lifecycle crashes."""
+    from sqlalchemy import create_engine
+    from sqlmodel import Session
     from backend.rag.document_processor import DocumentProcessor
     from backend.rag.vector_store import VectorStore
 
-    upload = session.get(GlobalUpload, upload_id)
-    if not upload:
-        logger.warning("GlobalUpload %s not found", upload_id)
-        return
-    job = session.exec(select(ProcessingJob).where(ProcessingJob.file_hash == upload.file_hash).with_for_update()).first()
-    if job is None:
-        job = ProcessingJob(file_hash=upload.file_hash)
-        session.add(job)
-        session.flush()
-    processor = None
-    store = VectorStore()
-    if job.embedding_in_progress:
-        logger.info(" Skip: Embedding for doc %s is already in progress.", doc_id)
-        store.close()
-    elif store.doc_already_embedded(doc_id):
-        logger.info(" Skip: Doc %s is already embedded.", doc_id)
-        store.close()
-        if upload and not upload.embedded:
-            upload.embedded = True
-            session.commit()
-    else:
-        try:
-            processor = DocumentProcessor()
-            document, pages = processor.process_pdf(file_path, source="lesson", doc_id=doc_id)
-            store.store_pages_batch(pages, document)
-            job.embedding_in_progress = True
-            session.commit()
-            if upload:
+    engine = create_engine(db_url)
+    with Session(engine) as session:
+        upload = session.get(GlobalUpload, upload_id)
+        if not upload:
+            logger.warning("GlobalUpload %s not found", upload_id)
+            return
+
+        job = session.exec(
+            select(ProcessingJob).where(ProcessingJob.file_hash == upload.file_hash).with_for_update()
+        ).first()
+        if job is None:
+            job = ProcessingJob(file_hash=upload.file_hash)
+            session.add(job)
+            session.flush()
+
+        processor = None
+        store = VectorStore()
+
+        if job.embedding_in_progress:
+            logger.info("Skip: Embedding for doc %s is already in progress.", doc_id)
+        elif store.doc_already_embedded(doc_id):
+            logger.info("Skip: Doc %s is already embedded.", doc_id)
+            if not upload.embedded:
                 upload.embedded = True
                 session.add(upload)
                 session.commit()
-                logger.info("Embedded doc %s (%s)", doc_id, upload_id)
-        except Exception as exc:
-            logger.error("Embedding failed for upload %s: %s", upload_id, exc)
-            job.embedding_in_progress=False
-            session.commit()
-        finally:
-            if processor:
-                processor.close()
-            if store:
-                store.close()
-            job.embedding_in_progress = False
-            session.add(job)
-            session.commit()
+        else:
+            try:
+                processor = DocumentProcessor()
+                # 🔥 doc_id is explicitly GlobalUpload.id (string UUID)
+                document, pages = processor.process_pdf(file_path, source="lesson", doc_id=str(doc_id))
+                store.store_pages_batch(pages, document)
 
-    if job.overview_in_progress:
-        logger.info(" Skip: Overview for doc %s is already in progress.", doc_id)
-    elif upload.overview is not None:
-        logger.info(" Skip: Doc %s already has an overview.", doc_id)
-    else:
-        try:
-            job.overview_in_progress = True
-            session.add(job)
-            session.commit()
-            from backend.agents.creator_agent.preprocessor import generate_overview_task
-            generate_overview_task(file_path, upload_id, db_url)
-        except Exception as exc:
-            logger.error("Overview task failed for upload %s: %s", upload_id, exc)
-        finally:
-            job.overview_in_progress = False
-            session.add(job)
-            session.commit()
-    if not job.embedding_in_progress and not job.overview_in_progress:
-        session.delete(job)
-        session.commit()
+                job.embedding_in_progress = True
+                session.add(job)
+                session.commit()
 
+                upload.embedded = True
+                session.add(upload)
+                session.commit()
+                logger.info("✅ Successfully embedded doc %s (GlobalUpload %s)", doc_id, upload_id)
+            except Exception as exc:
+                logger.error("❌ Embedding failed for upload %s: %s", upload_id, exc)
+                job.embedding_in_progress = False
+                session.add(job)
+                session.commit()
+            finally:
+                if processor:
+                    processor.close()
+                if store:
+                    store.close()
+                job.embedding_in_progress = False
+                session.add(job)
+                session.commit()
+
+        # Overview task (unchanged logic, now safely inside fresh session)
+        if job.overview_in_progress:
+            logger.info("Skip: Overview for doc %s is already in progress.", doc_id)
+        elif upload.overview is not None:
+            logger.info("Skip: Doc %s already has an overview.", doc_id)
+        else:
+            try:
+                job.overview_in_progress = True
+                session.add(job)
+                session.commit()
+                from backend.agents.creator_agent.preprocessor import generate_overview_task
+                generate_overview_task(file_path, upload_id, db_url)
+            except Exception as exc:
+                logger.error("Overview task failed for upload %s: %s", upload_id, exc)
+            finally:
+                job.overview_in_progress = False
+                session.add(job)
+                session.commit()
+
+        if not job.embedding_in_progress and not job.overview_in_progress:
+            session.delete(job)
+            session.commit()
 
 
 def delete_lesson_upload(

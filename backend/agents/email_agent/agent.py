@@ -5,7 +5,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from backend.server.db.dbModels import Flags, StudentClass, Student
+from backend.server.db.dbModels import Flags,StudentClass
 
 # ─── LLM SETUP ────────────────────────────────────────────────────────────────
 # Adjust model name if you pulled a different variant (e.g., qwen2.5:14b)
@@ -40,36 +40,14 @@ def generate_email_service(
 
 ) -> dict:
     """Stateless, single-turn email generation. No memory, no tools."""
-    
+
+    # 1️⃣ Fetch & format flags if not in custom mode
     flag_context = ""
-    student_name = None
-    parent_email = None
     if not custom and student_id:
-        enrollment_stmt = (
-            select(StudentClass.display_name, Student.parent_email)
-            .join(Student, StudentClass.student_id == Student.id)
-            .where(
-                StudentClass.student_id == student_id,
-                StudentClass.class_id == class_id,
-            )
-        )
-        enrollment = session.exec(enrollment_stmt).first()
-        if not enrollment:
-            raise RuntimeError("Student not found in this class.")
-
-        student_name, parent_email = enrollment
-        if not parent_email:
-            raise RuntimeError(
-                "Parent email is missing for this student. Please add it in the Students page before generating a parent notification."
-            )
-
-        stmt = select(Flags).where(
-            Flags.student_id == student_id,
-            Flags.class_id == class_id,
-        )
+        stmt = select(Flags).where(Flags.student_id == student_id and Flags.class_id==class_id)
         if selected_flags:
             stmt = stmt.where(Flags.id.in_(selected_flags))
-        
+
         flags = session.exec(stmt).all()
         if flags:
             flag_context = "\n".join([
@@ -85,11 +63,12 @@ def generate_email_service(
     # 3️⃣ Build user prompt
     user_parts = [f"Teacher Instructions: {teacher_prompt}"]
     if student_id:
+        query= select(StudentClass.display_name).where(StudentClass.student_id == student_id and StudentClass.class_id == class_id)
+        student_name=session.exec(query).first()
         user_parts.append(f"Student name: {student_name}")
-        user_parts.append(f"Parent email: {parent_email}")
     if flag_context:
         user_parts.append(f"Student Context/Flags:\n{flag_context}")
-    
+
     user_prompt = "\n\n".join(user_parts) + "\n\nGenerate the email now. Return ONLY valid JSON."
 
     # 4️⃣ Build & invoke chain (stateless, linear)
@@ -99,12 +78,9 @@ def generate_email_service(
     ])
 
     chain = prompt | llm.with_structured_output(EmailOutput)
-    
+
     try:
         result = chain.invoke({})
-        return {
-            **result.model_dump(),
-            "recipient_email": parent_email if not custom else None,
-        }
+        return result.model_dump()
     except Exception as e:
-        raise RuntimeError(f"LLM generation failed. Ensure Ollama is running with model '{LLM_MODEL}'. Error: {e}")
+        return {"error": str(e)}

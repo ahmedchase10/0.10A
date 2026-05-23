@@ -39,12 +39,13 @@ def list_lessons_route(
         refresh=refresh,
     )
 
+
 @router.post("/upload")
 def upload_lesson_route(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    teacher: Dict[str, Any] = Depends(require_auth),
-    session: Session = Depends(get_session),
+        background_tasks: BackgroundTasks,
+        file: UploadFile = File(...),
+        teacher: Dict[str, Any] = Depends(require_auth),
+        session: Session = Depends(get_session),
 ):
     result = upload_lesson_file(
         session=session,
@@ -54,21 +55,16 @@ def upload_lesson_route(
 
     upload_info = result.get("upload", {})
     if not upload_info.get("already_exists", True):
-        upload_id = upload_info["id"]
-        absolute_path = str(
-            UPLOADS_ROOT.parent
-            / Path("uploads")
-            /"teachers"
-            / str(teacher["id"])
-            / upload_info["name"]
-        )
+        upload_id = str(upload_info["id"])  # 🔥 Ensure string UUID
+        absolute_path = str(UPLOADS_ROOT / "teachers" / str(teacher["id"]) / upload_info["name"])
+
+
         background_tasks.add_task(
             embed_upload_task,
             file_path=absolute_path,
             doc_id=upload_id,
             upload_id=upload_id,
             db_url=DATABASE_URL,
-            session=session,
         )
 
     return result
@@ -114,16 +110,16 @@ def retry_embed_route(
     from backend.server.db import GlobalUpload
 
     for upload_id in result["queued"]:
-        global_upload = session.get(GlobalUpload, upload_id)
+        upload_id_str = str(upload_id)
+        global_upload = session.get(GlobalUpload, upload_id_str)
         if global_upload and (not global_upload.embedded or global_upload.overview is None):
-            absolute_path = str(UPLOADS_ROOT/ global_upload.file_path)
+            absolute_path = str(UPLOADS_ROOT / global_upload.file_path)
             background_tasks.add_task(
                 embed_upload_task,
                 file_path=absolute_path,
-                doc_id=upload_id,
-                upload_id=upload_id,
+                doc_id=upload_id_str,
+                upload_id=upload_id_str,
                 db_url=DATABASE_URL,
-                session=session,
             )
 
     return result

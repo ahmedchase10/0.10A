@@ -3,7 +3,7 @@ backend/agents/creator_agent/tools.py
 ---------------------------------------
 Tools available to the creator agent:
 
-  get_doc_overviews  — fetch Upload.overview JSONB from Postgres for selected doc IDs
+  get_doc_overviews  — fetch GlobalUpload.overview JSONB from Postgres for selected doc IDs
   rag_retrieve       — re-exported from pedagogical_agent.tools (semantic page retrieval)
 """
 import logging
@@ -34,18 +34,18 @@ def get_doc_overviews(doc_ids: List[str]) -> List[dict]:
       2. What queries to pass to rag_retrieve to get the relevant pages
 
     Args:
-        doc_ids: List of Upload IDs (same IDs used in rag_retrieve).
+        doc_ids: List of GlobalUpload IDs (same IDs used in rag_retrieve).
 
     Returns:
         List of dicts, each containing:
-          - doc_id:        the Upload UUID
+          - doc_id:        the GlobalUpload UUID
           - filename:      original filename
           - overview:      the structured JSON overview (sections/subsections/topics)
                            or null if the overview has not been generated yet
           - overview_ready: bool — False means Ollama preprocessing hasn't run yet
     """
     from sqlmodel import Session, create_engine
-    from backend.server.db.dbModels import Upload
+    from backend.server.db.dbModels import GlobalUpload  # 🔥 CHANGED: was Upload
     from backend.config import POSTGRES_URL
 
     engine = create_engine(POSTGRES_URL, echo=False)
@@ -53,9 +53,10 @@ def get_doc_overviews(doc_ids: List[str]) -> List[dict]:
     try:
         with Session(engine) as session:
             for doc_id in doc_ids:
-                upload = session.get(Upload, doc_id)
-                if upload is None:
-                    logger.warning("get_doc_overviews: Upload %s not found", doc_id)
+                # 🔥 FIX: Query GlobalUpload (single string PK), NOT Upload (composite PK)
+                global_upload = session.get(GlobalUpload, doc_id)
+                if global_upload is None:
+                    logger.warning("get_doc_overviews: GlobalUpload %s not found", doc_id)
                     results.append({
                         "doc_id": doc_id,
                         "filename": "unknown",
@@ -65,12 +66,11 @@ def get_doc_overviews(doc_ids: List[str]) -> List[dict]:
                 else:
                     results.append({
                         "doc_id": doc_id,
-                        "filename": upload.filename,
-                        "overview": upload.overview,
-                        "overview_ready": upload.overview is not None,
+                        "filename": global_upload.filename,
+                        "overview": global_upload.overview,
+                        "overview_ready": global_upload.overview is not None,
                     })
     finally:
         engine.dispose()
 
     return results
-
