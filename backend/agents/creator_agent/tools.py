@@ -53,7 +53,6 @@ def get_doc_overviews(doc_ids: List[str]) -> List[dict]:
     try:
         with Session(engine) as session:
             for doc_id in doc_ids:
-                # 🔥 FIX: Query GlobalUpload (single string PK), NOT Upload (composite PK)
                 global_upload = session.get(GlobalUpload, doc_id)
                 if global_upload is None:
                     logger.warning("get_doc_overviews: GlobalUpload %s not found", doc_id)
