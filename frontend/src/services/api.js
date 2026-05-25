@@ -656,11 +656,49 @@ class ApiService {
     return this.streamResponse(response, onEvent);
   }
 
+  // ─── Grading Agent — Exam Papers ────────────────────────────────────────
+
+  async uploadGradingExamPaper(formData) {
+    const response = await fetch(`${API_BASE_URL}/agents/grading/exam-papers`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.token}` },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
+
+  async listGradingExamPapers(classId) {
+    const params = new URLSearchParams({ class_id: String(classId) });
+    const response = await fetch(`${API_BASE_URL}/agents/grading/exam-papers?${params}`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteGradingExamPaper(paperId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/grading/exam-papers/${encodeURIComponent(String(paperId))}`,
+      { method: 'DELETE', headers: this.getHeaders(true) }
+    );
+    return this.handleResponse(response);
+  }
+
+  // ─── Grading Agent — Blueprints ──────────────────────────────────────────
+
   async listGradingBlueprints() {
     const response = await fetch(`${API_BASE_URL}/agents/grading/blueprints`, {
       method: 'GET',
       headers: this.getHeaders(true),
     });
+    return this.handleResponse(response);
+  }
+
+  async getGradingBlueprint(blueprintId) {
+    const response = await fetch(
+      `${API_BASE_URL}/agents/grading/blueprints/${encodeURIComponent(String(blueprintId))}`,
+      { method: 'GET', headers: this.getHeaders(true) }
+    );
     return this.handleResponse(response);
   }
 

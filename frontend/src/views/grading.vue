@@ -1,1149 +1,1569 @@
 <template>
   <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
-    <div v-if="pageLoading" class="flex items-center justify-center h-64">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
-    </div>
 
-    <template v-else-if="workspace.mode === 'classes'">
-      <div class="bg-white border-b border-grey-200 px-8 py-6">
-        <h1 class="text-3xl font-bold text-grey-900 mb-1">Grading Agent</h1>
-        <p class="text-grey-600">Choose a class, prepare one active blueprint, mark the student papers you want to grade, then confirm the batch.</p>
-      </div>
-
-      <div class="p-8">
-        <div v-if="classes.length === 0" class="bg-white rounded-2xl border border-grey-200 shadow-sm p-16 text-center">
-          <AcademicCapIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
-          <p class="text-grey-600">Create a class first to start the grading workflow.</p>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          <article
-            v-for="cls in classes"
-            :key="cls.id"
-            class="rounded-2xl border border-grey-200 bg-white shadow-sm overflow-hidden hover:shadow-md transition"
-          >
-            <div class="h-2" :style="{ backgroundColor: cls.color || '#3b82f6' }"></div>
-            <div class="p-6 space-y-4">
-              <div>
-                <h2 class="text-lg font-semibold text-grey-900">{{ cls.name }}</h2>
-                <p class="text-sm text-grey-600 mt-1">{{ cls.subject || 'No subject' }}</p>
-              </div>
-
-              <div class="flex flex-wrap gap-2 text-xs">
-                <span class="px-2.5 py-1 rounded-full bg-grey-100 text-grey-700">{{ cls.school || 'School not set' }}</span>
-                <span class="px-2.5 py-1 rounded-full bg-primary-50 text-primary-700">AI grading</span>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <button
-                  @click="openClassWorkspace(cls.id)"
-                  class="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
-                >
-                  Open
-                </button>
-                <router-link
-                  :to="`/class/${cls.id}/grades`"
-                  class="px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
-                >
-                  Grades
-                </router-link>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-    </template>
-
-    <template v-else>
-      <div class="bg-white border-b border-grey-200 px-8 py-6">
-        <div class="flex items-center gap-3 text-sm text-grey-500 mb-4">
-          <button @click="goBackToClasses" class="hover:text-primary-600 transition flex items-center gap-1">
-            <ChevronLeftIcon class="w-4 h-4" />
-            Back to Classes
-          </button>
+    <!-- ─── Progress Header (all steps except class selection) ─── -->
+    <div v-if="step !== 'classes'" class="bg-white border-b border-grey-200 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center gap-2 text-sm text-grey-600 mb-3">
+        <button @click="goBack" class="hover:text-primary-600 transition flex items-center gap-1 font-medium">
+          <ChevronLeftIcon class="w-4 h-4" />
+          {{ backLabel }}
+        </button>
+        <template v-if="selectedClass">
           <span>/</span>
-          <span class="text-grey-900 font-medium">Grading Session</span>
-        </div>
-
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h1 class="text-3xl font-bold text-grey-900 mb-1">{{ activeClass?.name }}</h1>
-            <p class="text-grey-600">{{ activeClass?.subject || 'No subject' }} · {{ students.length }} student{{ students.length !== 1 ? 's' : '' }}</p>
-          </div>
-          <router-link
-            :to="activeClass ? `/class/${activeClass.id}/grades` : '/grading'"
-            class="px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
-          >
-            Open Gradebook
-          </router-link>
-        </div>
-      </div>
-
-      <div class="p-8 space-y-6">
-        <div v-if="workspace.loading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
-        </div>
-
-        <template v-else>
-          <div v-if="feedback.error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {{ feedback.error }}
-          </div>
-
-          <div v-if="feedback.success" class="rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-800">
-            {{ feedback.success }}
-          </div>
-
-          <section class="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
-            <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6 space-y-6">
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <h2 class="text-xl font-semibold text-grey-900">Blueprint Setup</h2>
-                  <p class="text-sm text-grey-600 mt-1">Keep one active exam paper and one active blueprint for this grading run.</p>
-                </div>
-                <label class="flex items-center gap-3 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2">
-                  <div>
-                    <div class="text-xs font-semibold uppercase tracking-wider text-primary-700">Reasoning</div>
-                    <div class="text-xs text-primary-700">{{ sessionForm.reasoning ? 'On' : 'Off' }}</div>
-                  </div>
-                  <button
-                    type="button"
-                    @click="sessionForm.reasoning = !sessionForm.reasoning"
-                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                    :class="sessionForm.reasoning ? 'bg-primary-500' : 'bg-grey-300'"
-                  >
-                    <span
-                      class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                      :class="sessionForm.reasoning ? 'translate-x-6' : 'translate-x-1'"
-                    />
-                  </button>
-                </label>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Exam Title *</label>
-                  <input
-                    v-model="sessionForm.title"
-                    type="text"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    placeholder="Midterm 1"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Creator Agent Exam</label>
-                  <select
-                    v-model="sessionForm.creatorSessionId"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    @change="applyCreatorSession"
-                  >
-                    <option :value="null">None</option>
-                    <option v-for="session in creatorSessions" :key="session.session_id" :value="session.session_id">
-                      {{ session.title }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <div class="text-sm font-semibold text-grey-900">Current Blueprint</div>
-                    <p v-if="selectedBlueprint" class="text-sm text-grey-700 mt-1">{{ selectedBlueprint.title }}</p>
-                    <p v-if="selectedBlueprint" class="text-xs text-grey-500 mt-1">Created {{ formatDateTime(selectedBlueprint.created_at) }}</p>
-                    <p v-else class="text-sm text-grey-500 mt-1">No blueprint selected yet.</p>
-                  </div>
-                  <span
-                    class="text-xs px-2.5 py-1 rounded-full font-medium"
-                    :class="blueprintConfirmed ? 'bg-success-50 text-success-700' : (selectedBlueprint ? 'bg-amber-50 text-amber-700' : 'bg-grey-100 text-grey-600')"
-                  >
-                    {{ blueprintConfirmed ? 'Confirmed' : (selectedBlueprint ? 'Needs confirmation' : 'Missing') }}
-                  </span>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-3 mt-4">
-                  <button
-                    v-if="selectedBlueprint && !blueprintConfirmed"
-                    @click="confirmBlueprint"
-                    class="px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
-                  >
-                    Confirm Blueprint
-                  </button>
-                  <button
-                    v-if="selectedBlueprint"
-                    @click="prepareBlueprintRecreation"
-                    class="px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
-                  >
-                    Recreate Blueprint
-                  </button>
-                  <button
-                    v-if="selectedBlueprint"
-                    @click="deleteSelectedBlueprint"
-                    class="px-4 py-2.5 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-50 transition"
-                  >
-                    Delete Blueprint
-                  </button>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="space-y-3">
-                  <label class="block text-sm font-medium text-grey-700">Exam Paper</label>
-                  <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4">
-                    <div class="text-sm font-semibold text-grey-900">Current file</div>
-                    <p class="text-sm text-grey-700 mt-1">{{ activeExamPaper?.filename || 'No exam paper uploaded yet.' }}</p>
-                    <p v-if="activeExamPaper" class="text-xs text-grey-500 mt-1">Uploaded {{ formatDateTime(activeExamPaper.created_at) }}</p>
-                  </div>
-                  <label
-                    class="flex items-center justify-center rounded-xl border-2 border-dashed border-grey-300 bg-grey-50/70 px-4 py-6 cursor-pointer hover:border-primary-400 hover:bg-primary-50/40 transition"
-                    :class="selectedBlueprint && !recreatingBlueprint ? 'opacity-60 cursor-not-allowed' : ''"
-                  >
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      class="hidden"
-                      :disabled="selectedBlueprint && !recreatingBlueprint"
-                      @change="handleExamPaperFileChange"
-                    />
-                    <div class="text-center">
-                      <DocumentArrowUpIcon class="w-8 h-8 text-grey-400 mx-auto mb-2" />
-                      <p class="text-sm font-medium text-grey-700">{{ examPaperUploadLabel }}</p>
-                      <p class="text-xs text-grey-500 mt-1">PDF only</p>
-                    </div>
-                  </label>
-                  <button
-                    v-if="examPaperUpload"
-                    @click="uploadExamPaperForClass"
-                    :disabled="uploadingExamPaper || (selectedBlueprint && !recreatingBlueprint)"
-                    class="px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition disabled:opacity-50"
-                  >
-                    {{ uploadingExamPaper ? 'Uploading...' : (activeExamPaper ? 'Replace Exam Paper' : 'Upload Exam Paper') }}
-                  </button>
-                </div>
-
-                <div class="space-y-3">
-                  <label class="block text-sm font-medium text-grey-700">Correction Paper (Optional)</label>
-                  <label
-                    class="flex items-center justify-center rounded-xl border-2 border-dashed border-grey-300 bg-grey-50/70 px-4 py-6 cursor-pointer hover:border-primary-400 hover:bg-primary-50/40 transition"
-                    :class="selectedBlueprint && !recreatingBlueprint ? 'opacity-60 cursor-not-allowed' : ''"
-                  >
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      class="hidden"
-                      :disabled="selectedBlueprint && !recreatingBlueprint"
-                      @change="handleCorrectionFileChange"
-                    />
-                    <div class="text-center">
-                      <DocumentArrowUpIcon class="w-8 h-8 text-grey-400 mx-auto mb-2" />
-                      <p class="text-sm font-medium text-grey-700">{{ correctionFileLabel }}</p>
-                      <p class="text-xs text-grey-500 mt-1">PDF only</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <div class="flex items-center justify-between gap-3 mb-2">
-                  <label class="block text-sm font-medium text-grey-700">Lesson PDFs</label>
-                  <span class="text-xs text-grey-500">{{ sessionForm.lessonFileIds.length }} selected</span>
-                </div>
-                <div class="max-h-60 overflow-y-auto custom-scrollbar border border-grey-200 rounded-xl p-3 bg-grey-50/60 space-y-2">
-                  <label
-                    v-for="lesson in classLessons"
-                    :key="lesson.id"
-                    class="flex items-center gap-3 rounded-xl border px-3 py-3 transition"
-                    :class="sessionForm.lessonFileIds.includes(lesson.id) ? 'border-primary-300 bg-primary-50' : 'border-grey-200 bg-white'"
-                  >
-                    <input
-                      v-model="sessionForm.lessonFileIds"
-                      :value="lesson.id"
-                      type="checkbox"
-                      :disabled="(selectedBlueprint && !recreatingBlueprint) || !lesson.embedded"
-                      class="h-4 w-4 rounded border-grey-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <div class="min-w-0 flex-1">
-                      <p class="text-sm font-medium text-grey-900 truncate">{{ lesson.name || lesson.filename }}</p>
-                      <p class="text-xs text-grey-500">{{ lesson.embedded ? 'Embedded' : 'Embedding pending' }}</p>
-                    </div>
-                  </label>
-
-                  <div v-if="classLessons.length === 0" class="text-sm text-grey-500 text-center py-6">
-                    No lesson files found for this class.
-                  </div>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Grading Preferences</label>
-                  <textarea
-                    v-model="sessionForm.preferences"
-                    rows="5"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-                    placeholder="When to deduct points, common penalties, strictness..."
-                  ></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Style Guide</label>
-                  <textarea
-                    v-model="sessionForm.styleGuide"
-                    rows="5"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-                    placeholder="Math steps, essay structure, expected notation..."
-                  ></textarea>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <button
-                  @click="analyseBlueprint"
-                  :disabled="analysis.running || (selectedBlueprint && !recreatingBlueprint)"
-                  class="px-5 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50"
-                >
-                  {{ analysis.running ? 'Analysing...' : (recreatingBlueprint ? 'Recreate Blueprint' : 'Generate Blueprint') }}
-                </button>
-                <span v-if="selectedBlueprint && !recreatingBlueprint" class="text-sm text-success-700 font-medium">
-                  Active blueprint ready
-                </span>
-              </div>
-            </div>
-
-            <div class="space-y-6">
-              <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
-                <div class="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h2 class="text-xl font-semibold text-grey-900">Batch Progress</h2>
-                    <p class="text-sm text-grey-600 mt-1">Confirm only the students you marked individually after uploading their papers.</p>
-                  </div>
-                  <span
-                    class="text-xs px-2.5 py-1 rounded-full font-medium"
-                    :class="blueprintConfirmed ? 'bg-success-50 text-success-700' : 'bg-amber-50 text-amber-700'"
-                  >
-                    {{ blueprintConfirmed ? 'Blueprint confirmed' : 'Blueprint not confirmed' }}
-                  </span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                  <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                    <div class="text-xs text-grey-500">Students</div>
-                    <div class="text-2xl font-bold text-grey-900">{{ students.length }}</div>
-                  </div>
-                  <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                    <div class="text-xs text-grey-500">Marked Students</div>
-                    <div class="text-2xl font-bold text-grey-900">{{ markedStudentCount }}</div>
-                  </div>
-                  <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                    <div class="text-xs text-grey-500">Approved</div>
-                    <div class="text-2xl font-bold text-grey-900">{{ approvedCount }}</div>
-                  </div>
-                  <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                    <div class="text-xs text-grey-500">Current Status</div>
-                    <div class="text-sm font-semibold text-grey-900 mt-1">{{ currentBatchStatus }}</div>
-                  </div>
-                </div>
-
-                <button
-                  @click="startBatch"
-                  :disabled="startingBatch || !canStartBatch"
-                  class="w-full px-5 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50"
-                >
-                  {{ startingBatch ? 'Confirming...' : `Confirm ${markedStudentCount} Marked Grade${markedStudentCount !== 1 ? 's' : ''}` }}
-                </button>
-              </div>
-
-              <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
-                <h2 class="text-xl font-semibold text-grey-900 mb-3">Analysis Stream</h2>
-                <div v-if="!analysis.narrative && !analysis.thinking && !analysis.running" class="text-sm text-grey-500">
-                  Blueprint progress will appear here.
-                </div>
-                <div v-else class="space-y-4">
-                  <div v-if="analysis.narrative" class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 text-sm text-grey-700 whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar">
-                    {{ analysis.narrative }}
-                  </div>
-                  <details v-if="analysis.thinking" class="rounded-xl border border-primary-200 bg-primary-50 p-4">
-                    <summary class="cursor-pointer text-sm font-medium text-primary-700">Reasoning Trace</summary>
-                    <div class="mt-3 text-sm text-primary-800 whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar">
-                      {{ analysis.thinking }}
-                    </div>
-                  </details>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="grid grid-cols-1 xl:grid-cols-[0.85fr_1.15fr] gap-6 items-start">
-            <div class="bg-white rounded-2xl border border-grey-200 shadow-sm overflow-hidden">
-              <div class="px-6 py-5 border-b border-grey-200 flex items-start justify-between gap-3">
-                <div>
-                  <h2 class="text-xl font-semibold text-grey-900">Students</h2>
-                  <p class="text-sm text-grey-600 mt-1">Attach each student paper before starting the queue.</p>
-                </div>
-                <span class="text-sm text-grey-500">{{ students.length }} total</span>
-              </div>
-
-              <div v-if="students.length === 0" class="p-16 text-center">
-                <UserGroupIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-                <h3 class="text-lg font-medium text-grey-900 mb-2">No students in this class</h3>
-                <p class="text-grey-600">Add students first, then come back to grade their work.</p>
-              </div>
-
-              <div v-else class="divide-y divide-grey-100">
-                <button
-                  v-for="student in students"
-                  :key="student.id"
-                  @click="activeStudentId = student.id"
-                  class="w-full px-6 py-4 text-left hover:bg-grey-50 transition"
-                  :class="activeStudentId === student.id ? 'bg-primary-50/70' : ''"
-                >
-                  <div class="flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <div class="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                        {{ student.name.charAt(0).toUpperCase() }}
-                      </div>
-                      <div class="min-w-0">
-                        <p class="font-medium text-grey-900 truncate">{{ student.name }}</p>
-                        <p class="text-sm text-grey-500 truncate">{{ student.email }}</p>
-                      </div>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0" :class="studentPillClass(student.id)">
-                      {{ studentStatus(student.id) }}
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <div class="space-y-6">
-              <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
-                <template v-if="selectedStudent">
-                  <div class="flex items-start justify-between gap-4 mb-5">
-                    <div>
-                      <h2 class="text-xl font-semibold text-grey-900">{{ selectedStudent.name }}</h2>
-                      <p class="text-sm text-grey-600 mt-1">{{ selectedStudent.email }}</p>
-                    </div>
-                    <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="studentPillClass(selectedStudent.id)">
-                      {{ studentStatus(selectedStudent.id) }}
-                    </span>
-                  </div>
-
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Student Work PDF</label>
-                  <label class="flex items-center justify-center rounded-xl border-2 border-dashed border-grey-300 bg-grey-50/70 px-4 py-8 cursor-pointer hover:border-primary-400 hover:bg-primary-50/40 transition">
-                    <input type="file" accept="application/pdf" class="hidden" @change="handleStudentFileChange($event, selectedStudent.id)" />
-                    <div class="text-center">
-                      <DocumentArrowUpIcon class="w-8 h-8 text-grey-400 mx-auto mb-2" />
-                      <p class="text-sm font-medium text-grey-700">{{ studentFileLabel(selectedStudent.id) }}</p>
-                      <p class="text-xs text-grey-500 mt-1">PDF only</p>
-                    </div>
-                  </label>
-
-                  <div class="mt-5">
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Teacher Notes for This Paper</label>
-                    <textarea
-                      v-model="studentEntries[selectedStudent.id].notes"
-                      rows="4"
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
-                      placeholder="Special expectations, context, or human-in-the-loop notes for this student's review..."
-                    ></textarea>
-                  </div>
-
-                  <div class="flex items-center gap-3 mt-5">
-                    <button
-                      @click="toggleStudentMarked(selectedStudent.id)"
-                      :disabled="!studentEntries[selectedStudent.id].file"
-                      class="px-4 py-2.5 rounded-lg font-medium transition disabled:opacity-50"
-                      :class="studentEntries[selectedStudent.id].marked ? 'bg-success-600 text-white hover:bg-success-700' : 'bg-primary-600 text-white hover:bg-primary-700'"
-                    >
-                      {{ studentEntries[selectedStudent.id].marked ? 'Marked for Batch' : 'Mark for Grading' }}
-                    </button>
-                    <button
-                      @click="clearStudentEntry(selectedStudent.id)"
-                      class="px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </template>
-
-                <div v-else class="py-12 text-center">
-                  <UserGroupIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-                  <h3 class="text-lg font-medium text-grey-900 mb-2">Select a student</h3>
-                  <p class="text-grey-600">Open a student from the list to attach their paper.</p>
-                </div>
-              </div>
-
-              <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
-                <div class="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h2 class="text-xl font-semibold text-grey-900">Current Review</h2>
-                    <p class="text-sm text-grey-600 mt-1">{{ currentStudentName || 'Queue not started yet' }}</p>
-                  </div>
-                  <button
-                    v-if="batch.currentSessionId && !batch.awaitingReview"
-                    @click="restartCurrentSession"
-                    class="px-3 py-2 border border-grey-300 text-grey-700 rounded-lg text-sm font-medium hover:bg-grey-50 transition"
-                  >
-                    Restart
-                  </button>
-                </div>
-
-                <div v-if="currentStudentNote" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 mb-4 whitespace-pre-wrap">
-                  {{ currentStudentNote }}
-                </div>
-
-                <div v-if="batch.narrative" class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 text-sm text-grey-700 whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar mb-4">
-                  {{ batch.narrative }}
-                </div>
-
-                <details v-if="batch.thinking" class="rounded-xl border border-primary-200 bg-primary-50 p-4 mb-4">
-                  <summary class="cursor-pointer text-sm font-medium text-primary-700">Reasoning Trace</summary>
-                  <div class="mt-3 text-sm text-primary-800 whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar">
-                    {{ batch.thinking }}
-                  </div>
-                </details>
-
-                <div v-if="batch.breakdown.length > 0" class="space-y-3">
-                  <article
-                    v-for="question in batch.breakdown"
-                    :key="question.question_number"
-                    class="rounded-xl border border-grey-200 bg-grey-50/60 p-4"
-                  >
-                    <div class="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <h3 class="font-semibold text-grey-900">{{ question.label || `Q${question.question_number}` }}</h3>
-                        <p class="text-xs text-grey-500 mt-1">Max {{ formatPoints(question.max_points) }}</p>
-                      </div>
-                      <input
-                        v-model.number="question.awarded_points"
-                        type="number"
-                        min="0"
-                        :max="question.max_points"
-                        step="0.25"
-                        class="w-24 px-3 py-2 border border-grey-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                    </div>
-                    <p class="text-sm text-grey-700 whitespace-pre-wrap">{{ question.reasoning }}</p>
-                  </article>
-
-                  <div class="flex items-center gap-3 pt-2">
-                    <button
-                      @click="submitReview('approve')"
-                      :disabled="batch.reviewSubmitting"
-                      class="px-5 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50"
-                    >
-                      {{ batch.reviewSubmitting ? 'Submitting...' : 'Approve and Continue' }}
-                    </button>
-                    <button
-                      @click="submitReview('cancel')"
-                      :disabled="batch.reviewSubmitting"
-                      class="px-5 py-3 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-50 transition disabled:opacity-50"
-                    >
-                      Skip Student
-                    </button>
-                  </div>
-                </div>
-
-                <div v-else class="text-sm text-grey-500">
-                  Question-level grading output will appear here once the queue starts.
-                </div>
-              </div>
-            </div>
-          </section>
+          <span class="text-grey-900 font-medium">{{ selectedClass.name }}</span>
         </template>
       </div>
-    </template>
+      <div class="flex items-center gap-1 flex-wrap">
+        <template v-for="(s, idx) in visibleSteps" :key="s.key">
+          <div class="flex items-center gap-1.5">
+            <div
+              class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition"
+              :class="currentStepIndex > idx
+                ? 'bg-emerald-100 text-emerald-700'
+                : currentStepIndex === idx
+                  ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300'
+                  : 'bg-grey-100 text-grey-400'"
+            >
+              <CheckCircleIcon v-if="currentStepIndex > idx" class="w-3.5 h-3.5" />
+              <span v-else class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                :class="currentStepIndex === idx ? 'bg-primary-600 text-white' : 'bg-grey-300 text-grey-500'">
+                {{ idx + 1 }}
+              </span>
+              <span class="hidden sm:block">{{ s.label }}</span>
+            </div>
+            <ChevronRightIcon v-if="idx < visibleSteps.length - 1" class="w-3 h-3 text-grey-300 flex-shrink-0" />
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 1 — Class Selection
+    ═══════════════════════════════════════════════════════ -->
+    <section v-if="step === 'classes'" class="p-8">
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-grey-900">Grading Agent</h1>
+        <p class="text-grey-600 mt-1">Select a class to start an AI-powered grading session.</p>
+      </div>
+
+      <div v-if="loadingClasses" class="flex items-center justify-center h-48">
+        <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
+      </div>
+
+      <div v-else-if="classes.length === 0"
+        class="text-center py-20 border-2 border-dashed border-grey-200 rounded-2xl bg-white">
+        <AcademicCapIcon class="w-16 h-16 text-grey-300 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
+        <p class="text-grey-600">Create a class first to start grading.</p>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <button
+          v-for="cls in classes"
+          :key="cls.id"
+          @click="selectClass(cls)"
+          class="text-left bg-white rounded-2xl border border-grey-200 p-6 hover:shadow-md transition group border-l-4"
+          :style="{ borderLeftColor: cls.color || '#3b82f6' }"
+        >
+          <div class="flex items-start justify-between mb-4">
+            <div 
+              class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 transition-transform group-hover:scale-105"
+              :style="{ background: `linear-gradient(135deg, ${cls.color || '#3b82f6'} 0%, ${adjustColor(cls.color || '#3b82f6', -15)} 100%)` }"
+            >
+              {{ cls.name.charAt(0).toUpperCase() }}
+            </div>
+            <ChevronRightIcon class="w-5 h-5 transition mt-1" :style="{ color: cls.color || '#3b82f6' }" />
+          </div>
+          <h3 class="text-lg font-semibold text-grey-900">{{ cls.name }}</h3>
+          <p class="text-sm text-grey-500 mt-1">{{ cls.subject || 'No subject' }}</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 2 — Session Setup
+    ═══════════════════════════════════════════════════════ -->
+    <section v-else-if="step === 'setup'" class="p-8">
+      <div class="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-grey-900">Configure Grading Session</h2>
+          <p class="text-grey-600 mt-1">Build a new correction blueprint or reuse an existing one.</p>
+        </div>
+
+        <!-- Mode tabs -->
+        <div class="flex gap-1 p-1 bg-grey-100 rounded-xl w-fit">
+          <button
+            @click="setupMode = 'new'"
+            :class="setupMode === 'new' ? 'bg-white text-grey-900 shadow-sm' : 'text-grey-600 hover:text-grey-800'"
+            class="px-5 py-2 rounded-lg text-sm font-medium transition"
+          >New Blueprint</button>
+          <button
+            @click="switchToExisting"
+            :class="setupMode === 'existing' ? 'bg-white text-grey-900 shadow-sm' : 'text-grey-600 hover:text-grey-800'"
+            class="px-5 py-2 rounded-lg text-sm font-medium transition"
+          >Use Existing Blueprint</button>
+        </div>
+
+        <!-- ── NEW BLUEPRINT ── -->
+        <template v-if="setupMode === 'new'">
+          <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-6">
+
+            <!-- Exam Title -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Title *</label>
+              <input v-model="examTitle" type="text"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="e.g. Midterm Exam 2026" />
+            </div>
+
+            <!-- Exam Category Selector -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Category *</label>
+              <div class="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  @click="examCategory = 'EXERCISE'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'EXERCISE'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-300'
+                      : 'border-grey-200 hover:border-primary-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Exercise</span>
+                </button>
+                <button
+                  type="button"
+                  @click="examCategory = 'MIDTERM'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'MIDTERM'
+                      ? 'border-violet-500 bg-violet-50 text-violet-700 ring-1 ring-violet-300'
+                      : 'border-grey-200 hover:border-violet-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Midterm</span>
+                </button>
+                <button
+                  type="button"
+                  @click="examCategory = 'FINAL'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'FINAL'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300'
+                      : 'border-grey-200 hover:border-emerald-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Final</span>
+                </button>
+              </div>
+              <p class="text-xs text-grey-500 mt-2">
+                This sets the category in Class Grades for average calculations and insights.
+              </p>
+            </div>
+
+            <!-- Exam Paper -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Paper PDF *</label>
+
+              <!-- Existing papers -->
+              <div v-if="existingExamPapers.length > 0" class="space-y-2 mb-3">
+                <p class="text-xs text-grey-500">Previously uploaded for this class:</p>
+                <div class="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
+                  <label v-for="paper in existingExamPapers" :key="paper.id"
+                    class="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition"
+                    :class="selectedExamPaperId === paper.id
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
+                      : 'border-grey-200 hover:border-primary-300 bg-grey-50'">
+                    <input type="radio" v-model="selectedExamPaperId" :value="paper.id" class="sr-only" />
+                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <DocumentTextIcon class="w-4 h-4 text-primary-600" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-grey-900 truncate">{{ paper.filename }}</p>
+                      <p class="text-xs text-grey-500">{{ formatSize(paper.size) }} · {{ formatDate(paper.created_at) }}</p>
+                    </div>
+                    <CheckCircleIcon v-if="selectedExamPaperId === paper.id"
+                      class="w-5 h-5 text-primary-600 flex-shrink-0" />
+                  </label>
+                  <label
+                    class="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition"
+                    :class="selectedExamPaperId === null
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
+                      : 'border-grey-200 hover:border-primary-300 bg-grey-50'">
+                    <input type="radio" v-model="selectedExamPaperId" :value="null" class="sr-only" />
+                    <CloudArrowUpIcon class="w-4 h-4 text-grey-500" />
+                    <span class="text-sm text-grey-700">Upload a new paper</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Upload area -->
+              <div v-if="existingExamPapers.length === 0 || selectedExamPaperId === null">
+                <div
+                  class="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition"
+                  :class="examPaperFile ? 'border-primary-400 bg-primary-50' : 'border-grey-300 hover:border-primary-400'"
+                  @click="$refs.examPaperInput.click()"
+                  @dragover.prevent
+                  @drop.prevent="e => { examPaperFile = e.dataTransfer.files[0] }"
+                >
+                  <CloudArrowUpIcon class="w-8 h-8 mx-auto mb-2"
+                    :class="examPaperFile ? 'text-primary-500' : 'text-grey-400'" />
+                  <p class="text-sm" :class="examPaperFile ? 'text-primary-700 font-medium' : 'text-grey-600'">
+                    {{ examPaperFile ? examPaperFile.name : 'Click or drag & drop exam paper PDF' }}
+                  </p>
+                  <p v-if="examPaperFile" class="text-xs text-primary-500 mt-1">{{ formatSize(examPaperFile.size) }}</p>
+                  <button v-if="examPaperFile" @click.stop="examPaperFile = null"
+                    class="mt-2 text-xs text-red-500 hover:text-red-600">Remove</button>
+                </div>
+                <input ref="examPaperInput" type="file" accept=".pdf" class="hidden"
+                  @change="e => { examPaperFile = e.target.files[0]; e.target.value = '' }" />
+              </div>
+            </div>
+
+            <!-- Correction PDF (optional) -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-1">
+                Correction Paper
+                <span class="text-grey-400 font-normal">(optional — deleted from server after analysis)</span>
+              </label>
+              <div
+                class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition"
+                :class="correctionFile ? 'border-emerald-400 bg-emerald-50' : 'border-grey-200 hover:border-grey-400'"
+                @click="$refs.correctionInput.click()"
+                @dragover.prevent
+                @drop.prevent="e => { correctionFile = e.dataTransfer.files[0] }"
+              >
+                <DocumentCheckIcon class="w-6 h-6 mx-auto mb-1"
+                  :class="correctionFile ? 'text-emerald-600' : 'text-grey-400'" />
+                <p class="text-sm" :class="correctionFile ? 'text-emerald-700 font-medium' : 'text-grey-500'">
+                  {{ correctionFile ? correctionFile.name : 'Upload correction paper (optional)' }}
+                </p>
+                <button v-if="correctionFile" @click.stop="correctionFile = null"
+                  class="mt-1 text-xs text-red-500 hover:text-red-600">Remove</button>
+              </div>
+              <input ref="correctionInput" type="file" accept=".pdf" class="hidden"
+                @change="e => { correctionFile = e.target.files[0]; e.target.value = '' }" />
+            </div>
+
+            <!-- Lesson PDFs for RAG -->
+            <div v-if="classLessons.length > 0">
+              <label class="block text-sm font-medium text-grey-700 mb-2">
+                Lesson PDFs for Context
+                <span class="text-grey-400 font-normal">(optional, for RAG)</span>
+              </label>
+              <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar border border-grey-200 rounded-xl p-3 bg-grey-50">
+                <label v-for="lesson in classLessons" :key="lesson.id"
+                  class="flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition"
+                  :class="selectedLessonIds.includes(lesson.id)
+                    ? 'border-primary-300 bg-primary-50'
+                    : 'border-transparent bg-white hover:border-grey-300'">
+                  <input v-model="selectedLessonIds" :value="lesson.id" type="checkbox" :disabled="!lesson.embedded"
+                    class="h-4 w-4 rounded border-grey-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-grey-900 truncate">{{ lesson.name }}</p>
+                  </div>
+                  <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                    :class="lesson.embedded ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                    {{ lesson.embedded ? 'Ready' : 'Embedding…' }}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Preferences -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">
+                Grading Preferences
+                <span class="text-grey-400 font-normal">(optional)</span>
+              </label>
+              <textarea v-model="preferences" rows="3"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                placeholder="e.g. Q1: 4 pts. Deduct 1 pt for missing units. Partial credit allowed on Q3." />
+            </div>
+
+            <!-- Style Guide -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">
+                Style Guide
+                <span class="text-grey-400 font-normal">(optional)</span>
+              </label>
+              <textarea v-model="styleGuide" rows="2"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                placeholder="e.g. Math: show full derivation steps. Essays: minimum 3 arguments." />
+            </div>
+
+            <!-- Reasoning toggle -->
+            <div class="flex items-center justify-between p-4 bg-violet-50 border border-violet-200 rounded-xl">
+              <div>
+                <p class="text-sm font-semibold text-violet-900">Reasoning Mode</p>
+                <p class="text-xs text-violet-600 mt-0.5">Deep thinking — slower but significantly more accurate</p>
+              </div>
+              <div
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer"
+                :class="reasoning ? 'bg-violet-600' : 'bg-grey-300'"
+                @click="reasoning = !reasoning"
+              >
+                <span
+                  class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform"
+                  :class="reasoning ? 'translate-x-6' : 'translate-x-1'"
+                />
+              </div>
+            </div>
+
+            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p class="text-sm text-red-700">{{ setupError }}</p>
+            </div>
+
+            <button @click="startAnalysis" :disabled="!canStartAnalysis || analyseLoading"
+              class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-600 shadow-sm transition disabled:opacity-50">
+              <SparklesIcon class="w-5 h-5" />
+              {{ analyseLoading ? 'Uploading…' : 'Analyse & Build Blueprint' }}
+            </button>
+          </div>
+        </template>
+
+        <!-- ── EXISTING BLUEPRINT ── -->
+        <template v-else>
+          <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-5">
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Title *</label>
+              <input v-model="examTitle" type="text"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="e.g. Midterm Exam 2026" />
+              <p class="text-xs text-grey-500 mt-1">Used to auto-create or match an exam type in Class Grades.</p>
+            </div>
+
+            <!-- Exam Category Selector -->
+            <div>
+              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Category *</label>
+              <div class="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  @click="examCategory = 'EXERCISE'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'EXERCISE'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-300'
+                      : 'border-grey-200 hover:border-primary-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Exercise</span>
+                </button>
+                <button
+                  type="button"
+                  @click="examCategory = 'MIDTERM'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'MIDTERM'
+                      ? 'border-violet-500 bg-violet-50 text-violet-700 ring-1 ring-violet-300'
+                      : 'border-grey-200 hover:border-violet-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Midterm</span>
+                </button>
+                <button
+                  type="button"
+                  @click="examCategory = 'FINAL'"
+                  :class="[
+                    'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
+                    examCategory === 'FINAL'
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300'
+                      : 'border-grey-200 hover:border-emerald-300 bg-white text-grey-600'
+                  ]"
+                >
+                  <span>Final</span>
+                </button>
+              </div>
+              <p class="text-xs text-grey-500 mt-2">
+                This sets the category in Class Grades for average calculations and insights.
+              </p>
+            </div>
+
+            <div v-if="loadingBlueprints" class="flex items-center justify-center py-10">
+              <div class="animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+            </div>
+
+            <div v-else-if="blueprints.length === 0"
+              class="text-center py-10 border-2 border-dashed border-grey-200 rounded-xl">
+              <SparklesIcon class="w-12 h-12 text-grey-300 mx-auto mb-3" />
+              <p class="text-grey-600 text-sm">No blueprints yet. Create one using the "New Blueprint" tab.</p>
+            </div>
+
+            <div v-else class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+              <label v-for="bp in blueprints" :key="bp.id"
+                class="flex items-start gap-3 rounded-xl border px-4 py-4 cursor-pointer transition"
+                :class="selectedBlueprintId === bp.id
+                  ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
+                  : 'border-grey-200 hover:border-primary-300'">
+                <input type="radio" v-model="selectedBlueprintId" :value="bp.id"
+                  class="mt-0.5 h-4 w-4 text-primary-600 border-grey-300" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-grey-900">{{ bp.title }}</p>
+                  <p class="text-xs text-grey-500 mt-0.5">Created {{ formatDate(bp.created_at) }}</p>
+                  <p v-if="bp.preferences" class="text-xs text-grey-600 mt-1 line-clamp-2">{{ bp.preferences }}</p>
+                </div>
+                <CheckCircleIcon v-if="selectedBlueprintId === bp.id"
+                  class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
+              </label>
+            </div>
+
+            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p class="text-sm text-red-700">{{ setupError }}</p>
+            </div>
+
+            <button @click="useExistingBlueprint"
+              :disabled="!selectedBlueprintId || !examTitle.trim()"
+              class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-600 shadow-sm transition disabled:opacity-50">
+              Continue to Student Assignment
+              <ChevronRightIcon class="w-5 h-5" />
+            </button>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 3 — Analysing (Phase 1 SSE)
+    ═══════════════════════════════════════════════════════ -->
+    <section v-else-if="step === 'analysing'" class="p-8">
+      <div class="max-w-3xl mx-auto space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-grey-900">Building Blueprint</h2>
+            <p class="text-grey-600 mt-1">AI is reading the exam paper and preparing the correction blueprint.</p>
+          </div>
+          <div v-if="analyseLoading" class="flex items-center gap-2 text-primary-600">
+            <span class="inline-block h-2.5 w-2.5 rounded-full bg-primary-500 animate-pulse"></span>
+            <span class="text-sm font-medium">Analysing…</span>
+          </div>
+          <div v-else-if="blueprintId && !analyseError" class="flex items-center gap-2 text-emerald-600">
+            <CheckCircleIcon class="w-5 h-5" />
+            <span class="text-sm font-medium">Blueprint ready!</span>
+          </div>
+        </div>
+
+        <!-- Success CTA -->
+        <div v-if="blueprintId && !analyseLoading && !analyseError"
+          class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircleIcon class="w-6 h-6 text-emerald-700" />
+            </div>
+            <div>
+              <p class="font-semibold text-emerald-900">Blueprint Created Successfully</p>
+              <p class="text-sm text-emerald-700">{{ examTitle }}</p>
+            </div>
+          </div>
+          <button @click="proceedToStudents"
+            class="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition">
+            Continue to Student Assignment
+            <ChevronRightIcon class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Error -->
+        <div v-if="analyseError" class="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p class="text-sm font-semibold text-red-700 mb-1">Analysis failed</p>
+          <p class="text-sm text-red-600">{{ analyseError }}</p>
+          <button @click="step = 'setup'" class="mt-3 text-sm text-red-600 hover:text-red-700 font-medium">
+            ← Back to setup
+          </button>
+        </div>
+
+        <!-- Live stream panel -->
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-grey-200">
+            <h3 class="text-sm font-semibold text-grey-900">Agent Activity</h3>
+            <span v-if="analyseToolEvents.length" class="text-xs text-grey-500">
+              {{ analyseToolEvents.length }} tool call{{ analyseToolEvents.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+          <div class="p-5 space-y-4">
+            <!-- Content stream -->
+            <div v-if="analyseContent"
+              class="rounded-lg bg-grey-50 border border-grey-200 p-4 text-sm text-grey-700 whitespace-pre-wrap max-h-52 overflow-y-auto custom-scrollbar leading-relaxed">
+              {{ analyseContent }}
+            </div>
+
+            <!-- Tool events badges -->
+            <div v-if="analyseToolEvents.length" class="flex flex-wrap gap-2">
+              <span v-for="(ev, i) in analyseToolEvents" :key="i"
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="ev.type === 'tool_call' ? 'bg-violet-50 text-violet-700 border border-violet-200' : 'bg-teal-50 text-teal-700 border border-teal-200'">
+                <WrenchScrewdriverIcon class="w-3 h-3" />
+                {{ ev.name }}
+              </span>
+            </div>
+
+            <!-- Thinking (collapsible) -->
+            <details v-if="analyseThinking" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <summary class="cursor-pointer text-sm font-medium text-amber-800 select-none flex items-center gap-2">
+                <span>🧠</span> Reasoning — click to expand
+              </summary>
+              <pre class="mt-3 whitespace-pre-wrap text-xs text-amber-900 font-mono max-h-52 overflow-y-auto custom-scrollbar leading-relaxed">{{ analyseThinking }}</pre>
+            </details>
+
+            <!-- Loading skeleton -->
+            <div v-if="analyseLoading && !analyseContent && !analyseThinking" class="space-y-3">
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-3/4"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-1/2"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-2/3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 4 — Student Assignment
+    ═══════════════════════════════════════════════════════ -->
+    <section v-else-if="step === 'students'" class="p-8">
+      <div class="max-w-4xl mx-auto space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-grey-900">Assign Student Papers</h2>
+            <p class="text-grey-600 mt-1">Upload each student's answer PDF, then start the grading queue.</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-semibold text-grey-700">{{ assignedCount }} / {{ students.length }} assigned</p>
+            <p class="text-xs text-grey-500 mt-0.5">{{ selectedClass?.name }}</p>
+          </div>
+        </div>
+
+        <!-- Exam type card -->
+        <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-4">
+          <div>
+            <h3 class="text-sm font-semibold text-grey-900">Exam Type in Class Grades</h3>
+            <p class="text-xs text-grey-500 mt-0.5">Grades will be saved under this exam type.</p>
+          </div>
+
+          <div v-if="loadingExamTypes" class="flex items-center gap-2 text-sm text-grey-500 py-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>
+            Loading exam types…
+          </div>
+
+          <div v-else class="space-y-3">
+            <div v-if="matchedExamType"
+              class="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+              <CheckCircleIcon class="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <div>
+                <p class="text-sm font-semibold text-emerald-900">Matched: "{{ matchedExamType.name }}"</p>
+                <p class="text-xs text-emerald-700">Grades will be saved under this existing exam type.</p>
+              </div>
+            </div>
+            <div v-else
+              class="flex items-center gap-3 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
+              <InformationCircleIcon class="w-5 h-5 text-blue-600 flex-shrink-0" />
+              <div>
+                <p class="text-sm font-semibold text-blue-900">Will auto-create: "{{ examTitle }}"</p>
+                <p class="text-xs text-blue-700">A new exam type (Exercise category) will be created automatically.</p>
+              </div>
+            </div>
+
+            <!-- Manual override -->
+            <details class="group">
+              <summary class="cursor-pointer text-xs text-grey-500 hover:text-grey-700 select-none">
+                Override exam type manually
+              </summary>
+              <div class="mt-3 space-y-1.5 pl-2">
+                <label class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition"
+                  :class="selectedExamTypeId === null
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-grey-200 hover:border-grey-300'">
+                  <input type="radio" v-model="selectedExamTypeId" :value="null"
+                    class="h-3.5 w-3.5 text-primary-600" />
+                  <span class="text-xs text-grey-700">Auto (create/match by title)</span>
+                </label>
+                <label v-for="et in examTypes" :key="et.id"
+                  class="flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition"
+                  :class="selectedExamTypeId === et.id
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-grey-200 hover:border-grey-300'">
+                  <input type="radio" v-model="selectedExamTypeId" :value="et.id"
+                    class="h-3.5 w-3.5 text-primary-600" />
+                  <span class="text-xs text-grey-700">{{ et.name }}</span>
+                </label>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- Students list -->
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-grey-900">Students</h3>
+            <div class="flex gap-2">
+              <button @click="clearAllFiles" v-if="assignedCount > 0"
+                class="text-xs text-grey-500 hover:text-red-600 transition">Clear all</button>
+            </div>
+          </div>
+
+          <div v-if="loadingStudents" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+          </div>
+
+          <div v-else-if="students.length === 0" class="p-12 text-center text-grey-500">
+            <UserGroupIcon class="w-12 h-12 text-grey-300 mx-auto mb-3" />
+            <p class="text-sm">No students in this class.</p>
+          </div>
+
+          <div v-else class="divide-y divide-grey-100">
+            <div v-for="student in students" :key="student.id"
+              class="px-6 py-4 flex items-center gap-4 hover:bg-grey-50 transition">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                {{ student.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-grey-900 truncate">{{ student.name }}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span v-if="studentFiles[student.id]"
+                  class="hidden sm:inline-flex text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium items-center gap-1">
+                  <CheckIcon class="w-3 h-3" />
+                  {{ truncateName(studentFiles[student.id].name, 18) }}
+                </span>
+                <button @click="triggerStudentFileInput(student.id)"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition"
+                  :class="studentFiles[student.id]
+                    ? 'border border-grey-300 text-grey-600 hover:bg-grey-100'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'">
+                  <CloudArrowUpIcon class="w-3.5 h-3.5" />
+                  {{ studentFiles[student.id] ? 'Change' : 'Upload PDF' }}
+                </button>
+                <input
+                  :ref="el => { if (el) studentInputRefs[student.id] = el }"
+                  type="file" accept=".pdf" class="hidden"
+                  @change="e => handleStudentFile(student.id, e)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="batchError" class="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p class="text-sm text-red-700">{{ batchError }}</p>
+        </div>
+
+        <button @click="startGrading" :disabled="assignedCount === 0 || batchLoading"
+          class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-primary-600 text-white px-6 py-3.5 rounded-xl font-semibold hover:from-violet-700 hover:to-primary-700 shadow-md transition disabled:opacity-50 text-base">
+          <SparklesIcon class="w-5 h-5" />
+          {{ batchLoading
+            ? 'Starting…'
+            : `Start Grading Queue (${assignedCount} student${assignedCount !== 1 ? 's' : ''})` }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 5 — Grading Queue
+    ═══════════════════════════════════════════════════════ -->
+    <section v-else-if="step === 'grading'" class="p-8">
+      <div class="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-6 items-start">
+
+        <!-- Sidebar queue -->
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden xl:sticky xl:top-24">
+          <div class="px-5 py-4 border-b border-grey-200">
+            <h3 class="text-sm font-semibold text-grey-900">Grading Queue</h3>
+            <p class="text-xs text-grey-500 mt-0.5">{{ completedCount }} / {{ sessions.length }} done</p>
+            <!-- Progress bar -->
+            <div class="mt-3 h-1.5 bg-grey-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-violet-500 to-primary-500 rounded-full transition-all"
+                :style="{ width: `${sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0}%` }">
+              </div>
+            </div>
+          </div>
+          <div class="divide-y divide-grey-100 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div v-for="sess in sessions" :key="sess.session_id"
+              class="px-4 py-3 flex items-center gap-3 transition"
+              :class="currentSessionId === sess.session_id ? 'bg-primary-50' : ''">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                :class="sess.status === 'approved'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : sess.status === 'cancelled'
+                    ? 'bg-grey-100 text-grey-400'
+                    : currentSessionId === sess.session_id
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-grey-100 text-grey-400'">
+                <CheckIcon v-if="sess.status === 'approved'" class="w-4 h-4" />
+                <XMarkIcon v-else-if="sess.status === 'cancelled'" class="w-4 h-4" />
+                <span v-else>{{ sess.queue_position + 1 }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-grey-900 truncate">{{ sess.student_name }}</p>
+                <p class="text-xs mt-0.5 capitalize"
+                  :class="sess.status === 'approved'
+                    ? 'text-emerald-600'
+                    : sess.status === 'cancelled'
+                      ? 'text-grey-400'
+                      : currentSessionId === sess.session_id
+                        ? 'text-primary-600'
+                        : 'text-grey-400'">
+                  {{ currentSessionId === sess.session_id && gradingLoading
+                    ? (isReviewing ? 'reviewing…' : 'grading…')
+                    : sess.status }}
+                </p>
+              </div>
+              <span v-if="sess.normalised_grade != null"
+                class="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                :class="getGradeClass(sess.normalised_grade)">
+                {{ sess.normalised_grade.toFixed(1) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main grading panel -->
+        <div class="space-y-4">
+          <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
+            <!-- Panel header -->
+            <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-grey-900">{{ currentStudentName || 'Loading…' }}</h2>
+                <p class="text-sm text-grey-500 mt-0.5">{{ examTitle }}</p>
+              </div>
+              <div v-if="gradingLoading && !isReviewing" class="flex items-center gap-2 text-primary-600">
+                <span class="inline-block h-2.5 w-2.5 rounded-full bg-primary-500 animate-pulse"></span>
+                <span class="text-sm font-medium">Grading…</span>
+              </div>
+              <div v-else-if="isReviewing" class="flex items-center gap-2 text-amber-600">
+                <ClipboardDocumentCheckIcon class="w-4 h-4" />
+                <span class="text-sm font-medium">Review required</span>
+              </div>
+            </div>
+
+            <!-- Agent narrative -->
+            <div v-if="gradingContent && !isReviewing" class="px-6 py-4 border-b border-grey-100">
+              <p class="text-sm text-grey-600 whitespace-pre-wrap leading-relaxed">{{ gradingContent }}</p>
+            </div>
+
+            <!-- Tool events -->
+            <div v-if="gradingToolEvents.length && !isReviewing"
+              class="px-6 py-3 border-b border-grey-100 flex flex-wrap gap-2">
+              <span v-for="(ev, i) in gradingToolEvents" :key="i"
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="ev.type === 'tool_call'
+                  ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                  : 'bg-teal-50 text-teal-700 border border-teal-200'">
+                <WrenchScrewdriverIcon class="w-3 h-3" />
+                {{ ev.name }}
+              </span>
+            </div>
+
+            <!-- Thinking panel -->
+            <div v-if="gradingThinking && !isReviewing" class="px-6 py-4 border-b border-grey-100">
+              <details class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <summary class="cursor-pointer text-sm font-medium text-amber-800 select-none flex items-center gap-2">
+                  <span>🧠</span> Reasoning — click to expand
+                </summary>
+                <pre class="mt-2 whitespace-pre-wrap text-xs text-amber-900 font-mono max-h-40 overflow-y-auto custom-scrollbar leading-relaxed">{{ gradingThinking }}</pre>
+              </details>
+            </div>
+
+            <!-- Question results -->
+            <div v-if="questionResults.length > 0" class="px-6 py-5 space-y-3">
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-grey-500">Question Breakdown</h4>
+              <div v-for="qr in questionResults" :key="qr.question_number"
+                class="rounded-xl border p-4 space-y-2"
+                :class="qr.awarded_points >= qr.max_points
+                  ? 'border-emerald-200 bg-emerald-50'
+                  : qr.awarded_points === 0
+                    ? 'border-red-200 bg-red-50'
+                    : 'border-amber-200 bg-amber-50'">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-sm font-semibold text-grey-900">{{ qr.label }}</span>
+                  <div class="flex items-center gap-2">
+                    <template v-if="isReviewing">
+                      <input
+                        v-model.number="reviewDecisions[qr.question_number]"
+                        type="number" :min="0" :max="qr.max_points" :step="0.25"
+                        class="w-16 px-2 py-1 text-center border border-grey-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </template>
+                    <template v-else>
+                      <span class="text-sm font-bold"
+                        :class="qr.awarded_points >= qr.max_points
+                          ? 'text-emerald-700'
+                          : qr.awarded_points === 0
+                            ? 'text-red-700'
+                            : 'text-amber-700'">
+                        {{ qr.awarded_points }}
+                      </span>
+                    </template>
+                    <span class="text-xs text-grey-500">/ {{ qr.max_points }} pts</span>
+                  </div>
+                </div>
+                <p class="text-xs text-grey-600 leading-relaxed">{{ qr.reasoning }}</p>
+              </div>
+
+              <!-- Total score when reviewing -->
+              <div v-if="isReviewing" class="rounded-xl border-2 border-primary-200 bg-primary-50 p-4 mt-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-semibold text-primary-900">Total Score</span>
+                  <div class="text-right">
+                    <p class="text-xl font-bold text-primary-800">
+                      {{ reviewTotal.toFixed(1) }} / {{ reviewMax.toFixed(1) }}
+                    </p>
+                    <p class="text-xs text-primary-600 mt-0.5">
+                      ≈ {{ normalisedReview.toFixed(2) }} / 20
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading skeleton -->
+            <div v-if="gradingLoading && questionResults.length === 0 && !gradingError" class="px-6 py-8 space-y-3">
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-3/4"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-1/2"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-2/3"></div>
+            </div>
+
+            <!-- Grading error -->
+            <div v-if="gradingError" class="px-6 py-4">
+              <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p class="text-sm font-semibold text-red-700 mb-1">Grading error</p>
+                <p class="text-sm text-red-600">{{ gradingError }}</p>
+              </div>
+            </div>
+
+            <!-- Review action buttons -->
+            <div v-if="isReviewing" class="px-6 py-4 border-t border-grey-200 flex items-center gap-3">
+              <button @click="approveSession" :disabled="reviewSubmitting"
+                class="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50">
+                <CheckIcon class="w-4 h-4" />
+                {{ reviewSubmitting ? 'Saving…' : 'Approve & Save Grade' }}
+              </button>
+              <button @click="cancelSession" :disabled="reviewSubmitting"
+                class="flex items-center justify-center gap-2 border border-red-300 text-red-600 px-5 py-3 rounded-xl font-medium hover:bg-red-50 transition disabled:opacity-50">
+                <XMarkIcon class="w-4 h-4" />
+                Skip
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STEP 6 — Complete
+    ═══════════════════════════════════════════════════════ -->
+    <section v-else-if="step === 'complete'" class="p-8">
+      <div class="max-w-2xl mx-auto space-y-8 text-center">
+        <div>
+          <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircleIcon class="w-10 h-10 text-emerald-600" />
+          </div>
+          <h2 class="text-3xl font-bold text-grey-900">Grading Complete!</h2>
+          <p class="text-grey-600 mt-2">All students in the batch have been processed.</p>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl border border-grey-200 p-5">
+            <p class="text-2xl font-bold text-grey-900">{{ sessions.filter(s => s.status === 'approved').length }}</p>
+            <p class="text-xs text-grey-500 mt-1">Approved</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-grey-200 p-5">
+            <p class="text-2xl font-bold text-grey-900">{{ sessions.filter(s => s.status === 'cancelled').length }}</p>
+            <p class="text-xs text-grey-500 mt-1">Skipped</p>
+          </div>
+          <div class="bg-white rounded-2xl border border-grey-200 p-5">
+            <p class="text-2xl font-bold text-grey-900">{{ batchAverage }}</p>
+            <p class="text-xs text-grey-500 mt-1">Batch Average</p>
+          </div>
+        </div>
+
+        <!-- Results list -->
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden text-left">
+          <div class="px-6 py-4 border-b border-grey-200">
+            <p class="text-sm font-semibold text-grey-900">Results — {{ examTitle }}</p>
+          </div>
+          <div class="divide-y divide-grey-100">
+            <div v-for="sess in sessions" :key="sess.session_id"
+              class="px-5 py-4 flex items-center gap-4">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+                :class="sess.status === 'approved'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-grey-100 text-grey-400'">
+                <CheckIcon v-if="sess.status === 'approved'" class="w-4 h-4" />
+                <XMarkIcon v-else class="w-4 h-4" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-grey-900">{{ sess.student_name }}</p>
+                <p class="text-xs text-grey-500 capitalize mt-0.5">{{ sess.status }}</p>
+              </div>
+              <span v-if="sess.normalised_grade != null"
+                class="text-sm font-bold px-3 py-1 rounded-lg"
+                :class="getGradeClass(sess.normalised_grade)">
+                {{ sess.normalised_grade.toFixed(2) }} / 20
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-4">
+          <router-link :to="`/class/${selectedClass?.id}/grades`"
+            class="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-600 shadow-sm transition">
+            <ChartBarIcon class="w-4 h-4" />
+            View Class Grades
+          </router-link>
+          <button @click="startOver"
+            class="flex items-center gap-2 border border-grey-300 text-grey-700 px-6 py-3 rounded-xl font-medium hover:bg-grey-50 transition">
+            <ArrowPathIcon class="w-4 h-4" />
+            Grade Another Class
+          </button>
+        </div>
+      </div>
+    </section>
+
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
-  AcademicCapIcon,
   ChevronLeftIcon,
-  DocumentArrowUpIcon,
+  ChevronRightIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  CloudArrowUpIcon,
+  DocumentTextIcon,
+  DocumentCheckIcon,
+  SparklesIcon,
   UserGroupIcon,
+  AcademicCapIcon,
+  WrenchScrewdriverIcon,
+  ClipboardDocumentCheckIcon,
+  InformationCircleIcon,
+  ChartBarIcon,
+  ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
 import api from '@/services/api';
-import { useClassesStore } from '@/stores/classesStore';
 
-const route = useRoute();
-const classesStore = useClassesStore();
+// ── Router ──────────────────────────────────────────────────────
+const route  = useRoute();
+const router = useRouter();
 
-const pageLoading = ref(true);
-const workspace = reactive({
-  mode: 'classes',
-  loading: false,
-  classId: null,
+// ── Step Management ─────────────────────────────────────────────
+const step = ref('classes');
+
+const visibleSteps = computed(() => [
+  { key: 'setup',      label: 'Session Setup' },
+  { key: 'analysing',  label: 'Blueprint',    skip: setupMode.value === 'existing' },
+  { key: 'students',   label: 'Students' },
+  { key: 'grading',    label: 'Grading' },
+  { key: 'complete',   label: 'Complete' },
+].filter(s => !s.skip));
+
+const currentStepIndex = computed(() => {
+  const idx = visibleSteps.value.findIndex(s => s.key === step.value);
+  return idx >= 0 ? idx : 0;
 });
 
-const feedback = reactive({
-  error: '',
-  success: '',
+const backLabel = computed(() => {
+  if (step.value === 'setup')     return 'Classes';
+  if (step.value === 'analysing') return 'Setup';
+  if (step.value === 'students')  return 'Setup';
+  if (step.value === 'grading')   return 'Students';
+  if (step.value === 'complete')  return 'Classes';
+  return 'Back';
 });
 
-const creatorSessions = ref([]);
-const students = ref([]);
-const classLessons = ref([]);
-const examTypes = ref([]);
-const examPapers = ref([]);
-const blueprints = ref([]);
-const activeStudentId = ref(null);
-
-const examPaperUpload = ref(null);
-const correctionFile = ref(null);
-const uploadingExamPaper = ref(false);
-const startingBatch = ref(false);
-const blueprintConfirmed = ref(false);
-const recreatingBlueprint = ref(false);
-
-const sessionForm = reactive({
-  title: '',
-  creatorSessionId: null,
-  selectedBlueprintId: null,
-  examPaperId: null,
-  lessonFileIds: [],
-  preferences: '',
-  styleGuide: '',
-  reasoning: true,
-});
-
-const analysis = reactive({
-  running: false,
-  narrative: '',
-  thinking: '',
-});
-
-const batch = reactive({
-  batchId: null,
-  currentSessionId: null,
-  sessions: [],
-  narrative: '',
-  thinking: '',
-  breakdown: [],
-  awaitingReview: false,
-  reviewSubmitting: false,
-});
-
-const studentEntries = reactive({});
-
-const classes = computed(() => classesStore.classes);
-const activeClass = computed(() => classes.value.find((cls) => cls.id === workspace.classId) || null);
-const selectedStudent = computed(() => students.value.find((student) => student.id === activeStudentId.value) || null);
-const selectedBlueprint = computed(() => blueprints.value.find((item) => item.id === selectedBlueprintIdNumber.value) || null);
-const activeExamPaper = computed(() => examPapers.value[0] || null);
-const selectedBlueprintIdNumber = computed(() => sessionForm.selectedBlueprintId == null ? null : Number(sessionForm.selectedBlueprintId));
-const availableBlueprints = computed(() => {
-  return blueprints.value
-    .filter((item) => !item.deleted)
-    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-});
-const uploadedStudentCount = computed(() => students.value.filter((student) => Boolean(studentEntries[student.id]?.file)).length);
-const markedStudentCount = computed(() => students.value.filter((student) => Boolean(studentEntries[student.id]?.marked && studentEntries[student.id]?.file)).length);
-const canStartBatch = computed(() => Boolean(selectedBlueprint.value && blueprintConfirmed.value && sessionForm.title.trim() && markedStudentCount.value > 0));
-const approvedCount = computed(() => batch.sessions.filter((session) => session.status === 'approved').length);
-const currentBatchStatus = computed(() => {
-  if (startingBatch.value) return 'Creating queue';
-  if (batch.reviewSubmitting) return 'Submitting review';
-  if (batch.awaitingReview) return 'Waiting for teacher review';
-  if (batch.currentSessionId) return 'Streaming current student';
-  if (batch.batchId && approvedCount.value === batch.sessions.length) return 'Completed';
-  return 'Idle';
-});
-const currentSession = computed(() => batch.sessions.find((session) => session.id === batch.currentSessionId) || null);
-const currentStudentName = computed(() => currentSession.value?.student_name || '');
-const currentStudentNote = computed(() => {
-  const studentId = currentSession.value?.student_id;
-  if (!studentId) return '';
-  return String(studentEntries[studentId]?.notes || '').trim();
-});
-const examPaperUploadLabel = computed(() => examPaperUpload.value?.name || 'Choose an exam paper');
-const correctionFileLabel = computed(() => correctionFile.value?.name || 'Choose a correction PDF');
-
-function setFeedback(type, message) {
-  feedback.error = type === 'error' ? message : '';
-  feedback.success = type === 'success' ? message : '';
+function goBack() {
+  if (step.value === 'setup')     { step.value = 'classes'; }
+  else if (step.value === 'analysing') { step.value = 'setup'; }
+  else if (step.value === 'students')  { step.value = 'setup'; }
+  else if (step.value === 'complete')  { startOver(); }
 }
 
-function clearFeedback() {
-  feedback.error = '';
-  feedback.success = '';
-}
+// ── Classes ──────────────────────────────────────────────────────
+const classes      = ref([]);
+const loadingClasses = ref(true);
+const selectedClass = ref(null);
 
-function ensureStudentEntry(studentId) {
-  if (!(studentId in studentEntries)) {
-    studentEntries[studentId] = {
-      file: null,
-      notes: '',
-      marked: false,
-    };
-  }
-}
-
-function resetWorkspaceState() {
-  students.value = [];
-  classLessons.value = [];
-  examTypes.value = [];
-  examPapers.value = [];
-  blueprints.value = [];
-  activeStudentId.value = null;
-  examPaperUpload.value = null;
-  correctionFile.value = null;
-  blueprintConfirmed.value = false;
-  recreatingBlueprint.value = false;
-  sessionForm.title = '';
-  sessionForm.creatorSessionId = null;
-  sessionForm.selectedBlueprintId = null;
-  sessionForm.examPaperId = null;
-  sessionForm.lessonFileIds = [];
-  sessionForm.preferences = '';
-  sessionForm.styleGuide = '';
-  sessionForm.reasoning = true;
-  analysis.running = false;
-  analysis.narrative = '';
-  analysis.thinking = '';
-  batch.batchId = null;
-  batch.currentSessionId = null;
-  batch.sessions = [];
-  batch.narrative = '';
-  batch.thinking = '';
-  batch.breakdown = [];
-  batch.awaitingReview = false;
-  batch.reviewSubmitting = false;
-  Object.keys(studentEntries).forEach((key) => {
-    delete studentEntries[key];
-  });
-}
-
-async function bootstrapPage() {
+async function loadClasses() {
+  loadingClasses.value = true;
   try {
-    await Promise.all([
-      classesStore.load(),
-      loadCreatorSessions(),
-    ]);
-
-    const classIdFromQuery = Number(route.query.classId || 0);
-    if (classIdFromQuery) {
-      await openClassWorkspace(classIdFromQuery);
-    }
+    const res = await api.getClasses();
+    if (res.success) classes.value = res.classes || [];
+  } catch (err) {
+    console.error('loadClasses:', err);
   } finally {
-    pageLoading.value = false;
+    loadingClasses.value = false;
   }
 }
 
-async function loadCreatorSessions() {
-  try {
-    const response = await api.listCreatorSessions({ limit: 100, offset: 0 });
-    if (response.success) creatorSessions.value = response.sessions || [];
-  } catch (error) {
-    console.error('Failed to load creator sessions:', error);
-  }
+async function selectClass(cls) {
+  selectedClass.value = cls;
+  step.value = 'setup';
+  setupMode.value = 'new';
+  resetSetup();
+  await Promise.all([
+    loadExistingExamPapers(cls.id),
+    loadLessons(cls.id),
+    loadExamTypes(cls.id),
+    loadStudents(cls.id),
+  ]);
 }
 
-async function openClassWorkspace(classId) {
-  workspace.mode = 'session';
-  workspace.loading = true;
-  workspace.classId = Number(classId);
-  resetWorkspaceState();
-  clearFeedback();
+// ── Setup State ──────────────────────────────────────────────────
+const setupMode          = ref('new');      // 'new' | 'existing'
+const examTitle          = ref('');
+const examCategory       = ref('EXERCISE'); // 'EXERCISE' | 'MIDTERM' | 'FINAL'
+const reasoning          = ref(true);       // on by default per requirements
+const examPaperFile      = ref(null);
+const selectedExamPaperId = ref(null);
+const existingExamPapers = ref([]);
+const correctionFile     = ref(null);
+const preferences        = ref('');
+const styleGuide         = ref('');
+const selectedLessonIds  = ref([]);
+const classLessons       = ref([]);
+const blueprints         = ref([]);
+const selectedBlueprintId = ref(null);
+const loadingBlueprints  = ref(false);
+const setupError         = ref('');
+const analyseLoading     = ref(false);
 
-  try {
-    const [studentsRes, lessonsRes, examTypesRes, papersRes, blueprintsRes] = await Promise.all([
-      api.getStudents(classId),
-      api.getLessons(classId, { limit: 100, refresh: true }),
-      api.getExamTypes(classId),
-      api.listExamPapers(classId),
-      api.listGradingBlueprints(),
-    ]);
+function resetSetup() {
+  examTitle.value          = '';
+  examCategory.value       = 'EXERCISE';
+  examPaperFile.value      = null;
+  selectedExamPaperId.value = null;
+  correctionFile.value     = null;
+  preferences.value        = '';
+  styleGuide.value         = '';
+  selectedLessonIds.value  = [];
+  selectedBlueprintId.value = null;
+  setupError.value         = '';
+  analyseThinking.value    = '';
+  analyseContent.value     = '';
+  analyseToolEvents.value  = [];
+  analyseError.value       = '';
+  blueprintId.value        = null;
+}
 
-    students.value = studentsRes.success ? (studentsRes.students || []) : [];
-    classLessons.value = lessonsRes.success ? (lessonsRes.uploads || []) : [];
-    examTypes.value = examTypesRes.success ? (examTypesRes.exam_types || []) : [];
-    examPapers.value = papersRes.success ? (papersRes.exam_papers || []) : [];
-    blueprints.value = blueprintsRes.success ? (blueprintsRes.blueprints || []) : [];
-
-    students.value.forEach((student) => ensureStudentEntry(student.id));
-    activeStudentId.value = students.value[0]?.id || null;
-    const latestBlueprint = availableBlueprints.value[0] || null;
-    if (latestBlueprint) {
-      sessionForm.selectedBlueprintId = latestBlueprint.id;
-      applyExistingBlueprint();
+async function switchToExisting() {
+  setupMode.value = 'existing';
+  if (blueprints.value.length === 0) {
+    loadingBlueprints.value = true;
+    try {
+      const res = await api.listGradingBlueprints();
+      if (res.success) blueprints.value = res.blueprints || [];
+    } catch (err) {
+      console.error('loadBlueprints:', err);
+    } finally {
+      loadingBlueprints.value = false;
     }
-    if (activeExamPaper.value) {
-      sessionForm.examPaperId = activeExamPaper.value.id;
+  }
+}
+
+// Exam paper ready check
+const canStartAnalysis = computed(() => {
+  const hasTitle = examTitle.value.trim().length > 0;
+  const hasPaper = selectedExamPaperId.value !== null || examPaperFile.value !== null;
+  return hasTitle && hasPaper && !analyseLoading.value;
+});
+
+async function loadExistingExamPapers(classId) {
+  try {
+    const res = await api.listGradingExamPapers(classId);
+    if (res.success) existingExamPapers.value = res.exam_papers || [];
+    // Pre-select first if there is one
+    if (existingExamPapers.value.length > 0) {
+      selectedExamPaperId.value = existingExamPapers.value[0].id;
     }
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to load this class workspace.');
-  } finally {
-    workspace.loading = false;
+  } catch (err) {
+    console.error('loadExistingExamPapers:', err);
   }
 }
 
-function goBackToClasses() {
-  workspace.mode = 'classes';
-  workspace.classId = null;
-  resetWorkspaceState();
-  clearFeedback();
-}
-
-async function applyCreatorSession() {
-  if (!sessionForm.creatorSessionId) return;
+async function loadLessons(classId) {
   try {
-    const response = await api.getCreatorSession(sessionForm.creatorSessionId);
-    if (!response.success) return;
-    const session = response.session;
-    sessionForm.title = session?.title || sessionForm.title;
-    sessionForm.lessonFileIds = Array.isArray(session?.doc_ids)
-      ? session.doc_ids.filter((id) => classLessons.value.some((lesson) => lesson.id === id))
-      : [];
-    const notes = String(session?.preferences?.notes || '').trim();
-    if (notes) sessionForm.preferences = notes;
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to load the selected creator session.');
+    const res = await api.getLessons(classId);
+    if (res.success) classLessons.value = res.uploads || [];
+  } catch (err) {
+    console.error('loadLessons:', err);
   }
 }
 
-function applyExistingBlueprint() {
-  const blueprint = selectedBlueprint.value;
-  if (!blueprint) return;
-  sessionForm.title = blueprint.title || sessionForm.title;
-  sessionForm.lessonFileIds = Array.isArray(blueprint.lesson_doc_ids) ? [...blueprint.lesson_doc_ids] : [];
-  sessionForm.preferences = blueprint.preferences || '';
-  sessionForm.styleGuide = blueprint.style_guide || '';
-  blueprintConfirmed.value = false;
-  recreatingBlueprint.value = false;
-}
+// ── Phase 1 — Analysis SSE ───────────────────────────────────────
+const blueprintId       = ref(null);
+const analyseThinking   = ref('');
+const analyseContent    = ref('');
+const analyseToolEvents = ref([]);
+const analyseError      = ref('');
 
-function confirmBlueprint() {
-  if (!selectedBlueprint.value) return;
-  blueprintConfirmed.value = true;
-  setFeedback('success', 'Blueprint confirmed for this grading run.');
-}
+async function startAnalysis() {
+  setupError.value = '';
+  analyseError.value = '';
+  analyseThinking.value  = '';
+  analyseContent.value   = '';
+  analyseToolEvents.value = [];
+  blueprintId.value      = null;
+  analyseLoading.value   = true;
 
-function prepareBlueprintRecreation() {
-  blueprintConfirmed.value = false;
-  recreatingBlueprint.value = true;
-  sessionForm.selectedBlueprintId = null;
-  sessionForm.examPaperId = activeExamPaper.value?.id || null;
-  setFeedback('success', 'Blueprint recreation mode enabled. Update the files or preferences, then generate a new blueprint.');
-}
-
-function handleExamPaperFileChange(event) {
-  examPaperUpload.value = event.target.files?.[0] || null;
-}
-
-function handleCorrectionFileChange(event) {
-  correctionFile.value = event.target.files?.[0] || null;
-}
-
-function handleStudentFileChange(event, studentId) {
-  ensureStudentEntry(studentId);
-  studentEntries[studentId].file = event.target.files?.[0] || null;
-  if (!studentEntries[studentId].file) {
-    studentEntries[studentId].marked = false;
-  }
-}
-
-function studentFileLabel(studentId) {
-  return studentEntries[studentId]?.file?.name || 'Attach the student paper';
-}
-
-function toggleStudentMarked(studentId) {
-  ensureStudentEntry(studentId);
-  if (!studentEntries[studentId].file) return;
-  studentEntries[studentId].marked = !studentEntries[studentId].marked;
-}
-
-function clearStudentEntry(studentId) {
-  ensureStudentEntry(studentId);
-  studentEntries[studentId].file = null;
-  studentEntries[studentId].notes = '';
-  studentEntries[studentId].marked = false;
-}
-
-function studentStatus(studentId) {
-  const queueSession = batch.sessions.find((session) => session.student_id === studentId);
-  if (queueSession?.status === 'approved') return 'Approved';
-  if (queueSession?.status === 'cancelled') return 'Skipped';
-  if (queueSession?.id === batch.currentSessionId) return batch.awaitingReview ? 'Reviewing' : 'Grading';
-  if (studentEntries[studentId]?.marked && studentEntries[studentId]?.file) return 'Marked';
-  if (studentEntries[studentId]?.file) return 'Uploaded';
-  return 'Pending';
-}
-
-function studentPillClass(studentId) {
-  const status = studentStatus(studentId);
-  if (status === 'Approved') return 'bg-success-50 text-success-700';
-  if (status === 'Skipped') return 'bg-red-50 text-red-700';
-  if (status === 'Reviewing' || status === 'Grading') return 'bg-primary-50 text-primary-700';
-  if (status === 'Marked') return 'bg-blue-50 text-blue-700';
-  if (status === 'Uploaded') return 'bg-violet-50 text-violet-700';
-  return 'bg-grey-100 text-grey-600';
-}
-
-async function uploadExamPaperForClass() {
-  if (!examPaperUpload.value || !workspace.classId) return;
-  uploadingExamPaper.value = true;
-  clearFeedback();
+  let resolvedExamPaperId = selectedExamPaperId.value;
 
   try {
-    const hadExistingPaper = Boolean(activeExamPaper.value);
-    if (activeExamPaper.value) {
-      await api.deleteExamPaper(activeExamPaper.value.id);
-      examPapers.value = examPapers.value.filter((paper) => paper.id !== activeExamPaper.value.id);
-      sessionForm.examPaperId = null;
-    }
-
-    const formData = new FormData();
-    formData.append('class_id', String(workspace.classId));
-    formData.append('file', examPaperUpload.value);
-
-    const response = await api.uploadExamPaper(formData);
-    if (response.success) {
-      sessionForm.examPaperId = response.exam_paper.id;
-      examPapers.value = [response.exam_paper];
-      examPaperUpload.value = null;
-      setFeedback('success', hadExistingPaper ? 'Exam paper replaced.' : (response.duplicate ? 'Exam paper already existed and was reused.' : 'Exam paper uploaded.'));
-    }
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to upload the exam paper.');
-  } finally {
-    uploadingExamPaper.value = false;
-  }
-}
-
-function parseSseJson(data, fallback = {}) {
-  try {
-    return JSON.parse(data);
-  } catch {
-    return fallback;
-  }
-}
-
-async function analyseBlueprint() {
-  if (sessionForm.selectedBlueprintId && !recreatingBlueprint.value) return;
-  if (!sessionForm.title.trim()) {
-    setFeedback('error', 'Please enter an exam title.');
-    return;
-  }
-  if (!sessionForm.examPaperId) {
-    setFeedback('error', 'Please choose or upload an exam paper.');
-    return;
-  }
-
-  clearFeedback();
-  analysis.running = true;
-  analysis.narrative = '';
-  analysis.thinking = '';
-
-  try {
-    const formData = new FormData();
-    formData.append('exam_paper_id', String(sessionForm.examPaperId));
-    formData.append('lesson_file_ids', JSON.stringify(sessionForm.lessonFileIds));
-    formData.append('preferences', sessionForm.preferences || '');
-    formData.append('style_guide', sessionForm.styleGuide || '');
-    formData.append('title', sessionForm.title.trim());
-    formData.append('reasoning', sessionForm.reasoning ? 'true' : 'false');
-    if (correctionFile.value) formData.append('correction_pdf', correctionFile.value);
-
-    await api.streamGradingAnalyse(formData, ({ event, data }) => {
-      if (event === 'thinking') {
-        analysis.thinking += data;
+    // If uploading a new exam paper, do that first
+    if (selectedExamPaperId.value === null) {
+      if (!examPaperFile.value) {
+        setupError.value = 'Please upload an exam paper PDF.';
+        analyseLoading.value = false;
         return;
       }
-      if (event === 'content') {
-        analysis.narrative += data;
-        return;
+      const fd = new FormData();
+      fd.append('class_id', String(selectedClass.value.id));
+      fd.append('file', examPaperFile.value);
+      const paperRes = await api.uploadGradingExamPaper(fd);
+      if (!paperRes.success) throw new Error('Failed to upload exam paper');
+      resolvedExamPaperId = paperRes.exam_paper.id;
+      existingExamPapers.value.push(paperRes.exam_paper);
+    }
+
+    step.value = 'analysing';
+
+    // Build analyse form
+    const fd = new FormData();
+    fd.append('exam_paper_id', String(resolvedExamPaperId));
+    fd.append('title', examTitle.value.trim());
+    fd.append('reasoning', String(reasoning.value));
+    if (preferences.value.trim()) fd.append('preferences', preferences.value.trim());
+    if (styleGuide.value.trim())  fd.append('style_guide', styleGuide.value.trim());
+    if (selectedLessonIds.value.length > 0) {
+      fd.append('lesson_file_ids', JSON.stringify(selectedLessonIds.value));
+    }
+    if (correctionFile.value) {
+      fd.append('correction_pdf', correctionFile.value);
+    }
+
+    await api.streamGradingAnalyse(fd, ({ event, data }) => {
+      if (event === 'thinking')   analyseThinking.value  += data;
+      if (event === 'content')    analyseContent.value   += data;
+      if (event === 'tool_call') {
+        try { analyseToolEvents.value.push({ type: 'tool_call', ...JSON.parse(data) }); } catch {}
+      }
+      if (event === 'tool_result') {
+        try { analyseToolEvents.value.push({ type: 'tool_result', ...JSON.parse(data) }); } catch {}
       }
       if (event === 'blueprint_saved') {
-        const payload = parseSseJson(data);
-        sessionForm.selectedBlueprintId = payload.blueprint_id || null;
-        blueprintConfirmed.value = false;
-        recreatingBlueprint.value = false;
-        setFeedback('success', `Blueprint "${payload.title}" is ready.`);
+        try {
+          const payload = JSON.parse(data);
+          blueprintId.value = payload.blueprint_id;
+        } catch {}
       }
     });
 
-    const refreshed = await api.listGradingBlueprints();
-    if (refreshed.success) {
-      blueprints.value = refreshed.blueprints || [];
-      applyExistingBlueprint();
-    }
-  } catch (error) {
-    setFeedback('error', error.message || 'Blueprint analysis failed.');
+    analyseLoading.value = false;
+
+  } catch (err) {
+    analyseLoading.value = false;
+    analyseError.value = err.message || 'Analysis failed';
+    if (step.value !== 'analysing') step.value = 'analysing';
+  }
+}
+
+async function useExistingBlueprint() {
+  setupError.value = '';
+  if (!selectedBlueprintId.value) { setupError.value = 'Please select a blueprint.'; return; }
+  if (!examTitle.value.trim())    { setupError.value = 'Please enter an exam title.'; return; }
+  blueprintId.value = selectedBlueprintId.value;
+  await proceedToStudents();
+}
+
+async function proceedToStudents() {
+  step.value = 'students';
+  // Make sure students + exam types are loaded
+  if (students.value.length === 0) await loadStudents(selectedClass.value.id);
+  if (examTypes.value.length === 0) await loadExamTypes(selectedClass.value.id);
+}
+
+// ── Students & Exam Types ────────────────────────────────────────
+const students        = ref([]);
+const loadingStudents = ref(false);
+const examTypes       = ref([]);
+const loadingExamTypes = ref(false);
+const selectedExamTypeId = ref(null);
+const studentFiles    = reactive({});   // { [studentId]: File }
+const studentInputRefs = reactive({});  // { [studentId]: HTMLInputElement }
+const batchError      = ref('');
+const batchLoading    = ref(false);
+
+const assignedCount = computed(() => Object.values(studentFiles).filter(Boolean).length);
+
+const matchedExamType = computed(() => {
+  if (selectedExamTypeId.value !== null) return null;
+  return examTypes.value.find(
+    et => et.name.toLowerCase() === examTitle.value.trim().toLowerCase()
+  ) || null;
+});
+
+async function loadStudents(classId) {
+  loadingStudents.value = true;
+  try {
+    const res = await api.getStudents(classId);
+    if (res.success) students.value = res.students || [];
+  } catch (err) {
+    console.error('loadStudents:', err);
   } finally {
-    analysis.running = false;
+    loadingStudents.value = false;
   }
 }
 
-async function deleteSelectedBlueprint() {
-  if (!selectedBlueprint.value) return;
+async function loadExamTypes(classId) {
+  loadingExamTypes.value = true;
   try {
-    await api.deleteGradingBlueprint(selectedBlueprint.value.id);
-    blueprints.value = blueprints.value.filter((item) => item.id !== selectedBlueprint.value.id);
-    sessionForm.selectedBlueprintId = null;
-    blueprintConfirmed.value = false;
-    recreatingBlueprint.value = false;
-    setFeedback('success', 'Blueprint deleted.');
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to delete blueprint.');
+    const res = await api.getExamTypes(classId);
+    if (res.success) examTypes.value = res.exam_types || [];
+  } catch (err) {
+    console.error('loadExamTypes:', err);
+  } finally {
+    loadingExamTypes.value = false;
   }
 }
 
-async function ensureExamType() {
-  const title = sessionForm.title.trim();
-  const normalized = title.toLowerCase();
-  const existing = examTypes.value.find((item) => String(item.name || '').trim().toLowerCase() === normalized);
-  if (existing) return existing;
-  const response = await api.createExamType(workspace.classId, title);
-  if (response.success) {
-    examTypes.value.push(response.exam_type);
-    return response.exam_type;
+function triggerStudentFileInput(studentId) {
+  if (studentInputRefs[studentId]) {
+    studentInputRefs[studentId].click();
   }
-  throw new Error('Failed to create the exam type.');
 }
 
-async function startBatch() {
-  if (!canStartBatch.value || !selectedBlueprint.value) return;
+function handleStudentFile(studentId, event) {
+  const file = event.target.files[0];
+  if (file) {
+    studentFiles[studentId] = file;
+  }
+  event.target.value = '';
+}
 
-  startingBatch.value = true;
-  clearFeedback();
+function clearAllFiles() {
+  students.value.forEach(s => { delete studentFiles[s.id]; });
+}
 
+async function startGrading() {
+  batchError.value = '';
+  if (assignedCount.value === 0) { batchError.value = 'Upload at least one student PDF.'; return; }
+
+  batchLoading.value = true;
   try {
-    const examType = await ensureExamType();
-    const formData = new FormData();
-    formData.append('blueprint_id', String(selectedBlueprint.value.id));
-    formData.append('class_id', String(workspace.classId));
-    formData.append('exam_type_id', String(examType.id));
+    // Resolve exam type ID
+    let examTypeId = selectedExamTypeId.value;
+    if (examTypeId === null) {
+      if (matchedExamType.value) {
+        examTypeId = matchedExamType.value.id;
+      } else {
+        // Auto-create the exam type with examTitle and selected category
+        const createRes = await api.createExamType(
+          selectedClass.value.id,
+          examTitle.value.trim(),
+          examCategory.value,
+          true
+        );
+        if (!createRes.success) throw new Error('Failed to create exam type');
+        examTypes.value.push(createRes.exam_type);
+        examTypeId = createRes.exam_type.id;
+      }
+    }
 
-    students.value.forEach((student) => {
-      const entry = studentEntries[student.id];
-      if (!entry?.file || !entry?.marked) return;
-      formData.append('student_ids', String(student.id));
-      formData.append('exam_pdfs', entry.file, entry.file.name);
-      formData.append('student_notes', entry.notes || '');
+    // Build multipart form
+    const fd = new FormData();
+    fd.append('blueprint_id', String(blueprintId.value));
+    fd.append('class_id', String(selectedClass.value.id));
+    fd.append('exam_type_id', String(examTypeId));
+
+    // Only include students that have files, in student order
+    const assignedStudents = students.value.filter(s => studentFiles[s.id]);
+    assignedStudents.forEach(s => {
+      fd.append('student_ids', String(s.id));
+      fd.append('exam_pdfs', studentFiles[s.id], studentFiles[s.id].name);
     });
 
-    const response = await api.startGradingBatch(formData);
-    if (!response.success) return;
+    const res = await api.startGradingBatch(fd);
+    if (!res.success) throw new Error('Failed to start grading batch');
 
-    batch.batchId = response.batch_id;
-    batch.sessions = (response.sessions || []).map((session) => ({
-      id: session.session_id,
-      student_id: session.student_id,
-      student_name: session.student_name,
-      queue_position: session.queue_position,
-      status: 'pending',
-    }));
+    // Initialise queue state
+    batchId.value = res.batch_id;
+    sessions.value = res.sessions.map(s => ({ ...s, status: 'pending', normalised_grade: null }));
+    step.value = 'grading';
 
-    setFeedback('success', 'Marked students confirmed. Streaming the first student now.');
-    await streamSession(response.first_session_id);
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to start the grading queue.');
+    // Start first session
+    if (res.first_session_id) {
+      await runSession(res.first_session_id);
+    }
+  } catch (err) {
+    batchError.value = err.message || 'Failed to start grading';
   } finally {
-    startingBatch.value = false;
+    batchLoading.value = false;
   }
 }
 
-function resetCurrentStreamState() {
-  batch.narrative = '';
-  batch.thinking = '';
-  batch.breakdown = [];
-  batch.awaitingReview = false;
+// ── Phase 2 — Grading SSE ────────────────────────────────────────
+const batchId          = ref(null);
+const sessions         = ref([]);
+const currentSessionId = ref(null);
+const currentStudentName = ref('');
+const questionResults  = ref([]);
+const gradingBreakdown = ref([]);
+const gradingThinking  = ref('');
+const gradingContent   = ref('');
+const gradingToolEvents = ref([]);
+const gradingError     = ref('');
+const gradingLoading   = ref(false);
+const isReviewing      = ref(false);
+const reviewDecisions  = reactive({});
+const reviewSubmitting = ref(false);
+
+const completedCount = computed(() =>
+  sessions.value.filter(s => s.status === 'approved' || s.status === 'cancelled').length
+);
+
+const reviewTotal = computed(() =>
+  questionResults.value.reduce((sum, qr) => {
+    const v = reviewDecisions[qr.question_number];
+    return sum + (typeof v === 'number' ? v : qr.awarded_points);
+  }, 0)
+);
+
+const reviewMax = computed(() =>
+  questionResults.value.reduce((sum, qr) => sum + qr.max_points, 0)
+);
+
+const normalisedReview = computed(() => {
+  if (reviewMax.value === 0) return 0;
+  return Math.min(20, Math.max(0, (reviewTotal.value / reviewMax.value) * 20));
+});
+
+const batchAverage = computed(() => {
+  const graded = sessions.value.filter(s => s.normalised_grade != null);
+  if (graded.length === 0) return '—';
+  const avg = graded.reduce((a, b) => a + b.normalised_grade, 0) / graded.length;
+  return avg.toFixed(2);
+});
+
+function getGradeClass(value) {
+  if (value >= 16) return 'bg-emerald-100 text-emerald-800';
+  if (value >= 12) return 'bg-blue-100 text-blue-800';
+  if (value >= 10) return 'bg-amber-100 text-amber-800';
+  return 'bg-red-100 text-red-800';
 }
 
-async function streamSession(sessionId, forceRestart = false) {
-  batch.currentSessionId = sessionId;
-  resetCurrentStreamState();
+async function runSession(sessionId, forceRestart = false) {
+  // Reset per-student state
+  currentSessionId.value   = sessionId;
+  questionResults.value    = [];
+  gradingBreakdown.value   = [];
+  gradingThinking.value    = '';
+  gradingContent.value     = '';
+  gradingToolEvents.value  = [];
+  gradingError.value       = '';
+  isReviewing.value        = false;
+  gradingLoading.value     = true;
+  Object.keys(reviewDecisions).forEach(k => delete reviewDecisions[k]);
 
-  const current = batch.sessions.find((session) => session.id === sessionId);
-  if (current) current.status = 'reviewing';
+  // Set student name
+  const sess = sessions.value.find(s => s.session_id === sessionId);
+  currentStudentName.value = sess?.student_name || '';
+
+  // Mark as reviewing in local state during stream
+  updateSessionStatus(sessionId, 'pending');
 
   try {
     await api.streamGradingSession(sessionId, ({ event, data }) => {
-      if (event === 'thinking') {
-        batch.thinking += data;
-        return;
+      if (event === 'thinking')    gradingThinking.value  += data;
+      if (event === 'content')     gradingContent.value   += data;
+      if (event === 'tool_call') {
+        try { gradingToolEvents.value.push({ type: 'tool_call', ...JSON.parse(data) }); } catch {}
       }
-      if (event === 'content') {
-        batch.narrative += data;
-        return;
+      if (event === 'tool_result') {
+        try { gradingToolEvents.value.push({ type: 'tool_result', ...JSON.parse(data) }); } catch {}
+      }
+      if (event === 'question_result') {
+        try {
+          const qr = JSON.parse(data);
+          const existing = questionResults.value.findIndex(q => q.question_number === qr.question_number);
+          if (existing >= 0) {
+            questionResults.value[existing] = qr;
+          } else {
+            questionResults.value.push(qr);
+          }
+        } catch {}
       }
       if (event === 'interrupt') {
-        const payload = parseSseJson(data);
-        batch.breakdown = Array.isArray(payload.breakdown)
-          ? payload.breakdown.map((item) => ({
-              ...item,
-              awarded_points: Number(item.awarded_points ?? 0),
-              max_points: Number(item.max_points ?? 0),
-            }))
-          : [];
-        batch.awaitingReview = true;
+        try {
+          const payload = JSON.parse(data);
+          gradingBreakdown.value = payload.breakdown || questionResults.value;
+          // Set review decisions from agent's values
+          gradingBreakdown.value.forEach(qr => {
+            reviewDecisions[qr.question_number] = qr.awarded_points;
+          });
+          // Sync question results to breakdown for completeness
+          if (gradingBreakdown.value.length > 0) {
+            questionResults.value = [...gradingBreakdown.value];
+          }
+          isReviewing.value = true;
+          gradingLoading.value = false;
+          updateSessionStatus(sessionId, 'reviewing');
+        } catch {}
       }
     }, { forceRestart });
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed while streaming the grading session.');
-  }
-}
 
-async function restartCurrentSession() {
-  if (!batch.currentSessionId) return;
-  await streamSession(batch.currentSessionId, true);
-}
-
-async function submitReview(action) {
-  if (!batch.currentSessionId) return;
-
-  batch.reviewSubmitting = true;
-  clearFeedback();
-
-  try {
-    const payload = {
-      action,
-      decisions: action === 'approve'
-        ? batch.breakdown.map((question) => ({
-            question_number: question.question_number,
-            awarded_points: Number(question.awarded_points ?? 0),
-          }))
-        : [],
-    };
-
-    const response = await api.reviewGradingSession(batch.currentSessionId, payload);
-    const current = batch.sessions.find((session) => session.id === batch.currentSessionId);
-    if (current) current.status = action === 'approve' ? 'approved' : 'cancelled';
-
-    batch.awaitingReview = false;
-
-    if (response.next_session_id) {
-      await streamSession(response.next_session_id);
-    } else {
-      batch.currentSessionId = null;
-      setFeedback('success', action === 'approve' ? 'Batch completed and grades saved.' : 'Batch completed.');
+    // Stream ended without interrupt (shouldn't happen normally)
+    if (!isReviewing.value) {
+      gradingLoading.value = false;
     }
-  } catch (error) {
-    setFeedback('error', error.message || 'Failed to submit the teacher review.');
-  } finally {
-    batch.reviewSubmitting = false;
+  } catch (err) {
+    gradingLoading.value = false;
+    gradingError.value   = err.message || 'Grading stream failed';
+    updateSessionStatus(sessionId, 'pending');
   }
 }
 
-function formatPoints(value) {
-  const numeric = Number(value || 0);
-  return Number.isInteger(numeric) ? numeric : numeric.toFixed(2);
+function updateSessionStatus(sessionId, status, extra = {}) {
+  const idx = sessions.value.findIndex(s => s.session_id === sessionId);
+  if (idx >= 0) {
+    sessions.value[idx] = { ...sessions.value[idx], status, ...extra };
+  }
 }
 
-function formatDateTime(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+async function approveSession() {
+  if (reviewSubmitting.value) return;
+  reviewSubmitting.value = true;
+  try {
+    const decisions = questionResults.value.map(qr => ({
+      question_number: qr.question_number,
+      awarded_points: typeof reviewDecisions[qr.question_number] === 'number'
+        ? reviewDecisions[qr.question_number]
+        : qr.awarded_points,
+    }));
+
+    const res = await api.reviewGradingSession(currentSessionId.value, {
+      action: 'approve',
+      decisions,
+    });
+
+    if (res.success) {
+      updateSessionStatus(currentSessionId.value, 'approved', {
+        normalised_grade: res.normalised_grade,
+      });
+      isReviewing.value = false;
+
+      if (res.next_session_id) {
+        await runSession(res.next_session_id);
+      } else {
+        step.value = 'complete';
+      }
+    }
+  } catch (err) {
+    gradingError.value = err.message || 'Failed to save review';
+  } finally {
+    reviewSubmitting.value = false;
+  }
 }
 
-onMounted(bootstrapPage);
+async function cancelSession() {
+  if (reviewSubmitting.value) return;
+  reviewSubmitting.value = true;
+  try {
+    const res = await api.reviewGradingSession(currentSessionId.value, {
+      action: 'cancel',
+      decisions: [],
+    });
+
+    if (res.success) {
+      updateSessionStatus(currentSessionId.value, 'cancelled');
+      isReviewing.value = false;
+
+      if (res.next_session_id) {
+        await runSession(res.next_session_id);
+      } else {
+        step.value = 'complete';
+      }
+    }
+  } catch (err) {
+    gradingError.value = err.message || 'Failed to cancel session';
+  } finally {
+    reviewSubmitting.value = false;
+  }
+}
+
+// ── Reset / start-over ────────────────────────────────────────────
+function startOver() {
+  selectedClass.value      = null;
+  step.value               = 'classes';
+  setupMode.value          = 'new';
+  examTitle.value          = '';
+  examCategory.value       = 'EXERCISE';
+  examPaperFile.value      = null;
+  selectedExamPaperId.value = null;
+  existingExamPapers.value = [];
+  correctionFile.value     = null;
+  preferences.value        = '';
+  styleGuide.value         = '';
+  selectedLessonIds.value  = [];
+  classLessons.value       = [];
+  blueprints.value         = [];
+  selectedBlueprintId.value = null;
+  blueprintId.value        = null;
+  analyseThinking.value    = '';
+  analyseContent.value     = '';
+  analyseToolEvents.value  = [];
+  analyseError.value       = '';
+  setupError.value         = '';
+  students.value           = [];
+  examTypes.value          = [];
+  selectedExamTypeId.value = null;
+  Object.keys(studentFiles).forEach(k => delete studentFiles[k]);
+  batchId.value            = null;
+  sessions.value           = [];
+  currentSessionId.value   = null;
+  questionResults.value    = [];
+  gradingError.value       = '';
+  isReviewing.value        = false;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function formatSize(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  try {
+    return new Date(str).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch { return str; }
+}
+
+function truncateName(name, max) {
+  return name.length > max ? name.slice(0, max) + '…' : name;
+}
+
+function adjustColor(color, percent) {
+  if (!color) return '#3b82f6';
+  const num = parseInt(color.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+  const R2 = R.toString(16).padStart(2, '0');
+  const G2 = G.toString(16).padStart(2, '0');
+  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+  const B2 = B.toString(16).padStart(2, '0');
+  return `#${R2}${G2}${B2}`;
+}
+
+// ── Mount: handle ?classId query param ────────────────────────────
+onMounted(async () => {
+  await loadClasses();
+  const qClassId = route.query.classId ? parseInt(route.query.classId) : null;
+  if (qClassId) {
+    const found = classes.value.find(c => c.id === qClassId);
+    if (found) await selectClass(found);
+  }
+});
 </script>
