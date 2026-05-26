@@ -160,7 +160,8 @@ import {
   ChartBarIcon,
   DocumentArrowUpIcon,
   EnvelopeIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  AcademicCapIcon
 } from '@heroicons/vue/24/outline';
 import { useAuthStore }    from '@/stores/auth';
 import { useClassesStore } from '@/stores/classesStore';
@@ -174,12 +175,13 @@ const sidebarExpanded  = ref(true);
 const expandedClasses  = ref(new Set());
 
 const navigation = [
-  { name: 'Dashboard',     to: '/',              icon: HomeIcon },
-  { name: 'Timetable',     to: '/timetable',     icon: CalendarIcon },
-  { name: 'Lessons',       to: '/lessons',       icon: DocumentTextIcon },
-  { name: 'Creator',       to: '/creator',       icon: SparklesIcon },
-  { name: 'Grading',       to: '/grading',       icon: ClipboardDocumentListIcon },
-  { name: 'Notifications', to: '/notifications', icon: BellIcon },
+  { name: 'Dashboard',          to: '/',              icon: HomeIcon },
+  { name: 'Timetable',          to: '/timetable',     icon: CalendarIcon },
+  { name: 'Lessons',            to: '/lessons',       icon: DocumentTextIcon },
+  { name: 'Pedagogical',  to: '/pedagogical',   icon: AcademicCapIcon },
+  { name: 'Creator',            to: '/creator',       icon: SparklesIcon },
+  { name: 'Grading',            to: '/grading',       icon: ClipboardDocumentListIcon },
+  { name: 'Notifications',      to: '/notifications', icon: BellIcon },
 ];
 
 function classSubLinks(classId) {
