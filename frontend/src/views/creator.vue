@@ -6,7 +6,8 @@
         <p class="text-grey-600 mt-1">Generate grounded exams from class lesson PDFs, preview them, then export them as PDF.</p>
       </div>
       <button
-        @click="openNewSessionModal"
+        v-if="selectedClassId && workspace.mode === 'idle'"
+        @click="startNewSessionForClass"
         class="flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-6 py-3 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 shadow-sm transition"
       >
         <PlusIcon class="w-5 h-5" />
@@ -19,26 +20,67 @@
     </div>
 
     <template v-else>
-      <section v-if="workspace.mode === 'idle'" class="space-y-6">
+      <section v-if="!selectedClassId" class="space-y-6">
+        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold text-grey-900">Select a Class</h2>
+            <p class="text-sm text-grey-600 mt-1">Choose a class to view past exam sessions or create a new one.</p>
+          </div>
+          
+          <div v-if="classes.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
+            <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
+            <p class="text-grey-600">Create a class in the Dashboard to get started.</p>
+          </div>
+          
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              v-for="cls in classes"
+              :key="cls.id"
+              @click="selectClass(cls.id)"
+              class="cursor-pointer group relative bg-white rounded-2xl p-6 border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden"
+              :style="{ borderColor: cls.color || '#3b82f6', boxShadow: `0 4px 20px ${cls.color || '#3b82f6'}20` }"
+            >
+              <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-700"
+                   :style="{ background: `linear-gradient(135deg, ${cls.color || '#3b82f6'} 0%, ${adjustColor(cls.color || '#3b82f6', -15)} 100%)` }">
+              </div>
+              <div class="relative flex items-start justify-between z-10">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm mb-4"
+                     :style="{ background: `linear-gradient(135deg, ${cls.color || '#3b82f6'} 0%, ${adjustColor(cls.color || '#3b82f6', -15)} 100%)` }">
+                  {{ cls.name.charAt(0).toUpperCase() }}
+                </div>
+              </div>
+              <div class="relative z-10">
+                <h3 class="font-bold text-xl text-grey-900 group-hover:text-primary-600 transition-colors">{{ cls.name }}</h3>
+                <p class="text-grey-500 text-sm mt-1">{{ cls.subject || 'No subject' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-else-if="selectedClassId && workspace.mode === 'idle'" class="space-y-6">
         <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
             <div class="flex items-start justify-between gap-4 mb-6">
               <div>
+                <button @click="selectedClassId = null" class="flex items-center gap-2 text-sm text-grey-500 hover:text-grey-700 mb-2 transition">
+                  <ChevronLeftIcon class="w-4 h-4" /> Back to Classes
+                </button>
                 <h2 class="text-xl font-semibold text-grey-900">Previous Sessions</h2>
                 <p class="text-sm text-grey-600 mt-1">Reopen an exam generation session to preview, refine, or download it.</p>
               </div>
-              <span class="text-sm text-grey-500">{{ sessions.length }} session{{ sessions.length !== 1 ? 's' : '' }}</span>
+              <span class="text-sm text-grey-500">{{ filteredSessions.length }} session{{ filteredSessions.length !== 1 ? 's' : '' }}</span>
             </div>
 
             <div v-if="sessionsLoading" class="flex items-center justify-center py-16">
               <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
             </div>
 
-            <div v-else-if="sessions.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 rounded-2xl">
+            <div v-else-if="filteredSessions.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 rounded-2xl">
               <SparklesIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
               <h3 class="text-lg font-medium text-grey-900 mb-2">No creator sessions yet</h3>
               <p class="text-grey-600 mb-6">Start a session to generate your first exam from lesson documents.</p>
               <button
-                @click="openNewSessionModal"
+                @click="startNewSessionForClass"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
               >
                 <PlusIcon class="w-4 h-4" />
@@ -48,7 +90,7 @@
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <article
-                v-for="session in sessions"
+                v-for="session in filteredSessions"
                 :key="session.session_id"
                 class="rounded-xl border border-grey-200 bg-grey-50/70 overflow-hidden hover:shadow-md transition"
               >
@@ -154,8 +196,8 @@
                   <label class="block text-sm font-medium text-grey-700 mb-2">Class *</label>
                   <select
                     v-model="draft.classId"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    @change="handleDraftClassChange"
+                    disabled
+                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg bg-grey-100 text-grey-700 cursor-not-allowed"
                   >
                     <option :value="null" disabled>Select a class</option>
                     <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.name }}</option>
@@ -719,71 +761,6 @@
         </div>
       </section>
     </template>
-
-    <TransitionRoot :show="showCreateModal" as="template">
-      <Dialog @close="closeCreateModal" class="relative z-50">
-        <TransitionChild enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100"
-          leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
-          <div class="fixed inset-0 bg-black/25 backdrop-blur-sm" />
-        </TransitionChild>
-
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4">
-            <TransitionChild enter="ease-out duration-300" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
-              leave="ease-in duration-200" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-md bg-white rounded-2xl shadow-xl">
-                <div class="p-6 border-b border-grey-200">
-                  <DialogTitle class="text-xl font-semibold text-grey-900">Create New Session</DialogTitle>
-                  <p class="text-sm text-grey-600 mt-1">This follows the dashboard-style flow: create a session shell first, then configure the full exam inside it.</p>
-                </div>
-
-                <form @submit.prevent="startDraftWorkspace" class="p-6 space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Session Title *</label>
-                    <input
-                      v-model="draft.title"
-                      type="text"
-                      required
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="Mid-term Exam 2026"
-                    />
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Class *</label>
-                    <select
-                      v-model="draft.classId"
-                      required
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    >
-                      <option :value="null" disabled>Select a class</option>
-                      <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.name }}</option>
-                    </select>
-                  </div>
-
-                  <div class="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      @click="closeCreateModal"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      :disabled="creatingSession"
-                      class="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white px-4 py-2.5 rounded-lg font-medium hover:from-primary-700 hover:to-primary-600 transition disabled:opacity-50"
-                    >
-                      {{ creatingSession ? 'Opening...' : 'Continue' }}
-                    </button>
-                  </div>
-                </form>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </div>
-      </Dialog>
-    </TransitionRoot>
   </div>
 </template>
 
@@ -820,11 +797,53 @@ const languageOptions = [
 const loadingPage = ref(true);
 const sessionsLoading = ref(false);
 const retryingOverview = ref(false);
-const showCreateModal = ref(false);
 const creatingSession = ref(false);
 const sessions = ref([]);
 const allUploads = ref([]);
 const activeSession = ref(null);
+const selectedClassId = ref(null);
+
+const filteredSessions = computed(() => {
+  if (!selectedClassId.value) return [];
+  return sessions.value.filter(s => s.preferences?.class_id === selectedClassId.value);
+});
+
+function adjustColor(color, percent) {
+  if (!color) return '#3b82f6';
+  const num = parseInt(color.replace('#', ''), 16),
+        amt = Math.round(2.55 * percent),
+        R = (num >> 16) + amt,
+        G = (num >> 8 & 0x00FF) + amt,
+        B = (num & 0x0000FF) + amt;
+  return `#${(
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  ).toString(16).slice(1)}`;
+}
+
+function selectClass(classId) {
+  selectedClassId.value = classId;
+}
+
+async function startNewSessionForClass() {
+  resetDraft();
+  resetStream();
+  activeSession.value = null;
+  refinement.prompt = '';
+  refinement.notes = '';
+  draft.classId = selectedClassId.value;
+  draft.title = 'New Session';
+  
+  creatingSession.value = true;
+  try {
+    workspace.mode = 'draft';
+    await loadDraftClassFiles();
+  } finally {
+    creatingSession.value = false;
+  }
+}
 
 const workspace = reactive({
   mode: 'idle',
@@ -870,7 +889,7 @@ const refinement = reactive({
 
 const stream = reactive({
   isStreaming: false,
-  reasoning: false,
+  reasoning: true,
   narrative: '',
   thinking: '',
   toolEvents: [],
@@ -1335,6 +1354,7 @@ async function generateNewSession() {
         doc_ids: draft.docIds,
         title: draft.title.trim(),
         preferences: {
+          class_id: draft.classId,
           topics: parseTopics(draft.topicsText),
           difficulty_distribution: difficultyDistributionForBackend(),
           exercise_types: draft.exerciseTypes,

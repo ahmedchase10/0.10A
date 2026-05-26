@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 # ─── Pydantic schemas ─────────────────────────────────────────────────────────
 
 class ExamPreferences(BaseModel):
+    class_id: Optional[int] = None
     topics: List[str] = Field(default_factory=list)
     difficulty_distribution: Dict[str, int] = Field(
         default_factory=lambda: {"easy": 30, "medium": 50, "hard": 20}
@@ -354,6 +355,7 @@ def list_exam_sessions(
                 "session_id": r.id,
                 "title": r.title,
                 "doc_ids": json.loads(r.doc_ids) if r.doc_ids else [],
+                "preferences": json.loads(r.preferences) if r.preferences else {},
                 "loop_count": r.loop_count,
                 "has_exam": bool(r.exam_json),
                 "created_at": r.created_at,
