@@ -124,7 +124,6 @@ The application will open at **`http://localhost:3000`**
 ### **7. Settings & Preferences**
 - Update profile information
 - Change password securely
-- Configure notification preferences
 - Set language and timezone
 - Customize appearance (light theme, dark coming soon)
 
@@ -299,7 +298,6 @@ The application will open at **`http://localhost:3000`**
 
 #### **3. Preferences Tab**
 - **Notifications**:
-  - Email notifications toggle
   - Weekly reports toggle
   - Attendance reminders toggle
 - **Language & Region**:
@@ -765,7 +763,6 @@ npm run build
 2. Add students to classes
 3. Explore AI command features
 4. Set up weekly timetable
-5. Configure notification preferences
 
 ---
 
@@ -855,7 +852,6 @@ frontend/
 │   │   ├── classlessons.vue      # /class/:id/lessons (class-scoped)
 │   │   ├── lessons.vue           # /lessons — global lessons view (all classes)
 │   │   ├── timetable.vue         # /timetable
-│   │   ├── notifications.vue     # /notifications
 │   │   └── settings.vue          # /settings
 │   ├── stores/
 │   │   ├── auth.js               # Pinia — token, user, login/logout
@@ -893,7 +889,6 @@ All routes except `/auth` are children of the `appLayout` wrapper (requires auth
 /                         → dashboard.vue
 /timetable                → timetable.vue
 /lessons                  → lessons.vue       (all-classes view)
-/notifications            → notifications.vue
 /settings                 → settings.vue
 /class/:id                → classpage.vue     (class hub)
 /class/:id/students       → classstudents.vue

@@ -1,24 +1,24 @@
 <template>
-  <div class="flex h-full bg-grey-50">
+  <div class="flex h-full bg-grey-50 dark:bg-grey-950 transition-colors duration-300">
 
     <!-- ── LEFT PANEL: Setup / Sessions ─────────────────────────────────── -->
-    <aside class="w-80 flex-shrink-0 bg-white border-r border-grey-200 flex flex-col overflow-hidden">
+    <aside class="w-80 flex-shrink-0 bg-white dark:bg-grey-900 border-r border-grey-200 dark:border-grey-800 flex flex-col overflow-hidden">
 
       <!-- Panel header -->
-      <div class="flex items-center gap-3 px-5 py-4 border-b border-grey-200 flex-shrink-0">
+      <div class="flex items-center gap-3 px-5 py-4 border-b border-grey-200 dark:border-grey-800 flex-shrink-0">
         <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
           <AcademicCapIcon class="w-5 h-5 text-white" />
         </div>
         <div class="flex-1 min-w-0">
-          <h1 class="text-sm font-bold text-grey-900">Pedagogical Agent</h1>
-          <p class="text-xs text-grey-500">AI tutor for your lesson files</p>
+          <h1 class="text-sm font-bold text-grey-900 dark:text-grey-50">Pedagogical Agent</h1>
+          <p class="text-xs text-grey-500 dark:text-grey-400">AI tutor for your lesson files</p>
         </div>
         <!-- Reasoning toggle -->
         <label class="flex items-center gap-1.5 cursor-pointer flex-shrink-0" title="Enable deep reasoning">
           <span class="text-xs text-grey-500 font-medium">Think</span>
           <div
             class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-            :class="agent.reasoning ? 'bg-indigo-500' : 'bg-grey-200'"
+            :class="agent.reasoning ? 'bg-sky-500' : 'bg-grey-200 dark:bg-grey-700'"
             @click="agent.reasoning = !agent.reasoning"
           >
             <span
@@ -45,7 +45,7 @@
               Leave Class
             </button>
           </div>
-          <div v-if="classes.length === 0" class="text-sm text-grey-400 p-3 text-center border border-dashed border-grey-200 rounded-xl">
+          <div v-if="classes.length === 0" class="text-sm text-grey-400 dark:text-grey-500 p-3 text-center border border-dashed border-grey-200 dark:border-grey-800 rounded-xl">
             No classes available.
           </div>
           <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
@@ -54,9 +54,9 @@
               :key="cls.id"
               @click="selectClass(cls.id)"
               class="w-full text-left px-3 py-2 rounded-xl border transition-all duration-200 flex items-center gap-3 relative overflow-hidden group"
-              :class="agent.selectedClassId === cls.id
-                ? 'border-indigo-400 bg-indigo-50/30 ring-1 ring-indigo-200/50 shadow-xs'
-                : 'border-grey-200 bg-white hover:bg-grey-50 hover:border-grey-300'"
+                :class="agent.selectedClassId === cls.id
+                ? 'border-sky-400 bg-sky-50/30 dark:bg-sky-950/20 ring-1 ring-sky-200/50 shadow-xs'
+                : 'border-grey-200 bg-white dark:bg-grey-900 hover:bg-grey-50 dark:hover:bg-grey-800 hover:border-grey-300 dark:border-grey-800'"
             >
               <!-- Color strip on selected class or hover -->
               <div
@@ -74,9 +74,9 @@
               </div>
               
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-grey-900 truncate">{{ cls.name }}</p>
-                <p class="text-xs text-grey-500 truncate" v-if="cls.subject">{{ cls.subject }}</p>
-                <p class="text-xs text-grey-400 truncate" v-else>No subject</p>
+                <p class="text-sm font-semibold text-grey-900 dark:text-grey-50 truncate">{{ cls.name }}</p>
+                <p class="text-xs text-grey-500 dark:text-grey-400 truncate" v-if="cls.subject">{{ cls.subject }}</p>
+                <p class="text-xs text-grey-400 dark:text-grey-500 truncate" v-else>No subject</p>
               </div>
 
               <!-- Selected indicator dot -->
@@ -102,7 +102,7 @@
             </div>
             <div
               v-else-if="agent.classFiles.length === 0"
-              class="text-sm text-grey-500 border border-dashed border-grey-200 rounded-xl p-4 text-center leading-relaxed"
+                class="text-sm text-grey-500 dark:text-grey-400 border border-dashed border-grey-200 dark:border-grey-800 rounded-xl p-4 text-center leading-relaxed"
             >
               No embedded files yet.<br>
               <span class="text-xs">Upload files via the class lessons page first.</span>
@@ -113,8 +113,8 @@
                 :key="f.id"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition"
                 :class="agent.selectedFileIds.includes(f.id)
-                  ? 'border-indigo-400 bg-indigo-50 ring-1 ring-indigo-200'
-                  : 'border-grey-200 hover:bg-grey-50'"
+                  ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/20 ring-1 ring-sky-200'
+                  : 'border-grey-200 hover:bg-grey-50 dark:border-grey-800 dark:hover:bg-grey-800'"
               >
                 <input
                   type="checkbox"
@@ -128,11 +128,11 @@
                 </div>
                 <span
                   v-if="f.embedded"
-                  class="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium"
+                  class="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-medium"
                 >Ready</span>
                 <span
                   v-else
-                  class="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium"
+                  class="flex-shrink-0 text-xs px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-medium"
                 >Pending</span>
               </label>
             </div>
@@ -166,8 +166,8 @@
                 :key="s.thread_id"
                 class="flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer group transition"
                 :class="agent.currentSessionId === s.thread_id
-                  ? 'border-indigo-400 bg-indigo-50 ring-1 ring-indigo-200'
-                  : 'border-grey-200 hover:bg-grey-50'"
+                  ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/20 ring-1 ring-sky-200'
+                  : 'border-grey-200 hover:bg-grey-50 dark:border-grey-800 dark:hover:bg-grey-800'"
                 @click="openSession(s)"
               >
                 <ChatBubbleLeftRightIcon class="w-4 h-4 text-grey-400 flex-shrink-0" />
@@ -198,7 +198,7 @@
           <!-- Start chat button -->
           <button
             @click="startChat"
-            :disabled="agent.selectedFileIds.length === 0 || !agent.currentSessionId"
+            :disabled="!agent.currentSessionId"
             class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-4 py-2.5 rounded-xl font-semibold hover:from-indigo-700 hover:to-indigo-600 transition disabled:opacity-40 text-sm shadow-sm"
           >
             <AcademicCapIcon class="w-4 h-4" />
@@ -231,7 +231,7 @@
         <div class="text-center max-w-sm">
           <h2 class="text-2xl font-bold text-grey-900 mb-2">Pedagogical Agent</h2>
           <p class="text-grey-500 text-sm leading-relaxed">
-            Select a class, choose lesson files, pick or create a session, then click <strong>Start Chat</strong> to begin an AI-powered tutoring session.
+            Select a class, pick or create a session, then click <strong>Start Chat</strong> to begin an AI-powered tutoring session. Lesson files are optional.
           </p>
         </div>
         <div class="flex flex-wrap gap-3 justify-center mt-2">
@@ -267,7 +267,10 @@
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-grey-900 truncate">{{ agent.activeSession.title }}</p>
             <p class="text-xs text-grey-500">
-              {{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached
+              <span v-if="agent.selectedFileIds.length > 0">
+                {{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached
+              </span>
+              <span v-else>No lesson files attached</span>
             </p>
           </div>
           <div v-if="agent.isStreaming" class="flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
@@ -297,7 +300,7 @@
 
               <!-- User bubble -->
               <div v-if="msg.role === 'user'" class="flex justify-end">
-                <div class="max-w-[72%] bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+                <div class="max-w-[72%] bg-sky-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
                   {{ msg.content }}
                 </div>
               </div>
@@ -318,7 +321,7 @@
                       <span class="text-grey-300">·</span>
                       <span class="text-grey-400">click to expand</span>
                     </summary>
-                    <pre class="mt-2 text-xs text-grey-500 bg-amber-50/70 border border-amber-100 rounded-xl px-3 py-2.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto font-mono custom-scrollbar">{{ normalizeAgentText(msg.thinking) }}</pre>
+                    <pre class="mt-2 text-xs text-grey-500 dark:text-grey-400 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 rounded-xl px-3 py-2.5 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto font-mono custom-scrollbar">{{ normalizeAgentText(msg.thinking) }}</pre>
                   </details>
 
                   <!-- Tool activity pills -->
@@ -337,7 +340,7 @@
                   <!-- Answer -->
                   <div
                     v-if="msg.content"
-                    class="bg-white border border-grey-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed text-grey-800 whitespace-pre-wrap shadow-sm"
+                    class="bg-white dark:bg-grey-900 border border-grey-200 dark:border-grey-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed text-grey-800 dark:text-grey-200 whitespace-pre-wrap shadow-sm"
                   >{{ normalizeAgentText(msg.content) }}</div>
 
                   <!-- Streaming cursor -->
@@ -378,7 +381,7 @@
             <button
               @click="sendMessage"
               :disabled="!agent.prompt.trim() || agent.isStreaming"
-              class="flex-shrink-0 p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition disabled:opacity-40 shadow-sm"
+              class="flex-shrink-0 p-3 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition disabled:opacity-40 shadow-sm"
               title="Send (Enter)"
             >
               <PaperAirplaneIcon class="w-4 h-4" />
@@ -640,15 +643,11 @@ async function sendMessage() {
   const prompt = agent.prompt.trim();
   if (!prompt || agent.isStreaming) return;
 
-  // Only send embedded files
+  // Send embedded files when available, otherwise allow session-only chat.
   const embeddedIds = agent.selectedFileIds.filter(id => {
     const f = agent.classFiles.find(f => f.id === id);
     return f && f.embedded;
   });
-  if (embeddedIds.length === 0) {
-    agent.streamError = 'Please select at least one embedded (Ready) file before asking.';
-    return;
-  }
 
   agent.prompt = '';
   agent.streamError = null;

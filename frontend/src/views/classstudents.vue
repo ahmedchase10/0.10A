@@ -1,19 +1,19 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-slate-950 text-slate-100">
     <!-- Header -->
-    <div class="bg-white border-b border-grey-200 px-8 py-6">
-      <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
+    <div class="bg-slate-900/95 border-b border-slate-800 px-8 py-6">
+      <div class="flex items-center gap-2 text-sm text-slate-400 mb-4">
         <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition flex items-center gap-1">
           <ChevronLeftIcon class="w-4 h-4" />
           Back to Class
         </router-link>
         <span>/</span>
-        <span class="text-grey-900 font-medium">Students</span>
+        <span class="text-slate-100 font-medium">Students</span>
       </div>
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-grey-900 mb-1">Students</h1>
-          <p class="text-grey-600">{{ students.length }} student{{ students.length !== 1 ? 's' : '' }} enrolled</p>
+          <h1 class="text-3xl font-bold text-slate-100 mb-1">Students</h1>
+          <p class="text-slate-400">{{ students.length }} student{{ students.length !== 1 ? 's' : '' }} enrolled</p>
         </div>
         <button
           @click="showAddModal = true"
@@ -32,10 +32,10 @@
       </div>
 
       <!-- Empty -->
-      <div v-else-if="students.length === 0" class="bg-white rounded-xl border border-grey-200 shadow-sm p-16 text-center">
-        <UserGroupIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-grey-900 mb-2">No students yet</h3>
-        <p class="text-grey-600 mb-6">Add your first student to get started.</p>
+      <div v-else-if="students.length === 0" class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm p-16 text-center">
+        <UserGroupIcon class="w-14 h-14 text-slate-500 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-slate-100 mb-2">No students yet</h3>
+        <p class="text-slate-400 mb-6">Add your first student to get started.</p>
         <button @click="showAddModal = true"
           class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition">
           <PlusIcon class="w-5 h-5" />
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Table -->
-      <div v-else class="bg-white rounded-xl border border-grey-200 shadow-sm overflow-hidden">
+      <div v-else class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-grey-50 border-b border-grey-200">
             <tr>

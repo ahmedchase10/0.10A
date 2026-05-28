@@ -340,30 +340,6 @@ class ApiService {
 
   // ─── Notifications ────────────────────────────────────────────────────────
 
-  async getNotifications() {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
-      method: 'GET',
-      headers: this.getHeaders(true)
-    });
-    return this.handleResponse(response);
-  }
-
-  async markNotificationRead(notificationId) {
-    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-      method: 'PUT',
-      headers: this.getHeaders(true)
-    });
-    return this.handleResponse(response);
-  }
-
-  async deleteNotification(notificationId) {
-    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(true)
-    });
-    return this.handleResponse(response);
-  }
-
   // ─── Attendance ───────────────────────────────────────────────────────────
 
   async createAttendance(data) {
@@ -659,7 +635,7 @@ class ApiService {
   // ─── Grading Agent — Exam Papers ────────────────────────────────────────
 
   async uploadGradingExamPaper(formData) {
-    const response = await fetch(`${API_BASE_URL}/agents/grading/exam-papers`, {
+    const response = await fetch(`${API_BASE_URL}/exams/upload`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${this.token}` },
       body: formData,
@@ -669,7 +645,7 @@ class ApiService {
 
   async listGradingExamPapers(classId) {
     const params = new URLSearchParams({ class_id: String(classId) });
-    const response = await fetch(`${API_BASE_URL}/agents/grading/exam-papers?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/exams?${params}`, {
       method: 'GET',
       headers: this.getHeaders(true),
     });
@@ -678,7 +654,7 @@ class ApiService {
 
   async deleteGradingExamPaper(paperId) {
     const response = await fetch(
-      `${API_BASE_URL}/agents/grading/exam-papers/${encodeURIComponent(String(paperId))}`,
+      `${API_BASE_URL}/exams/delete/${encodeURIComponent(String(paperId))}`,
       { method: 'DELETE', headers: this.getHeaders(true) }
     );
     return this.handleResponse(response);

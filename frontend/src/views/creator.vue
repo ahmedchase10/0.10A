@@ -1,9 +1,9 @@
 <template>
-  <div class="p-8 space-y-8">
+  <div class="p-8 space-y-8 bg-grey-50 dark:bg-grey-950 min-h-full transition-colors duration-300">
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-grey-900">Creator Agent</h1>
-        <p class="text-grey-600 mt-1">Generate grounded exams from class lesson PDFs, preview them, then export them as PDF.</p>
+        <h1 class="text-3xl font-bold text-grey-900 dark:text-grey-50">Creator Agent</h1>
+        <p class="text-grey-600 dark:text-grey-400 mt-1">Generate grounded exams from class lesson PDFs, preview them, then export them as PDF.</p>
       </div>
       <button
         v-if="selectedClassId && workspace.mode === 'idle'"
@@ -21,15 +21,15 @@
 
     <template v-else>
       <section v-if="!selectedClassId" class="space-y-6">
-        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 shadow-sm p-6">
           <div class="mb-6">
-            <h2 class="text-xl font-semibold text-grey-900">Select a Class</h2>
-            <p class="text-sm text-grey-600 mt-1">Choose a class to view past exam sessions or create a new one.</p>
+            <h2 class="text-xl font-semibold text-grey-900 dark:text-grey-50">Select a Class</h2>
+            <p class="text-sm text-grey-600 dark:text-grey-400 mt-1">Choose a class to view past exam sessions or create a new one.</p>
           </div>
           
-          <div v-if="classes.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
-            <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
-            <p class="text-grey-600">Create a class in the Dashboard to get started.</p>
+          <div v-if="classes.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 dark:border-grey-800 rounded-2xl">
+            <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No classes yet</h3>
+            <p class="text-grey-600 dark:text-grey-400">Create a class in the Dashboard to get started.</p>
           </div>
           
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -37,7 +37,7 @@
               v-for="cls in classes"
               :key="cls.id"
               @click="selectClass(cls.id)"
-              class="cursor-pointer group relative bg-white rounded-2xl p-6 border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden"
+              class="cursor-pointer group relative bg-white dark:bg-grey-900 rounded-2xl p-6 border border-grey-200 dark:border-grey-800 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden"
               :style="{ borderColor: cls.color || '#3b82f6', boxShadow: `0 4px 20px ${cls.color || '#3b82f6'}20` }"
             >
               <div class="absolute top-0 right-0 w-32 h-32 transform translate-x-16 -translate-y-16 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-700"
@@ -50,8 +50,8 @@
                 </div>
               </div>
               <div class="relative z-10">
-                <h3 class="font-bold text-xl text-grey-900 group-hover:text-primary-600 transition-colors">{{ cls.name }}</h3>
-                <p class="text-grey-500 text-sm mt-1">{{ cls.subject || 'No subject' }}</p>
+                <h3 class="font-bold text-xl text-grey-900 dark:text-grey-50 group-hover:text-primary-600 transition-colors">{{ cls.name }}</h3>
+                <p class="text-grey-500 dark:text-grey-400 text-sm mt-1">{{ cls.subject || 'No subject' }}</p>
               </div>
             </div>
           </div>
@@ -59,26 +59,26 @@
       </section>
 
       <section v-else-if="selectedClassId && workspace.mode === 'idle'" class="space-y-6">
-        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 shadow-sm p-6">
             <div class="flex items-start justify-between gap-4 mb-6">
               <div>
                 <button @click="selectedClassId = null" class="flex items-center gap-2 text-sm text-grey-500 hover:text-grey-700 mb-2 transition">
                   <ChevronLeftIcon class="w-4 h-4" /> Back to Classes
                 </button>
-                <h2 class="text-xl font-semibold text-grey-900">Previous Sessions</h2>
-                <p class="text-sm text-grey-600 mt-1">Reopen an exam generation session to preview, refine, or download it.</p>
+                <h2 class="text-xl font-semibold text-grey-900 dark:text-grey-50">Previous Sessions</h2>
+                <p class="text-sm text-grey-600 dark:text-grey-400 mt-1">Reopen an exam generation session to preview, refine, or download it.</p>
               </div>
-              <span class="text-sm text-grey-500">{{ filteredSessions.length }} session{{ filteredSessions.length !== 1 ? 's' : '' }}</span>
+              <span class="text-sm text-grey-500 dark:text-grey-400">{{ filteredSessions.length }} session{{ filteredSessions.length !== 1 ? 's' : '' }}</span>
             </div>
 
             <div v-if="sessionsLoading" class="flex items-center justify-center py-16">
               <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
             </div>
 
-            <div v-else-if="filteredSessions.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 rounded-2xl">
-              <SparklesIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-              <h3 class="text-lg font-medium text-grey-900 mb-2">No creator sessions yet</h3>
-              <p class="text-grey-600 mb-6">Start a session to generate your first exam from lesson documents.</p>
+            <div v-else-if="filteredSessions.length === 0" class="text-center py-16 border-2 border-dashed border-grey-200 dark:border-grey-800 rounded-2xl">
+              <SparklesIcon class="w-14 h-14 text-grey-300 dark:text-grey-600 mx-auto mb-4" />
+              <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No creator sessions yet</h3>
+              <p class="text-grey-600 dark:text-grey-400 mb-6">Start a session to generate your first exam from lesson documents.</p>
               <button
                 @click="startNewSessionForClass"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition"
@@ -92,13 +92,13 @@
               <article
                 v-for="session in filteredSessions"
                 :key="session.session_id"
-                class="rounded-xl border border-grey-200 bg-grey-50/70 overflow-hidden hover:shadow-md transition"
+                class="rounded-xl border border-grey-200 dark:border-grey-800 bg-grey-50/70 dark:bg-grey-950/50 overflow-hidden hover:shadow-md transition"
               >
                 <div class="p-5 space-y-4">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <h3 class="font-semibold text-grey-900 truncate" :title="session.title">{{ session.title }}</h3>
-                      <p class="text-xs text-grey-500 mt-1">{{ formatDate(session.created_at) }}</p>
+                      <h3 class="font-semibold text-grey-900 dark:text-grey-100 truncate" :title="session.title">{{ session.title }}</h3>
+                      <p class="text-xs text-grey-500 dark:text-grey-400 mt-1">{{ formatDate(session.created_at) }}</p>
                     </div>
                     <span
                       class="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium"
@@ -108,7 +108,7 @@
                     </span>
                   </div>
 
-                  <div class="space-y-2 text-sm text-grey-600">
+                  <div class="space-y-2 text-sm text-grey-600 dark:text-grey-400">
                     <p>{{ session.doc_ids.length }} document{{ session.doc_ids.length !== 1 ? 's' : '' }}</p>
                     <p v-if="session.loop_count > 0">Evaluator revisions: {{ session.loop_count }}</p>
                     <p class="line-clamp-2">{{ summarizeDocNames(session.doc_ids) }}</p>
@@ -135,8 +135,8 @@
       </section>
 
       <section v-else class="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-6 items-start">
-        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm overflow-hidden">
-          <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-grey-200">
+        <div class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 shadow-sm overflow-hidden">
+          <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-grey-200 dark:border-grey-800">
             <div class="min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <button
@@ -146,11 +146,11 @@
                 >
                   <ChevronLeftIcon class="w-4 h-4" />
                 </button>
-                <h2 class="text-xl font-semibold text-grey-900 truncate">
+                <h2 class="text-xl font-semibold text-grey-900 dark:text-grey-50 truncate">
                   {{ workspace.mode === 'draft' ? draft.title || 'New Session' : (activeSession?.title || 'Session') }}
                 </h2>
               </div>
-              <p class="text-sm text-grey-600">
+              <p class="text-sm text-grey-600 dark:text-grey-400">
                 {{ workspace.mode === 'draft'
                   ? 'Configure the first generation request for this exam session.'
                   : 'Refine the saved session or export the latest generated exam.' }}
@@ -158,7 +158,7 @@
             </div>
 
             <label class="flex items-center gap-2 cursor-pointer flex-shrink-0">
-              <span class="text-sm text-grey-600">Think</span>
+            <span class="text-sm text-grey-600 dark:text-grey-400">Think</span>
               <div
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                 :class="stream.reasoning ? 'bg-primary-500' : 'bg-grey-200'"
@@ -175,7 +175,7 @@
           <div class="p-6 space-y-6">
             <div
               v-if="stream.error"
-              class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              class="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 px-4 py-3 text-sm text-red-700 dark:text-red-200"
             >
               {{ stream.error }}
             </div>
@@ -183,11 +183,11 @@
             <template v-if="workspace.mode === 'draft'">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Session Title *</label>
+                  <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Session Title *</label>
                   <input
                     v-model="draft.title"
                     type="text"
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Mid-term Exam 2026"
                   />
                 </div>

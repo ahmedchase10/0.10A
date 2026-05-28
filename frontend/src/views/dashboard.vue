@@ -1,10 +1,10 @@
 <template>
-  <div class="p-8">
+  <div class="p-8 bg-grey-50 dark:bg-grey-950 min-h-full transition-colors duration-300">
     <!-- Header -->
     <div class="mb-8 flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-grey-900">My Classes</h1>
-        <p class="text-grey-600 mt-1">Manage your teaching schedule</p>
+        <h1 class="text-3xl font-bold text-grey-900 dark:text-grey-50">My Classes</h1>
+        <p class="text-grey-600 dark:text-grey-400 mt-1">Manage your teaching schedule</p>
       </div>
       <button
         @click="showCreateModal = true"
@@ -22,11 +22,11 @@
 
     <!-- Empty -->
     <div v-else-if="classesStore.classes.length === 0" class="text-center py-16">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-grey-100 rounded-full mb-4">
-        <AcademicCapIcon class="w-8 h-8 text-grey-400" />
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-grey-100 dark:bg-grey-800 rounded-full mb-4">
+        <AcademicCapIcon class="w-8 h-8 text-grey-400 dark:text-grey-300" />
       </div>
-      <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
-      <p class="text-grey-600 mb-6">Create your first class to get started</p>
+      <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No classes yet</h3>
+      <p class="text-grey-600 dark:text-grey-400 mb-6">Create your first class to get started</p>
       <button
         @click="showCreateModal = true"
         class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition"
@@ -41,7 +41,7 @@
       <div
         v-for="cls in classesStore.classes"
         :key="cls.id"
-        class="bg-white rounded-xl shadow-sm border border-grey-200 overflow-hidden hover:shadow-md transition group cursor-pointer"
+        class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800 overflow-hidden hover:shadow-md transition group cursor-pointer"
         @click="$router.push(`/class/${cls.id}`)"
       >
         <div
@@ -56,21 +56,21 @@
         </div>
 
         <div class="p-6 space-y-3">
-          <div class="flex items-start gap-2 text-sm text-grey-600">
+          <div class="flex items-start gap-2 text-sm text-grey-600 dark:text-grey-400">
             <ClockIcon class="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>{{ formatScheduleSummary(getClassSchedules(cls.id)) }}</span>
           </div>
-          <div class="flex items-center gap-2 text-sm text-grey-600">
+          <div class="flex items-center gap-2 text-sm text-grey-600 dark:text-grey-400">
             <HomeIcon class="w-4 h-4" />
             {{ formatClassrooms(getClassSchedules(cls.id)) }}
           </div>
-          <div class="flex items-center gap-2 text-sm text-grey-600">
+          <div class="flex items-center gap-2 text-sm text-grey-600 dark:text-grey-400">
             <BuildingOfficeIcon class="w-4 h-4" />
             {{ cls.school || 'No school set' }}
           </div>
         </div>
 
-        <div class="px-6 py-4 bg-grey-50 border-t border-grey-200">
+        <div class="px-6 py-4 bg-grey-50 dark:bg-grey-950 border-t border-grey-200 dark:border-grey-800">
           <button class="text-primary-600 font-medium text-sm hover:text-primary-700 transition flex items-center gap-2 group">
             Open Class
             <ChevronRightIcon class="w-4 h-4 group-hover:translate-x-1 transition" />
@@ -91,49 +91,49 @@
           <div class="flex min-h-full items-center justify-center p-4">
             <TransitionChild enter="ease-out duration-300" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
               leave="ease-in duration-200" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-md bg-white rounded-2xl shadow-xl">
-                <div class="p-6 border-b border-grey-200">
-                  <DialogTitle class="text-xl font-semibold text-grey-900">Create New Class</DialogTitle>
+              <DialogPanel class="w-full max-w-md bg-white dark:bg-grey-900 rounded-2xl shadow-xl border border-grey-200 dark:border-grey-800">
+                <div class="p-6 border-b border-grey-200 dark:border-grey-800">
+                  <DialogTitle class="text-xl font-semibold text-grey-900 dark:text-grey-50">Create New Class</DialogTitle>
                 </div>
 
                 <form @submit.prevent="handleCreateClass" class="p-6 space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Class Name *</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Class Name *</label>
                     <input
                       v-model="createForm.name"
                       type="text"
                       required
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="e.g. 3G - Mathematics"
                     />
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Subject</label>
+                      <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Subject</label>
                       <input
                         v-model="createForm.subject"
                         type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Mathematics"
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">School</label>
+                      <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">School</label>
                       <input
                         v-model="createForm.school"
                         type="text"
-                        class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Lycee Pilote"
                       />
                     </div>
                   </div>
 
-                  <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
+                  <div class="rounded-xl border border-grey-200 dark:border-grey-800 bg-grey-50 dark:bg-grey-950/70 p-4 space-y-4">
                     <div class="flex items-center justify-between gap-3">
                       <div>
-                        <h3 class="text-sm font-semibold text-grey-900">Timetable Sessions</h3>
-                        <p class="text-xs text-grey-500">Add one or more weekly sessions for this class.</p>
+                        <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-100">Timetable Sessions</h3>
+                        <p class="text-xs text-grey-500 dark:text-grey-400">Add one or more weekly sessions for this class.</p>
                       </div>
                       <button
                         type="button"
@@ -147,10 +147,10 @@
                     <div
                       v-for="(session, index) in createForm.sessions"
                       :key="`create-session-${index}`"
-                      class="rounded-lg border border-grey-200 bg-white p-3 space-y-3"
+                      class="rounded-lg border border-grey-200 dark:border-grey-800 bg-white dark:bg-grey-900 p-3 space-y-3"
                     >
                       <div class="flex items-center justify-between gap-3">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-grey-500">
+                          <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400">
                           Session {{ index + 1 }}
                         </p>
                         <button
@@ -165,11 +165,11 @@
 
                       <div class="grid grid-cols-2 gap-4">
                         <div>
-                          <label class="block text-sm font-medium text-grey-700 mb-2">Day *</label>
+                          <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Day *</label>
                           <select
                             v-model="session.day_of_week"
                             :required="index === 0"
-                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                            class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100"
                           >
                             <option :value="null" disabled>Select day</option>
                             <option v-for="day in dayOptions" :key="day.value" :value="day.value">
@@ -178,11 +178,11 @@
                           </select>
                         </div>
                         <div>
-                          <label class="block text-sm font-medium text-grey-700 mb-2">Classroom</label>
+                          <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Classroom</label>
                           <input
                             v-model="session.classroom"
                             type="text"
-                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             placeholder="Room 204"
                           />
                         </div>
@@ -190,21 +190,21 @@
 
                       <div class="grid grid-cols-2 gap-4">
                         <div>
-                          <label class="block text-sm font-medium text-grey-700 mb-2">Start Time *</label>
+                          <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Start Time *</label>
                           <input
                             v-model="session.start_time"
                             type="time"
                             :required="index === 0"
-                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           />
                         </div>
                         <div>
-                          <label class="block text-sm font-medium text-grey-700 mb-2">End Time *</label>
+                          <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">End Time *</label>
                           <input
                             v-model="session.end_time"
                             type="time"
                             :required="index === 0"
-                            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           />
                         </div>
                       </div>
@@ -212,7 +212,7 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Class Color</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Class Color</label>
                     <div class="grid grid-cols-6 gap-3">
                       <label v-for="color in colors" :key="color" class="relative cursor-pointer">
                         <input type="radio" v-model="createForm.color" :value="color" class="sr-only" />
@@ -224,7 +224,7 @@
                     </div>
                   </div>
 
-                  <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div v-if="error" class="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-lg p-3">
                     <p class="text-sm text-red-800">{{ error }}</p>
                   </div>
 
@@ -232,7 +232,7 @@
                     <button
                       type="button"
                       @click="showCreateModal = false"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+                      class="flex-1 px-4 py-2.5 border border-grey-300 dark:border-grey-700 text-grey-700 dark:text-grey-200 rounded-lg font-medium hover:bg-grey-50 dark:hover:bg-grey-800 transition"
                     >
                       Cancel
                     </button>

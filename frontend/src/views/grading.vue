@@ -1,16 +1,16 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50 dark:bg-grey-950 transition-colors duration-300">
 
     <!-- ─── Progress Header (all steps except class selection) ─── -->
-    <div v-if="step !== 'classes'" class="bg-white border-b border-grey-200 px-8 py-4 sticky top-0 z-10">
-      <div class="flex items-center gap-2 text-sm text-grey-600 mb-3">
-        <button @click="goBack" class="hover:text-primary-600 transition flex items-center gap-1 font-medium">
+    <div v-if="step !== 'classes'" class="bg-white dark:bg-grey-900 border-b border-grey-200 dark:border-grey-800 px-8 py-4 sticky top-0 z-10">
+      <div class="flex items-center gap-2 text-sm text-grey-600 dark:text-grey-400 mb-3">
+        <button @click="goBack" class="hover:text-primary-600 dark:hover:text-sky-400 transition flex items-center gap-1 font-medium">
           <ChevronLeftIcon class="w-4 h-4" />
           {{ backLabel }}
         </button>
         <template v-if="selectedClass">
           <span>/</span>
-          <span class="text-grey-900 font-medium">{{ selectedClass.name }}</span>
+          <span class="text-grey-900 dark:text-grey-50 font-medium">{{ selectedClass.name }}</span>
         </template>
       </div>
       <div class="flex items-center gap-1 flex-wrap">
@@ -19,19 +19,19 @@
             <div
               class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition"
               :class="currentStepIndex > idx
-                ? 'bg-emerald-100 text-emerald-700'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                 : currentStepIndex === idx
-                  ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300'
-                  : 'bg-grey-100 text-grey-400'"
+                  ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-800'
+                  : 'bg-grey-100 text-grey-400 dark:bg-grey-800 dark:text-grey-500'"
             >
               <CheckCircleIcon v-if="currentStepIndex > idx" class="w-3.5 h-3.5" />
               <span v-else class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
-                :class="currentStepIndex === idx ? 'bg-primary-600 text-white' : 'bg-grey-300 text-grey-500'">
+                :class="currentStepIndex === idx ? 'bg-primary-600 text-white' : 'bg-grey-300 text-grey-500 dark:bg-grey-700 dark:text-grey-300'">
                 {{ idx + 1 }}
               </span>
               <span class="hidden sm:block">{{ s.label }}</span>
             </div>
-            <ChevronRightIcon v-if="idx < visibleSteps.length - 1" class="w-3 h-3 text-grey-300 flex-shrink-0" />
+            <ChevronRightIcon v-if="idx < visibleSteps.length - 1" class="w-3 h-3 text-grey-300 dark:text-grey-700 flex-shrink-0" />
           </div>
         </template>
       </div>
@@ -42,8 +42,8 @@
     ═══════════════════════════════════════════════════════ -->
     <section v-if="step === 'classes'" class="p-8">
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-grey-900">Grading Agent</h1>
-        <p class="text-grey-600 mt-1">Select a class to start an AI-powered grading session.</p>
+        <h1 class="text-3xl font-bold text-grey-900 dark:text-grey-50">Grading Agent</h1>
+        <p class="text-grey-600 dark:text-grey-400 mt-1">Select a class to start an AI-powered grading session.</p>
       </div>
 
       <div v-if="loadingClasses" class="flex items-center justify-center h-48">
@@ -51,10 +51,10 @@
       </div>
 
       <div v-else-if="classes.length === 0"
-        class="text-center py-20 border-2 border-dashed border-grey-200 rounded-2xl bg-white">
-        <AcademicCapIcon class="w-16 h-16 text-grey-300 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-grey-900 mb-2">No classes yet</h3>
-        <p class="text-grey-600">Create a class first to start grading.</p>
+        class="text-center py-20 border-2 border-dashed border-grey-200 dark:border-grey-800 rounded-2xl bg-white dark:bg-grey-900">
+        <AcademicCapIcon class="w-16 h-16 text-grey-300 dark:text-grey-600 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No classes yet</h3>
+        <p class="text-grey-600 dark:text-grey-400">Create a class first to start grading.</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -62,7 +62,7 @@
           v-for="cls in classes"
           :key="cls.id"
           @click="selectClass(cls)"
-          class="text-left bg-white rounded-2xl border border-grey-200 p-6 hover:shadow-md transition group border-l-4"
+          class="text-left bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 p-6 hover:shadow-md transition group border-l-4"
           :style="{ borderLeftColor: cls.color || '#3b82f6' }"
         >
           <div class="flex items-start justify-between mb-4">
@@ -74,8 +74,8 @@
             </div>
             <ChevronRightIcon class="w-5 h-5 transition mt-1" :style="{ color: cls.color || '#3b82f6' }" />
           </div>
-          <h3 class="text-lg font-semibold text-grey-900">{{ cls.name }}</h3>
-          <p class="text-sm text-grey-500 mt-1">{{ cls.subject || 'No subject' }}</p>
+          <h3 class="text-lg font-semibold text-grey-900 dark:text-grey-50">{{ cls.name }}</h3>
+          <p class="text-sm text-grey-500 dark:text-grey-400 mt-1">{{ cls.subject || 'No subject' }}</p>
         </button>
       </div>
     </section>
@@ -86,39 +86,39 @@
     <section v-else-if="step === 'setup'" class="p-8">
       <div class="max-w-3xl mx-auto space-y-6">
         <div>
-          <h2 class="text-2xl font-bold text-grey-900">Configure Grading Session</h2>
-          <p class="text-grey-600 mt-1">Build a new correction blueprint or reuse an existing one.</p>
+          <h2 class="text-2xl font-bold text-grey-900 dark:text-grey-50">Configure Grading Session</h2>
+          <p class="text-grey-600 dark:text-grey-400 mt-1">Build a new correction blueprint or reuse an existing one.</p>
         </div>
 
         <!-- Mode tabs -->
-        <div class="flex gap-1 p-1 bg-grey-100 rounded-xl w-fit">
+        <div class="flex gap-1 p-1 bg-grey-100 dark:bg-grey-800 rounded-xl w-fit">
           <button
             @click="setupMode = 'new'"
-            :class="setupMode === 'new' ? 'bg-white text-grey-900 shadow-sm' : 'text-grey-600 hover:text-grey-800'"
+            :class="setupMode === 'new' ? 'bg-white dark:bg-grey-900 text-grey-900 dark:text-grey-50 shadow-sm' : 'text-grey-600 dark:text-grey-400 hover:text-grey-800 dark:hover:text-grey-200'"
             class="px-5 py-2 rounded-lg text-sm font-medium transition"
           >New Blueprint</button>
           <button
             @click="switchToExisting"
-            :class="setupMode === 'existing' ? 'bg-white text-grey-900 shadow-sm' : 'text-grey-600 hover:text-grey-800'"
+            :class="setupMode === 'existing' ? 'bg-white dark:bg-grey-900 text-grey-900 dark:text-grey-50 shadow-sm' : 'text-grey-600 dark:text-grey-400 hover:text-grey-800 dark:hover:text-grey-200'"
             class="px-5 py-2 rounded-lg text-sm font-medium transition"
           >Use Existing Blueprint</button>
         </div>
 
         <!-- ── NEW BLUEPRINT ── -->
         <template v-if="setupMode === 'new'">
-          <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-6">
+          <div class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 p-6 space-y-6">
 
             <!-- Exam Title -->
             <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Title *</label>
+              <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Exam Title *</label>
               <input v-model="examTitle" type="text"
-                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                class="w-full px-4 py-2.5 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="e.g. Midterm Exam 2026" />
             </div>
 
             <!-- Exam Category Selector -->
             <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Category *</label>
+              <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Exam Category *</label>
               <div class="grid grid-cols-3 gap-3">
                 <button
                   type="button"
@@ -127,7 +127,7 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'EXERCISE'
                       ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-300'
-                      : 'border-grey-200 hover:border-primary-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-primary-300 bg-white dark:bg-grey-950 text-grey-600 dark:text-grey-300'
                   ]"
                 >
                   <span>Exercise</span>
@@ -139,7 +139,7 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'MIDTERM'
                       ? 'border-violet-500 bg-violet-50 text-violet-700 ring-1 ring-violet-300'
-                      : 'border-grey-200 hover:border-violet-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-violet-300 bg-white dark:bg-grey-950 text-grey-600 dark:text-grey-300'
                   ]"
                 >
                   <span>Midterm</span>
@@ -151,20 +151,20 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'FINAL'
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300'
-                      : 'border-grey-200 hover:border-emerald-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-emerald-300 bg-white dark:bg-grey-950 text-grey-600 dark:text-grey-300'
                   ]"
                 >
                   <span>Final</span>
                 </button>
               </div>
-              <p class="text-xs text-grey-500 mt-2">
+              <p class="text-xs text-grey-500 dark:text-grey-400 mt-2">
                 This sets the category in Class Grades for average calculations and insights.
               </p>
             </div>
 
             <!-- Exam Paper -->
             <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Paper PDF *</label>
+              <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Exam Paper PDF *</label>
 
               <!-- Existing papers -->
               <div v-if="existingExamPapers.length > 0" class="space-y-2 mb-3">
@@ -437,14 +437,14 @@
             <span class="inline-block h-2.5 w-2.5 rounded-full bg-primary-500 animate-pulse"></span>
             <span class="text-sm font-medium">Analysing…</span>
           </div>
-          <div v-else-if="blueprintId && !analyseError" class="flex items-center gap-2 text-emerald-600">
+          <div v-else-if="blueprintReady && !analyseError" class="flex items-center gap-2 text-emerald-600">
             <CheckCircleIcon class="w-5 h-5" />
             <span class="text-sm font-medium">Blueprint ready!</span>
           </div>
         </div>
 
         <!-- Success CTA -->
-        <div v-if="blueprintId && !analyseLoading && !analyseError"
+        <div v-if="blueprintReady && !analyseLoading && !analyseError"
           class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -1092,6 +1092,7 @@ async function loadLessons(classId) {
 
 // ── Phase 1 — Analysis SSE ───────────────────────────────────────
 const blueprintId       = ref(null);
+const blueprintReady    = ref(false);
 const analyseThinking   = ref('');
 const analyseContent    = ref('');
 const analyseToolEvents = ref([]);
@@ -1104,6 +1105,7 @@ async function startAnalysis() {
   analyseContent.value   = '';
   analyseToolEvents.value = [];
   blueprintId.value      = null;
+  blueprintReady.value   = false;
   analyseLoading.value   = true;
 
   let resolvedExamPaperId = selectedExamPaperId.value;
@@ -1154,7 +1156,11 @@ async function startAnalysis() {
         try {
           const payload = JSON.parse(data);
           blueprintId.value = payload.blueprint_id;
+          blueprintReady.value = true;
         } catch {}
+      }
+      if (event === 'blueprint_ready') {
+        blueprintReady.value = true;
       }
     });
 
@@ -1369,7 +1375,7 @@ async function runSession(sessionId, forceRestart = false) {
   currentStudentName.value = sess?.student_name || '';
 
   // Mark as reviewing in local state during stream
-  updateSessionStatus(sessionId, 'pending');
+  updateSessionStatus(sessionId, 'reviewing');
 
   try {
     await api.streamGradingSession(sessionId, ({ event, data }) => {
@@ -1508,6 +1514,7 @@ function startOver() {
   blueprints.value         = [];
   selectedBlueprintId.value = null;
   blueprintId.value        = null;
+  blueprintReady.value     = false;
   analyseThinking.value    = '';
   analyseContent.value     = '';
   analyseToolEvents.value  = [];

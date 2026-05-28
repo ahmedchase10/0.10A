@@ -1,19 +1,19 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
-    <div class="bg-white border-b border-grey-200 px-8 py-6">
-      <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
-        <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition flex items-center gap-1">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50 dark:bg-grey-950 transition-colors duration-300">
+    <div class="bg-white dark:bg-grey-900 border-b border-grey-200 dark:border-grey-800 px-8 py-6">
+      <div class="flex items-center gap-2 text-sm text-grey-500 dark:text-grey-400 mb-4">
+        <router-link :to="`/class/${classId}`" class="hover:text-primary-600 dark:hover:text-sky-400 transition flex items-center gap-1">
           <ChevronLeftIcon class="w-4 h-4" />
           Back to Class
         </router-link>
         <span>/</span>
-        <span class="text-grey-900 font-medium">Lessons</span>
+        <span class="text-grey-900 dark:text-grey-50 font-medium">Lessons</span>
       </div>
 
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-grey-900 mb-1">Class Lessons</h1>
-          <p class="text-grey-600">{{ attachedFiles.length }} attached file{{ attachedFiles.length !== 1 ? 's' : '' }}</p>
+          <h1 class="text-3xl font-bold text-grey-900 dark:text-grey-50 mb-1">Class Lessons</h1>
+          <p class="text-grey-600 dark:text-grey-400">{{ attachedFiles.length }} attached file{{ attachedFiles.length !== 1 ? 's' : '' }}</p>
         </div>
         <button
           @click="attachSelectedAssets"
@@ -27,11 +27,11 @@
     </div>
 
     <div class="p-8 space-y-8">
-      <section class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+      <section class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
-            <h2 class="text-lg font-semibold text-grey-900">Attached Files</h2>
-            <p class="text-sm text-grey-600">These are the files currently available in this class.</p>
+            <h2 class="text-lg font-semibold text-grey-900 dark:text-grey-50">Attached Files</h2>
+            <p class="text-sm text-grey-600 dark:text-grey-400">These are the files currently available in this class.</p>
           </div>
           <button
             @click="loadAttachedFiles"
@@ -45,35 +45,35 @@
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
         </div>
 
-        <div v-else-if="attachedFiles.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
-          <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-grey-900 mb-2">No attached files yet</h3>
-          <p class="text-grey-600">Choose files from the reusable library below and attach them to this class.</p>
+        <div v-else-if="attachedFiles.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 dark:border-grey-800 rounded-2xl">
+          <DocumentIcon class="w-14 h-14 text-grey-300 dark:text-grey-600 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No attached files yet</h3>
+          <p class="text-grey-600 dark:text-grey-400">Choose files from the reusable library below and attach them to this class.</p>
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <article
             v-for="file in attachedFiles"
             :key="file.id"
-            class="rounded-xl border border-grey-200 overflow-hidden bg-grey-50/40"
+            class="rounded-xl border border-grey-200 dark:border-grey-800 overflow-hidden bg-grey-50/40 dark:bg-grey-950/40"
           >
             <div class="h-24 flex items-center justify-center bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800">
               <DocumentTextIcon class="w-10 h-10 text-white/90" />
             </div>
             <div class="p-4">
-              <h3 class="font-semibold text-grey-900 truncate" :title="file.name">{{ file.name }}</h3>
-              <p class="text-xs text-grey-500 mt-1">{{ formatSize(file.size) }} - {{ formatDate(file.created_at) }}</p>
+              <h3 class="font-semibold text-grey-900 dark:text-grey-100 truncate" :title="file.name">{{ file.name }}</h3>
+              <p class="text-xs text-grey-500 dark:text-grey-400 mt-1">{{ formatSize(file.size) }} - {{ formatDate(file.created_at) }}</p>
               <div class="mt-4 flex gap-2">
                 <button
                   @click="downloadAttachedFile(file)"
-                  class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-grey-200 text-grey-700 rounded-lg hover:bg-grey-50 transition text-sm font-medium"
+                  class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-grey-900 border border-grey-200 dark:border-grey-700 text-grey-700 dark:text-grey-200 rounded-lg hover:bg-grey-50 dark:hover:bg-grey-800 transition text-sm font-medium"
                 >
                   <ArrowDownTrayIcon class="w-4 h-4" />
                   Download
                 </button>
                 <button
                   @click="deleteAttachedFile(file)"
-                  class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                  class="px-3 py-2 bg-red-50 dark:bg-red-950 text-red-600 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition"
                 >
                   <TrashIcon class="w-4 h-4" />
                 </button>
@@ -83,23 +83,23 @@
         </div>
       </section>
 
-      <section class="bg-white rounded-2xl border border-grey-200 shadow-sm p-6">
+      <section class="bg-white dark:bg-grey-900 rounded-2xl border border-grey-200 dark:border-grey-800 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
-            <h2 class="text-lg font-semibold text-grey-900">Lesson Library</h2>
-            <p class="text-sm text-grey-600">Select reusable assets to attach to this class.</p>
+            <h2 class="text-lg font-semibold text-grey-900 dark:text-grey-50">Lesson Library</h2>
+            <p class="text-sm text-grey-600 dark:text-grey-400">Select reusable assets to attach to this class.</p>
           </div>
-          <span class="text-sm text-grey-600">{{ globalAssets.length }} asset{{ globalAssets.length !== 1 ? 's' : '' }}</span>
+          <span class="text-sm text-grey-600 dark:text-grey-400">{{ globalAssets.length }} asset{{ globalAssets.length !== 1 ? 's' : '' }}</span>
         </div>
 
         <div v-if="globalAssetsLoading" class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
         </div>
 
-        <div v-else-if="globalAssets.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 rounded-2xl">
-          <DocumentIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-grey-900 mb-2">No reusable assets yet</h3>
-          <p class="text-grey-600">Add assets from the main Lessons library first.</p>
+        <div v-else-if="globalAssets.length === 0" class="text-center py-12 border-2 border-dashed border-grey-200 dark:border-grey-800 rounded-2xl">
+          <DocumentIcon class="w-14 h-14 text-grey-300 dark:text-grey-600 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No reusable assets yet</h3>
+          <p class="text-grey-600 dark:text-grey-400">Add assets from the main Lessons library first.</p>
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -107,7 +107,7 @@
             v-for="asset in globalAssets"
             :key="asset.id"
             class="rounded-xl border transition overflow-hidden"
-            :class="selectedAssetIds.includes(asset.id) ? 'border-primary-500 ring-1 ring-primary-200' : 'border-grey-200'"
+            :class="selectedAssetIds.includes(asset.id) ? 'border-primary-500 ring-1 ring-primary-200 dark:ring-sky-900' : 'border-grey-200 dark:border-grey-800'"
           >
             <label class="cursor-pointer block">
               <div class="h-24 flex items-center justify-center bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800 relative">
@@ -119,9 +119,9 @@
                 />
                 <DocumentTextIcon class="w-10 h-10 text-white/90" />
               </div>
-              <div class="p-4 bg-white">
-                <h3 class="font-semibold text-grey-900 truncate" :title="asset.name">{{ asset.name }}</h3>
-                <p class="text-xs text-grey-500 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.created_at) }}</p>
+              <div class="p-4 bg-white dark:bg-grey-900">
+                <h3 class="font-semibold text-grey-900 dark:text-grey-100 truncate" :title="asset.name">{{ asset.name }}</h3>
+                <p class="text-xs text-grey-500 dark:text-grey-400 mt-1">{{ formatSize(asset.size) }} - {{ formatDate(asset.created_at) }}</p>
               </div>
             </label>
           </article>

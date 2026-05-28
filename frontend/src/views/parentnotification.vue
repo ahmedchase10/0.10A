@@ -1,16 +1,16 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-slate-950 text-slate-100">
     <!-- Header -->
-    <div class="bg-white border-b border-grey-200 px-8 py-6">
-      <div class="flex items-center gap-2 text-sm text-grey-500 mb-4">
-        <router-link to="/" class="hover:text-primary-600 transition">Dashboard</router-link>
+    <div class="bg-slate-900/95 border-b border-slate-800 px-8 py-6">
+      <div class="flex items-center gap-2 text-sm text-slate-400 mb-4">
+        <router-link to="/" class="hover:text-primary-300 transition">Dashboard</router-link>
         <span>/</span>
-        <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition">Class</router-link>
+        <router-link :to="`/class/${classId}`" class="hover:text-primary-300 transition">Class</router-link>
         <span>/</span>
-        <span class="text-grey-900 font-medium">Parent Notifications</span>
+        <span class="text-slate-100 font-medium">Parent Notifications</span>
       </div>
-      <h1 class="text-3xl font-bold text-grey-900">Draft Parent Notification</h1>
-      <p class="text-grey-500 mt-2">Use AI to generate professional, empathetic emails based on student flags.</p>
+      <h1 class="text-3xl font-bold text-slate-100">Draft Parent Notification</h1>
+      <p class="text-slate-400 mt-2">Use AI to generate professional, empathetic emails based on student flags.</p>
     </div>
 
     <div class="px-8 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -18,8 +18,8 @@
       <div class="space-y-6">
         
         <!-- Student Selection -->
-        <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6">
-          <h2 class="text-lg font-semibold text-grey-900 mb-4 flex items-center gap-2">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm p-6">
+          <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <UserIcon class="w-5 h-5 text-primary-500" />
             1. Select Student
           </h2>
@@ -27,21 +27,21 @@
             v-model="selectedStudentId" 
             @change="handleStudentChange"
             :disabled="loadingStudents"
-            class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            class="w-full px-4 py-2.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-slate-950 text-slate-100"
           >
             <option :value="null" disabled>{{ loadingStudents ? 'Loading students...' : 'Select a student...' }}</option>
             <option v-for="student in students" :key="student.id" :value="student.id">
               {{ student.name }} ({{ student.parent_email || 'missing parent email' }})
             </option>
           </select>
-          <p v-if="selectedStudentId && !selectedStudent?.parent_email" class="mt-3 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p v-if="selectedStudentId && !selectedStudent?.parent_email" class="mt-3 text-sm text-amber-300 bg-amber-900/20 border border-amber-800 rounded-lg p-3">
             This student does not have a parent email yet. Add it in the Students page before drafting or sending a notification.
           </p>
         </div>
 
         <!-- Flags Selection (Only if student selected) -->
-        <div v-if="selectedStudentId" class="bg-white rounded-xl border border-grey-200 shadow-sm p-6 animate-fade-in">
-          <h2 class="text-lg font-semibold text-grey-900 mb-4 flex items-center gap-2">
+        <div v-if="selectedStudentId" class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm p-6 animate-fade-in">
+          <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <FlagIcon class="w-5 h-5 text-amber-500" />
             2. Select Context (Flags)
           </h2>
@@ -50,7 +50,7 @@
             <div class="animate-spin rounded-full h-6 w-6 border-2 border-primary-500 border-t-transparent"></div>
           </div>
           
-          <div v-else-if="flags.length === 0" class="text-sm text-grey-500 bg-grey-50 rounded-lg p-4">
+          <div v-else-if="flags.length === 0" class="text-sm text-slate-400 bg-slate-800 rounded-lg p-4">
             No flags recorded for this student. You can still generate an email based purely on your instructions.
           </div>
           
@@ -58,7 +58,7 @@
             <label 
               v-for="flag in flags" 
               :key="flag.id" 
-              class="flex items-start gap-3 p-3 rounded-lg border border-grey-200 hover:bg-grey-50 cursor-pointer transition"
+              class="flex items-start gap-3 p-3 rounded-lg border border-slate-700 hover:bg-slate-800 cursor-pointer transition"
             >
               <input 
                 type="checkbox" 
@@ -67,16 +67,16 @@
                 class="mt-1 rounded text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <p class="text-sm text-grey-900">{{ flag.reason }}</p>
-                <p class="text-xs text-grey-500 mt-1">{{ new Date(flag.created_at).toLocaleDateString() }}</p>
+                <p class="text-sm text-slate-100">{{ flag.reason }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ new Date(flag.created_at).toLocaleDateString() }}</p>
               </div>
             </label>
           </div>
         </div>
 
         <!-- Instructions -->
-        <div class="bg-white rounded-xl border border-grey-200 shadow-sm p-6">
-          <h2 class="text-lg font-semibold text-grey-900 mb-4 flex items-center gap-2">
+        <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm p-6">
+          <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
             <ChatBubbleBottomCenterTextIcon class="w-5 h-5 text-success-500" />
             3. Teacher Instructions
           </h2>
@@ -84,7 +84,7 @@
             v-model="teacherPrompt"
             rows="4"
             placeholder="e.g. Please let the parents know that the student has been disruptive but also mention they show great potential in math..."
-            class="w-full px-4 py-3 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+            class="w-full px-4 py-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
           ></textarea>
           
           <div class="mt-4 flex justify-end">
@@ -103,53 +103,53 @@
       </div>
 
       <!-- Right Column: Draft Preview & Send -->
-      <div class="bg-white rounded-xl border border-grey-200 shadow-sm flex flex-col overflow-hidden h-[calc(100vh-12rem)] sticky top-6">
-        <div class="p-4 border-b border-grey-200 bg-grey-50 flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-grey-900 flex items-center gap-2">
+      <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-sm flex flex-col overflow-hidden h-[calc(100vh-12rem)] sticky top-6">
+        <div class="p-4 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-slate-100 flex items-center gap-2">
             <EnvelopeIcon class="w-5 h-5 text-blue-500" />
             Draft Preview
           </h2>
         </div>
         
         <div v-if="!draftEmail" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <div class="w-16 h-16 bg-grey-100 rounded-full flex items-center justify-center mb-4">
-            <DocumentTextIcon class="w-8 h-8 text-grey-400" />
+          <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4">
+            <DocumentTextIcon class="w-8 h-8 text-slate-400" />
           </div>
-          <h3 class="text-grey-900 font-medium mb-1">No Draft Yet</h3>
-          <p class="text-sm text-grey-500 max-w-xs">Select a student, provide context, and click "Draft Email" to see the AI-generated message here.</p>
+          <h3 class="text-slate-100 font-medium mb-1">No Draft Yet</h3>
+          <p class="text-sm text-slate-400 max-w-xs">Select a student, provide context, and click "Draft Email" to see the AI-generated message here.</p>
         </div>
 
         <div v-else class="flex-1 overflow-y-auto p-6 space-y-4">
           <div>
-            <label class="block text-sm font-medium text-grey-700 mb-1">Recipient Email (To)</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Recipient Email (To)</label>
             <input 
               v-model="recipientEmail" 
               type="email" 
-              class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-4 py-2 border border-slate-700 bg-slate-950 text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
-            <p class="mt-1 text-xs text-grey-500">This is filled from the selected student's parent email.</p>
+            <p class="mt-1 text-xs text-slate-400">This is filled from the selected student's parent email.</p>
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-grey-700 mb-1">Subject</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Subject</label>
             <input 
               v-model="draftEmail.subject" 
               type="text" 
-              class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="w-full px-4 py-2 border border-slate-700 bg-slate-950 text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
           
           <div class="flex-1 flex flex-col">
-            <label class="block text-sm font-medium text-grey-700 mb-1">Body</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Body</label>
             <textarea 
               v-model="draftEmail.body" 
               rows="12"
-              class="w-full flex-1 px-4 py-3 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-sans text-sm"
+              class="w-full flex-1 px-4 py-3 border border-slate-700 bg-slate-950 text-slate-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none font-sans text-sm"
             ></textarea>
           </div>
         </div>
 
-        <div v-if="draftEmail" class="p-4 border-t border-grey-200 bg-grey-50 flex items-center justify-between">
+        <div v-if="draftEmail" class="p-4 border-t border-slate-800 bg-slate-900 flex items-center justify-between">
           <p v-if="successMessage" class="text-sm text-success-600 font-medium">{{ successMessage }}</p>
           <p v-else-if="errorMessage" class="text-sm text-red-600 font-medium">{{ errorMessage }}</p>
           <p v-else></p>
@@ -157,7 +157,7 @@
           <button 
             @click="sendEmail" 
             :disabled="!canSend || isSending"
-            class="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PaperAirplaneIcon v-if="!isSending" class="w-5 h-5 -rotate-45" />
             <div v-else class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>

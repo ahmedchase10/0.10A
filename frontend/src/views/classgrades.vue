@@ -1,32 +1,32 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-slate-950 text-slate-100">
     <!-- Header -->
-    <div class="bg-white border-b border-grey-200 px-8 py-6">
-      <div class="flex items-center gap-3 text-sm text-grey-600 mb-4">
+    <div class="bg-slate-900/95 border-b border-slate-800 px-8 py-6">
+      <div class="flex items-center gap-3 text-sm text-slate-400 mb-4">
         <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition flex items-center gap-1">
           <ChevronLeftIcon class="w-4 h-4" />
           Back to Class
         </router-link>
         <span>/</span>
-        <span class="text-grey-900 font-medium">Grades</span>
+        <span class="text-slate-100 font-medium">Grades</span>
       </div>
 
       <div class="flex items-start justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-grey-900 mb-1">Grades</h1>
-          <p class="text-grey-600">{{ classData?.name }} — {{ classData?.subject }}</p>
+          <h1 class="text-3xl font-bold text-slate-100 mb-1">Grades</h1>
+          <p class="text-slate-400">{{ classData?.name }} — {{ classData?.subject }}</p>
         </div>
         <div class="flex items-center gap-3">
           <router-link
             :to="`/grading?classId=${classId}`"
-            class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+            class="flex items-center gap-2 px-4 py-2.5 border border-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition"
           >
             <ClipboardDocumentListIcon class="w-4 h-4" />
             Open Grading Agent
           </router-link>
           <button
             @click="showAddExamTypeModal = true"
-            class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+            class="flex items-center gap-2 px-4 py-2.5 border border-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition"
           >
             <TagIcon class="w-4 h-4" />
             Add Exam Type
@@ -45,47 +45,47 @@
     <div class="p-8">
       <!-- Stats Row -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5">
+        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
               <UserGroupIcon class="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-grey-900">{{ students.length }}</div>
-              <div class="text-xs text-grey-600">Students</div>
+              <div class="text-xl font-bold text-slate-100">{{ students.length }}</div>
+              <div class="text-xs text-slate-400">Students</div>
             </div>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5">
+        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
               <ClipboardDocumentListIcon class="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-grey-900">{{ examTypes.length }}</div>
-              <div class="text-xs text-grey-600">Exam Types</div>
+              <div class="text-xl font-bold text-slate-100">{{ examTypes.length }}</div>
+              <div class="text-xs text-slate-400">Exam Types</div>
             </div>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5">
+        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
               <CheckBadgeIcon class="w-5 h-5 text-success-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-grey-900">{{ classAverage }}</div>
-              <div class="text-xs text-grey-600">Class Average</div>
+              <div class="text-xl font-bold text-slate-100">{{ classAverage }}</div>
+              <div class="text-xs text-slate-400">Class Average</div>
             </div>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5">
+        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
               <ChartBarIcon class="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-grey-900">{{ gradesFilled }}</div>
-              <div class="text-xs text-grey-600">Grades Entered</div>
+              <div class="text-xl font-bold text-slate-100">{{ gradesFilled }}</div>
+              <div class="text-xs text-slate-400">Grades Entered</div>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@
             'px-4 py-1.5 rounded-full text-sm font-medium transition border',
             filterExamTypeId === null
               ? 'bg-primary-600 text-white border-primary-600'
-              : 'bg-white text-grey-700 border-grey-300 hover:border-primary-400'
+            : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-primary-400'
           ]"
         >
           All
@@ -112,7 +112,7 @@
             'px-4 py-1.5 rounded-full text-sm font-medium transition border capitalize',
             filterExamTypeId === et.id
               ? 'bg-primary-600 text-white border-primary-600'
-              : 'bg-white text-grey-700 border-grey-300 hover:border-primary-400'
+            : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-primary-400'
           ]"
         >
           {{ et.name }}
@@ -120,7 +120,7 @@
       </div>
 
       <!-- Grades Table -->
-      <div class="bg-white rounded-xl shadow-sm border border-grey-200 overflow-hidden">
+      <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
         <!-- Loading -->
         <div v-if="loading" class="p-16 flex items-center justify-center">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
@@ -129,8 +129,8 @@
         <!-- No exam types -->
         <div v-else-if="examTypes.length === 0" class="p-16 text-center">
           <ClipboardDocumentListIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-grey-900 mb-2">No exam types yet</h3>
-          <p class="text-grey-600 mb-6">Create exam types (e.g. "Quiz 1", "Midterm") to start entering grades.</p>
+          <h3 class="text-lg font-medium text-slate-100 mb-2">No exam types yet</h3>
+          <p class="text-slate-400 mb-6">Create exam types (e.g. "Quiz 1", "Midterm") to start entering grades.</p>
           <button
             @click="showAddExamTypeModal = true"
             class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition"
@@ -143,22 +143,22 @@
         <!-- No students -->
         <div v-else-if="students.length === 0" class="p-16 text-center">
           <UserGroupIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-grey-900 mb-2">No students in this class</h3>
-          <p class="text-grey-600">Add students to start tracking grades.</p>
+          <h3 class="text-lg font-medium text-slate-100 mb-2">No students in this class</h3>
+          <p class="text-slate-400">Add students to start tracking grades.</p>
         </div>
 
         <!-- Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead class="bg-grey-50 border-b border-grey-200">
+            <thead class="bg-slate-900 border-b border-slate-800">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider sticky left-0 bg-grey-50 z-10 min-w-[180px]">
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-900 z-10 min-w-[180px]">
                   Student
                 </th>
                 <th
                   v-for="et in visibleExamTypes"
                   :key="et.id"
-                  class="px-4 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider min-w-[120px] group"
+                  class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[120px] group"
                 >
                   <div class="flex items-center justify-center gap-1">
                     <span class="capitalize">{{ et.name }}</span>
@@ -172,7 +172,7 @@
                   </div>
                   <div class="text-grey-400 font-normal normal-case text-[10px] mt-0.5">/ 20</div>
                 </th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider min-w-[90px]">
+                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[90px]">
                   Average
                 </th>
               </tr>
@@ -181,15 +181,15 @@
               <tr
                 v-for="student in students"
                 :key="student.id"
-                class="hover:bg-grey-50 transition"
+                class="hover:bg-slate-800/60 transition"
               >
                 <!-- Student Name -->
-                <td class="px-6 py-3 sticky left-0 bg-white hover:bg-grey-50 z-10">
+                <td class="px-6 py-3 sticky left-0 bg-slate-900 hover:bg-slate-800/60 z-10">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                       {{ student.name.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="font-medium text-grey-900 truncate max-w-[130px]" :title="student.name">{{ student.name }}</span>
+                    <span class="font-medium text-slate-100 truncate max-w-[130px]" :title="student.name">{{ student.name }}</span>
                   </div>
                 </td>
 

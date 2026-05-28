@@ -4,7 +4,11 @@
 
 @layer base {
   body {
-    @apply bg-grey-50 text-grey-900 antialiased;
+    @apply bg-grey-50 text-grey-900 antialiased transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-grey-950 text-grey-100;
   }
 }
 
@@ -15,14 +19,14 @@
   }
   
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-grey-100;
+    @apply bg-grey-100 dark:bg-grey-900;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-grey-300 rounded-full;
+    @apply bg-grey-300 dark:bg-grey-700 rounded-full;
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-grey-400;
+    @apply bg-grey-400 dark:bg-grey-600;
   }
 }

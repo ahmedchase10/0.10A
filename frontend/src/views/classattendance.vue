@@ -1,49 +1,49 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50 dark:bg-grey-950 transition-colors duration-300">
     <!-- Header -->
-    <div class="bg-white border-b border-grey-200 px-8 py-6">
-      <div class="flex items-center gap-3 text-sm text-grey-600 mb-4">
-        <router-link :to="`/class/${route.params.id}`" class="hover:text-primary-600 transition flex items-center gap-1">
+    <div class="bg-white dark:bg-grey-900 border-b border-grey-200 dark:border-grey-800 px-8 py-6">
+      <div class="flex items-center gap-3 text-sm text-grey-600 dark:text-grey-400 mb-4">
+        <router-link :to="`/class/${route.params.id}`" class="hover:text-primary-600 dark:hover:text-sky-400 transition flex items-center gap-1">
           <ChevronLeftIcon class="w-4 h-4" />
           Back to Class
         </router-link>
         <span>/</span>
-        <span class="text-grey-900 font-medium">Attendance</span>
+        <span class="text-grey-900 dark:text-grey-50 font-medium">Attendance</span>
       </div>
 
       <div class="flex items-start justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-grey-900 mb-2">Attendance</h1>
-          <p class="text-grey-600">{{ classData?.name }}</p>
+          <h1 class="text-3xl font-bold text-grey-900 dark:text-grey-50 mb-2">Attendance</h1>
+          <p class="text-grey-600 dark:text-grey-400">{{ classData?.name }}</p>
         </div>
         
         <!-- Date Selector -->
         <div class="flex items-center gap-4">
           <button
             @click="previousDay"
-            class="p-2 hover:bg-grey-100 rounded-lg transition"
+            class="p-2 hover:bg-grey-100 dark:hover:bg-grey-800 rounded-lg transition"
           >
-            <ChevronLeftIcon class="w-5 h-5 text-grey-600" />
+            <ChevronLeftIcon class="w-5 h-5 text-grey-600 dark:text-grey-300" />
           </button>
           
           <input
             v-model="selectedDate"
             type="date"
-            class="px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            class="px-4 py-2 border border-grey-300 dark:border-grey-700 bg-white dark:bg-grey-950 text-grey-900 dark:text-grey-100 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             @change="loadAttendance"
           />
           
           <button
             @click="nextDay"
             :disabled="isToday"
-            class="p-2 hover:bg-grey-100 rounded-lg transition disabled:opacity-50"
+            class="p-2 hover:bg-grey-100 dark:hover:bg-grey-800 rounded-lg transition disabled:opacity-50"
           >
-            <ChevronRightIcon class="w-5 h-5 text-grey-600" />
+            <ChevronRightIcon class="w-5 h-5 text-grey-600 dark:text-grey-300" />
           </button>
           
           <button
             @click="setToday"
-            class="px-4 py-2 bg-grey-100 text-grey-700 rounded-lg hover:bg-grey-200 transition text-sm font-medium"
+            class="px-4 py-2 bg-grey-100 dark:bg-grey-800 text-grey-700 dark:text-grey-200 rounded-lg hover:bg-grey-200 dark:hover:bg-grey-700 transition text-sm font-medium"
           >
             Today
           </button>
@@ -54,69 +54,69 @@
     <div class="p-8">
       <!-- Quick Stats -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800 p-6">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-primary-50 dark:bg-sky-950 rounded-lg flex items-center justify-center">
               <UserGroupIcon class="w-6 h-6 text-primary-600" />
             </div>
             <div>
-              <div class="text-2xl font-bold text-grey-900">{{ totalStudents }}</div>
-              <div class="text-sm text-grey-600">Total Students</div>
+              <div class="text-2xl font-bold text-grey-900 dark:text-grey-50">{{ totalStudents }}</div>
+              <div class="text-sm text-grey-600 dark:text-grey-400">Total Students</div>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800 p-6">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-success-50 rounded-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-success-50 dark:bg-emerald-950 rounded-lg flex items-center justify-center">
               <CheckCircleIcon class="w-6 h-6 text-success-600" />
             </div>
             <div>
               <div class="text-2xl font-bold text-success-600">{{ presentCount }}</div>
-              <div class="text-sm text-grey-600">Present</div>
+              <div class="text-sm text-grey-600 dark:text-grey-400">Present</div>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800 p-6">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-red-50 dark:bg-red-950 rounded-lg flex items-center justify-center">
               <XCircleIcon class="w-6 h-6 text-red-600" />
             </div>
             <div>
               <div class="text-2xl font-bold text-red-600">{{ absentCount }}</div>
-              <div class="text-sm text-grey-600">Absent</div>
+              <div class="text-sm text-grey-600 dark:text-grey-400">Absent</div>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-6">
+        <div class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800 p-6">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-grey-50 rounded-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-grey-50 dark:bg-grey-800 rounded-lg flex items-center justify-center">
               <ChartBarIcon class="w-6 h-6 text-grey-600" />
             </div>
             <div>
-              <div class="text-2xl font-bold text-grey-900">{{ attendanceRate }}%</div>
-              <div class="text-sm text-grey-600">Attendance Rate</div>
+              <div class="text-2xl font-bold text-grey-900 dark:text-grey-50">{{ attendanceRate }}%</div>
+              <div class="text-sm text-grey-600 dark:text-grey-400">Attendance Rate</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Attendance Table -->
-      <div class="bg-white rounded-xl shadow-sm border border-grey-200">
-        <div class="p-6 border-b border-grey-200 flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-grey-900">Student Attendance</h2>
+      <div class="bg-white dark:bg-grey-900 rounded-xl shadow-sm border border-grey-200 dark:border-grey-800">
+        <div class="p-6 border-b border-grey-200 dark:border-grey-800 flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-grey-900 dark:text-grey-50">Student Attendance</h2>
           <div class="flex items-center gap-3">
             <button
               @click="markAllPresent"
-              class="px-4 py-2 bg-success-50 text-success-700 rounded-lg hover:bg-success-100 transition text-sm font-medium"
+              class="px-4 py-2 bg-success-50 dark:bg-emerald-950 text-success-700 dark:text-emerald-300 rounded-lg hover:bg-success-100 dark:hover:bg-emerald-900 transition text-sm font-medium"
             >
               Mark All Present
             </button>
             <button
               @click="markAllAbsent"
-              class="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              class="px-4 py-2 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 transition text-sm font-medium"
             >
               Mark All Absent
             </button>
@@ -135,11 +135,11 @@
         </div>
 
         <div v-else-if="students.length === 0" class="p-12 text-center">
-          <UserGroupIcon class="w-12 h-12 text-grey-300 mx-auto mb-3" />
-          <p class="text-grey-600 mb-4">No students in this class yet</p>
+          <UserGroupIcon class="w-12 h-12 text-grey-300 dark:text-grey-600 mx-auto mb-3" />
+          <p class="text-grey-600 dark:text-grey-400 mb-4">No students in this class yet</p>
           <router-link
             :to="`/class/${route.params.id}`"
-            class="text-primary-600 font-medium hover:text-primary-700"
+            class="text-primary-600 dark:text-sky-400 font-medium hover:text-primary-700 dark:hover:text-sky-300"
           >
             Add students to start tracking attendance
           </router-link>
@@ -147,48 +147,48 @@
 
         <div v-else class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-grey-50 border-b border-grey-200">
+            <thead class="bg-grey-50 dark:bg-grey-950 border-b border-grey-200 dark:border-grey-800">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-grey-500 uppercase tracking-wider">Student</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-grey-500 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-grey-500 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-3 text-center text-xs font-medium text-grey-500 uppercase tracking-wider">Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-grey-500 dark:text-grey-400 uppercase tracking-wider">Student</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-grey-500 dark:text-grey-400 uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-grey-500 dark:text-grey-400 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-grey-500 dark:text-grey-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-grey-200">
+            <tbody class="divide-y divide-grey-200 dark:divide-grey-800">
               <tr
                 v-for="student in students"
                 :key="student.id"
                 :class="[
-                  'hover:bg-grey-50 transition',
-                  attendanceMap[student.id] === true ? 'bg-success-50/30' : attendanceMap[student.id] === false ? 'bg-red-50/30' : ''
+                  'hover:bg-grey-50 dark:hover:bg-grey-800 transition',
+                  attendanceMap[student.id] === true ? 'bg-success-50/30 dark:bg-emerald-950/20' : attendanceMap[student.id] === false ? 'bg-red-50/30 dark:bg-red-950/20' : ''
                 ]"
               >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
                       {{ student.name.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="font-medium text-grey-900">{{ student.name }}</span>
+                    <span class="font-medium text-grey-900 dark:text-grey-50">{{ student.name }}</span>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-grey-600">{{ student.email }}</td>
+                <td class="px-6 py-4 text-sm text-grey-600 dark:text-grey-400">{{ student.email }}</td>
                 <td class="px-6 py-4 text-center">
                   <span
                     v-if="attendanceMap[student.id] === true"
-                    class="inline-flex items-center gap-1 px-3 py-1 bg-success-50 text-success-700 rounded-full text-sm font-medium"
+                    class="inline-flex items-center gap-1 px-3 py-1 bg-success-50 dark:bg-emerald-950 text-success-700 dark:text-emerald-300 rounded-full text-sm font-medium"
                   >
                     <CheckCircleIcon class="w-4 h-4" />
                     Present
                   </span>
                   <span
                     v-else-if="attendanceMap[student.id] === false"
-                    class="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm font-medium"
+                    class="inline-flex items-center gap-1 px-3 py-1 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-full text-sm font-medium"
                   >
                     <XCircleIcon class="w-4 h-4" />
                     Absent
                   </span>
-                  <span v-else class="inline-flex items-center gap-1 px-3 py-1 bg-grey-50 text-grey-700 rounded-full text-sm font-medium">
+                  <span v-else class="inline-flex items-center gap-1 px-3 py-1 bg-grey-50 dark:bg-grey-800 text-grey-700 dark:text-grey-200 rounded-full text-sm font-medium">
                     Not Marked
                   </span>
                 </td>
@@ -200,7 +200,7 @@
                         'px-4 py-2 rounded-lg text-sm font-medium transition',
                         attendanceMap[student.id] === true
                           ? 'bg-success-600 text-white'
-                          : 'bg-success-50 text-success-700 hover:bg-success-100'
+                          : 'bg-success-50 dark:bg-emerald-950 text-success-700 dark:text-emerald-300 hover:bg-success-100 dark:hover:bg-emerald-900'
                       ]"
                     >
                       Present
@@ -211,7 +211,7 @@
                         'px-4 py-2 rounded-lg text-sm font-medium transition',
                         attendanceMap[student.id] === false
                           ? 'bg-red-600 text-white'
-                          : 'bg-red-50 text-red-700 hover:bg-red-100'
+                          : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900'
                       ]"
                     >
                       Absent
@@ -221,22 +221,6 @@
               </tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- History Section -->
-      <div class="mt-6 bg-primary-50 border border-primary-200 rounded-xl p-6">
-        <div class="flex items-start gap-3">
-          <InformationCircleIcon class="w-6 h-6 text-primary-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 class="font-semibold text-primary-900 mb-2">Attendance Tips</h3>
-            <ul class="text-sm text-primary-800 space-y-1">
-              <li>• Attendance records are saved per date - you can update past dates anytime</li>
-              <li>• Use "Mark All Present" for quick bulk marking, then change individual absences</li>
-              <li>• Changes are only saved when you click "Save Attendance"</li>
-              <li>• The AI agent can also mark attendance from voice commands (coming soon)</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

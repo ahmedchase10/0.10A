@@ -40,14 +40,14 @@ const routes = [
         component: () => import('@/views/creator.vue')
       },
       {
+        path: 'mail',
+        name: 'Mail',
+        component: () => import('@/views/mail.vue')
+      },
+      {
         path: 'grading',
         name: 'Grading',
         component: () => import('@/views/grading.vue')
-      },
-      {
-        path: 'notifications',
-        name: 'Notifications',
-        component: () => import('@/views/notifications.vue')
       },
       {
         path: 'settings',
