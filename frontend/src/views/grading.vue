@@ -168,32 +168,32 @@
 
               <!-- Existing papers -->
               <div v-if="existingExamPapers.length > 0" class="space-y-2 mb-3">
-                <p class="text-xs text-grey-500">Previously uploaded for this class:</p>
+                <p class="text-xs text-grey-500 dark:text-grey-400">Previously uploaded for this class:</p>
                 <div class="space-y-2 max-h-44 overflow-y-auto custom-scrollbar">
                   <label v-for="paper in existingExamPapers" :key="paper.id"
                     class="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition"
-                    :class="selectedExamPaperId === paper.id
-                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
-                      : 'border-grey-200 hover:border-primary-300 bg-grey-50'">
+                      :class="selectedExamPaperId === paper.id
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300 dark:bg-primary-950 dark:border-primary-400'
+                      : 'border-grey-200 hover:border-primary-300 bg-grey-50 dark:bg-grey-950 dark:border-grey-800'">
                     <input type="radio" v-model="selectedExamPaperId" :value="paper.id" class="sr-only" />
-                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <DocumentTextIcon class="w-4 h-4 text-primary-600" />
+                    <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-primary-900/30">
+                      <DocumentTextIcon class="w-4 h-4 text-primary-600 dark:text-primary-300" />
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-grey-900 truncate">{{ paper.filename }}</p>
-                      <p class="text-xs text-grey-500">{{ formatSize(paper.size) }} · {{ formatDate(paper.created_at) }}</p>
+                      <p class="text-sm font-medium text-grey-900 dark:text-grey-50 truncate">{{ paper.filename }}</p>
+                      <p class="text-xs text-grey-500 dark:text-grey-400">{{ formatSize(paper.size) }} · {{ formatDate(paper.created_at) }}</p>
                     </div>
                     <CheckCircleIcon v-if="selectedExamPaperId === paper.id"
-                      class="w-5 h-5 text-primary-600 flex-shrink-0" />
+                      class="w-5 h-5 text-primary-600 dark:text-primary-300 flex-shrink-0" />
                   </label>
                   <label
                     class="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition"
-                    :class="selectedExamPaperId === null
-                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
-                      : 'border-grey-200 hover:border-primary-300 bg-grey-50'">
+                      :class="selectedExamPaperId === null
+                      ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300 dark:bg-primary-950 dark:border-primary-400'
+                      : 'border-grey-200 hover:border-primary-300 bg-grey-50 dark:bg-grey-950 dark:border-grey-800'">
                     <input type="radio" v-model="selectedExamPaperId" :value="null" class="sr-only" />
-                    <CloudArrowUpIcon class="w-4 h-4 text-grey-500" />
-                    <span class="text-sm text-grey-700">Upload a new paper</span>
+                    <CloudArrowUpIcon class="w-4 h-4 text-grey-500 dark:text-grey-400" />
+                    <span class="text-sm text-grey-700 dark:text-grey-200">Upload a new paper</span>
                   </label>
                 </div>
               </div>
@@ -202,14 +202,14 @@
               <div v-if="existingExamPapers.length === 0 || selectedExamPaperId === null">
                 <div
                   class="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition"
-                  :class="examPaperFile ? 'border-primary-400 bg-primary-50' : 'border-grey-300 hover:border-primary-400'"
+                  :class="examPaperFile ? 'border-primary-400 bg-primary-50 dark:bg-primary-950 dark:border-primary-500' : 'border-grey-300 hover:border-primary-400 dark:border-grey-700 dark:bg-grey-950 dark:hover:border-primary-500'"
                   @click="$refs.examPaperInput.click()"
                   @dragover.prevent
                   @drop.prevent="e => { examPaperFile = e.dataTransfer.files[0] }"
                 >
                   <CloudArrowUpIcon class="w-8 h-8 mx-auto mb-2"
                     :class="examPaperFile ? 'text-primary-500' : 'text-grey-400'" />
-                  <p class="text-sm" :class="examPaperFile ? 'text-primary-700 font-medium' : 'text-grey-600'">
+                  <p class="text-sm" :class="examPaperFile ? 'text-primary-700 font-medium dark:text-primary-300' : 'text-grey-600 dark:text-grey-300'">
                     {{ examPaperFile ? examPaperFile.name : 'Click or drag & drop exam paper PDF' }}
                   </p>
                   <p v-if="examPaperFile" class="text-xs text-primary-500 mt-1">{{ formatSize(examPaperFile.size) }}</p>
@@ -229,14 +229,14 @@
               </label>
               <div
                 class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition"
-                :class="correctionFile ? 'border-emerald-400 bg-emerald-50' : 'border-grey-200 hover:border-grey-400'"
+                :class="correctionFile ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950 dark:border-emerald-500' : 'border-grey-200 hover:border-grey-400 dark:border-grey-700 dark:bg-grey-950 dark:hover:border-grey-500'"
                 @click="$refs.correctionInput.click()"
                 @dragover.prevent
                 @drop.prevent="e => { correctionFile = e.dataTransfer.files[0] }"
               >
                 <DocumentCheckIcon class="w-6 h-6 mx-auto mb-1"
-                  :class="correctionFile ? 'text-emerald-600' : 'text-grey-400'" />
-                <p class="text-sm" :class="correctionFile ? 'text-emerald-700 font-medium' : 'text-grey-500'">
+                  :class="correctionFile ? 'text-emerald-600 dark:text-emerald-300' : 'text-grey-400 dark:text-grey-500'" />
+                <p class="text-sm" :class="correctionFile ? 'text-emerald-700 font-medium dark:text-emerald-300' : 'text-grey-500 dark:text-grey-300'">
                   {{ correctionFile ? correctionFile.name : 'Upload correction paper (optional)' }}
                 </p>
                 <button v-if="correctionFile" @click.stop="correctionFile = null"
@@ -248,23 +248,23 @@
 
             <!-- Lesson PDFs for RAG -->
             <div v-if="classLessons.length > 0">
-              <label class="block text-sm font-medium text-grey-700 mb-2">
+              <label class="block text-sm font-medium text-grey-700 mb-2 dark:text-grey-300">
                 Lesson PDFs for Context
-                <span class="text-grey-400 font-normal">(optional, for RAG)</span>
+                <span class="text-grey-400 font-normal dark:text-grey-500">(optional, for RAG)</span>
               </label>
-              <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar border border-grey-200 rounded-xl p-3 bg-grey-50">
+              <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar border border-grey-200 rounded-xl p-3 bg-grey-50 dark:bg-grey-950 dark:border-grey-800">
                 <label v-for="lesson in classLessons" :key="lesson.id"
                   class="flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition"
                   :class="selectedLessonIds.includes(lesson.id)
-                    ? 'border-primary-300 bg-primary-50'
-                    : 'border-transparent bg-white hover:border-grey-300'">
+                    ? 'border-primary-300 bg-primary-50 dark:bg-primary-950 dark:border-primary-500'
+                    : 'border-transparent bg-white hover:border-grey-300 dark:bg-grey-900 dark:hover:border-grey-700'">
                   <input v-model="selectedLessonIds" :value="lesson.id" type="checkbox" :disabled="!lesson.embedded"
-                    class="h-4 w-4 rounded border-grey-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50" />
+                    class="h-4 w-4 rounded border-grey-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50 dark:border-grey-600 dark:bg-grey-900" />
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-grey-900 truncate">{{ lesson.name }}</p>
+                    <p class="text-sm font-medium text-grey-900 truncate dark:text-grey-50">{{ lesson.name }}</p>
                   </div>
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                    :class="lesson.embedded ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                    :class="lesson.embedded ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'">
                     {{ lesson.embedded ? 'Ready' : 'Embedding…' }}
                   </span>
                 </label>
@@ -278,7 +278,7 @@
                 <span class="text-grey-400 font-normal">(optional)</span>
               </label>
               <textarea v-model="preferences" rows="3"
-                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none bg-white text-grey-900 placeholder-grey-400 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-100 dark:placeholder-grey-500"
                 placeholder="e.g. Q1: 4 pts. Deduct 1 pt for missing units. Partial credit allowed on Q3." />
             </div>
 
@@ -294,14 +294,14 @@
             </div>
 
             <!-- Reasoning toggle -->
-            <div class="flex items-center justify-between p-4 bg-violet-50 border border-violet-200 rounded-xl">
+            <div class="flex items-center justify-between p-4 bg-violet-50 border border-violet-200 rounded-xl dark:bg-grey-900 dark:border-grey-800">
               <div>
-                <p class="text-sm font-semibold text-violet-900">Reasoning Mode</p>
+                <p class="text-sm font-semibold text-violet-900 dark:text-grey-50">Reasoning Mode</p>
                 <p class="text-xs text-violet-600 mt-0.5">Deep thinking — slower but significantly more accurate</p>
               </div>
               <div
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer"
-                :class="reasoning ? 'bg-violet-600' : 'bg-grey-300'"
+                :class="reasoning ? 'bg-violet-600' : 'bg-grey-300 dark:bg-grey-700'"
                 @click="reasoning = !reasoning"
               >
                 <span
@@ -311,8 +311,8 @@
               </div>
             </div>
 
-            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-4">
-              <p class="text-sm text-red-700">{{ setupError }}</p>
+            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-4 dark:bg-red-950 dark:border-red-800">
+              <p class="text-sm text-red-700 dark:text-red-300">{{ setupError }}</p>
             </div>
 
             <button @click="startAnalysis" :disabled="!canStartAnalysis || analyseLoading"
@@ -325,18 +325,18 @@
 
         <!-- ── EXISTING BLUEPRINT ── -->
         <template v-else>
-          <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-5">
+            <div class="bg-white rounded-2xl border border-grey-200 p-6 space-y-5 dark:bg-grey-900 dark:border-grey-800">
             <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Title *</label>
+              <label class="block text-sm font-medium text-grey-700 mb-2 dark:text-grey-300">Exam Title *</label>
               <input v-model="examTitle" type="text"
-                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 placeholder-grey-400 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-100 dark:placeholder-grey-500"
                 placeholder="e.g. Midterm Exam 2026" />
-              <p class="text-xs text-grey-500 mt-1">Used to auto-create or match an exam type in Class Grades.</p>
+              <p class="text-xs text-grey-500 mt-1 dark:text-grey-400">Used to auto-create or match an exam type in Class Grades.</p>
             </div>
 
             <!-- Exam Category Selector -->
             <div>
-              <label class="block text-sm font-medium text-grey-700 mb-2">Exam Category *</label>
+              <label class="block text-sm font-medium text-grey-700 mb-2 dark:text-grey-300">Exam Category *</label>
               <div class="grid grid-cols-3 gap-3">
                 <button
                   type="button"
@@ -345,7 +345,7 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'EXERCISE'
                       ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-300'
-                      : 'border-grey-200 hover:border-primary-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-primary-300 bg-white text-grey-600 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-300'
                   ]"
                 >
                   <span>Exercise</span>
@@ -357,7 +357,7 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'MIDTERM'
                       ? 'border-violet-500 bg-violet-50 text-violet-700 ring-1 ring-violet-300'
-                      : 'border-grey-200 hover:border-violet-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-violet-300 bg-white text-grey-600 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-300'
                   ]"
                 >
                   <span>Midterm</span>
@@ -369,13 +369,13 @@
                     'px-4 py-2.5 rounded-xl border text-sm font-semibold transition text-center flex flex-col items-center justify-center gap-1',
                     examCategory === 'FINAL'
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300'
-                      : 'border-grey-200 hover:border-emerald-300 bg-white text-grey-600'
+                      : 'border-grey-200 hover:border-emerald-300 bg-white text-grey-600 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-300'
                   ]"
                 >
                   <span>Final</span>
                 </button>
               </div>
-              <p class="text-xs text-grey-500 mt-2">
+              <p class="text-xs text-grey-500 mt-2 dark:text-grey-400">
                 This sets the category in Class Grades for average calculations and insights.
               </p>
             </div>
@@ -385,31 +385,31 @@
             </div>
 
             <div v-else-if="blueprints.length === 0"
-              class="text-center py-10 border-2 border-dashed border-grey-200 rounded-xl">
-              <SparklesIcon class="w-12 h-12 text-grey-300 mx-auto mb-3" />
-              <p class="text-grey-600 text-sm">No blueprints yet. Create one using the "New Blueprint" tab.</p>
+              class="text-center py-10 border-2 border-dashed border-grey-200 rounded-xl dark:border-grey-800 dark:bg-grey-950">
+              <SparklesIcon class="w-12 h-12 text-grey-300 mx-auto mb-3 dark:text-grey-600" />
+              <p class="text-grey-600 text-sm dark:text-grey-400">No blueprints yet. Create one using the "New Blueprint" tab.</p>
             </div>
 
             <div v-else class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
               <label v-for="bp in blueprints" :key="bp.id"
                 class="flex items-start gap-3 rounded-xl border px-4 py-4 cursor-pointer transition"
                 :class="selectedBlueprintId === bp.id
-                  ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300'
-                  : 'border-grey-200 hover:border-primary-300'">
+                  ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300 dark:bg-primary-950 dark:border-primary-400'
+                  : 'border-grey-200 hover:border-primary-300 dark:bg-grey-950 dark:border-grey-800 dark:hover:border-primary-500'">
                 <input type="radio" v-model="selectedBlueprintId" :value="bp.id"
-                  class="mt-0.5 h-4 w-4 text-primary-600 border-grey-300" />
+                  class="mt-0.5 h-4 w-4 text-primary-600 border-grey-300 dark:border-grey-600 dark:bg-grey-900" />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-grey-900">{{ bp.title }}</p>
-                  <p class="text-xs text-grey-500 mt-0.5">Created {{ formatDate(bp.created_at) }}</p>
-                  <p v-if="bp.preferences" class="text-xs text-grey-600 mt-1 line-clamp-2">{{ bp.preferences }}</p>
+                  <p class="text-sm font-semibold text-grey-900 dark:text-grey-50">{{ bp.title }}</p>
+                  <p class="text-xs text-grey-500 mt-0.5 dark:text-grey-400">Created {{ formatDate(bp.created_at) }}</p>
+                  <p v-if="bp.preferences" class="text-xs text-grey-600 mt-1 line-clamp-2 dark:text-grey-400">{{ bp.preferences }}</p>
                 </div>
                 <CheckCircleIcon v-if="selectedBlueprintId === bp.id"
-                  class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
+                  class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5 dark:text-primary-300" />
               </label>
             </div>
 
-            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-3">
-              <p class="text-sm text-red-700">{{ setupError }}</p>
+            <div v-if="setupError" class="bg-red-50 border border-red-200 rounded-xl p-3 dark:bg-red-950 dark:border-red-800">
+              <p class="text-sm text-red-700 dark:text-red-300">{{ setupError }}</p>
             </div>
 
             <button @click="useExistingBlueprint"
@@ -463,26 +463,26 @@
         </div>
 
         <!-- Error -->
-        <div v-if="analyseError" class="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p class="text-sm font-semibold text-red-700 mb-1">Analysis failed</p>
-          <p class="text-sm text-red-600">{{ analyseError }}</p>
+        <div v-if="analyseError" class="bg-red-50 border border-red-200 rounded-xl p-4 dark:bg-red-950 dark:border-red-800">
+          <p class="text-sm font-semibold text-red-700 mb-1 dark:text-red-300">Analysis failed</p>
+          <p class="text-sm text-red-600 dark:text-red-300">{{ analyseError }}</p>
           <button @click="step = 'setup'" class="mt-3 text-sm text-red-600 hover:text-red-700 font-medium">
             ← Back to setup
           </button>
         </div>
 
         <!-- Live stream panel -->
-        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-grey-200">
-            <h3 class="text-sm font-semibold text-grey-900">Agent Activity</h3>
-            <span v-if="analyseToolEvents.length" class="text-xs text-grey-500">
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden dark:bg-grey-900 dark:border-grey-800">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-grey-200 dark:border-grey-800">
+            <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Agent Activity</h3>
+            <span v-if="analyseToolEvents.length" class="text-xs text-grey-500 dark:text-grey-400">
               {{ analyseToolEvents.length }} tool call{{ analyseToolEvents.length !== 1 ? 's' : '' }}
             </span>
           </div>
           <div class="p-5 space-y-4">
             <!-- Content stream -->
             <div v-if="analyseContent"
-              class="rounded-lg bg-grey-50 border border-grey-200 p-4 text-sm text-grey-700 whitespace-pre-wrap max-h-52 overflow-y-auto custom-scrollbar leading-relaxed">
+              class="rounded-lg bg-grey-50 border border-grey-200 p-4 text-sm text-grey-700 whitespace-pre-wrap max-h-52 overflow-y-auto custom-scrollbar leading-relaxed dark:bg-grey-950 dark:border-grey-800 dark:text-grey-200">
               {{ analyseContent }}
             </div>
 
@@ -490,25 +490,25 @@
             <div v-if="analyseToolEvents.length" class="flex flex-wrap gap-2">
               <span v-for="(ev, i) in analyseToolEvents" :key="i"
                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="ev.type === 'tool_call' ? 'bg-violet-50 text-violet-700 border border-violet-200' : 'bg-teal-50 text-teal-700 border border-teal-200'">
+                :class="ev.type === 'tool_call' ? 'bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800' : 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800'">
                 <WrenchScrewdriverIcon class="w-3 h-3" />
                 {{ ev.name }}
               </span>
             </div>
 
             <!-- Thinking (collapsible) -->
-            <details v-if="analyseThinking" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <summary class="cursor-pointer text-sm font-medium text-amber-800 select-none flex items-center gap-2">
+            <details v-if="analyseThinking" class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:bg-amber-950 dark:border-amber-800">
+              <summary class="cursor-pointer text-sm font-medium text-amber-800 dark:text-amber-200 select-none flex items-center gap-2">
                 <span>🧠</span> Reasoning — click to expand
               </summary>
-              <pre class="mt-3 whitespace-pre-wrap text-xs text-amber-900 font-mono max-h-52 overflow-y-auto custom-scrollbar leading-relaxed">{{ analyseThinking }}</pre>
+              <pre class="mt-3 whitespace-pre-wrap text-xs text-amber-900 dark:text-amber-100 font-mono max-h-52 overflow-y-auto custom-scrollbar leading-relaxed">{{ analyseThinking }}</pre>
             </details>
 
             <!-- Loading skeleton -->
             <div v-if="analyseLoading && !analyseContent && !analyseThinking" class="space-y-3">
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-3/4"></div>
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-1/2"></div>
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-2/3"></div>
+              <div class="h-4 bg-grey-100 dark:bg-grey-800 rounded-full animate-pulse w-3/4"></div>
+              <div class="h-4 bg-grey-100 dark:bg-grey-800 rounded-full animate-pulse w-1/2"></div>
+              <div class="h-4 bg-grey-100 dark:bg-grey-800 rounded-full animate-pulse w-2/3"></div>
             </div>
           </div>
         </div>
@@ -590,9 +590,9 @@
         </div>
 
         <!-- Students list -->
-        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
-          <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-grey-900">Students</h3>
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden dark:bg-grey-900 dark:border-grey-800">
+          <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between dark:border-grey-800">
+            <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Students</h3>
             <div class="flex gap-2">
               <button @click="clearAllFiles" v-if="assignedCount > 0"
                 class="text-xs text-grey-500 hover:text-red-600 transition">Clear all</button>
@@ -610,23 +610,23 @@
 
           <div v-else class="divide-y divide-grey-100">
             <div v-for="student in students" :key="student.id"
-              class="px-6 py-4 flex items-center gap-4 hover:bg-grey-50 transition">
+              class="px-6 py-4 flex items-center gap-4 hover:bg-grey-50 transition dark:hover:bg-grey-800/50">
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                 {{ student.name.charAt(0).toUpperCase() }}
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-grey-900 truncate">{{ student.name }}</p>
+                <p class="text-sm font-medium text-grey-900 truncate dark:text-grey-50">{{ student.name }}</p>
               </div>
               <div class="flex items-center gap-2">
                 <span v-if="studentFiles[student.id]"
-                  class="hidden sm:inline-flex text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium items-center gap-1">
+                  class="hidden sm:inline-flex text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-medium items-center gap-1 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300">
                   <CheckIcon class="w-3 h-3" />
                   {{ truncateName(studentFiles[student.id].name, 18) }}
                 </span>
                 <button @click="triggerStudentFileInput(student.id)"
                   class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition"
                   :class="studentFiles[student.id]
-                    ? 'border border-grey-300 text-grey-600 hover:bg-grey-100'
+                    ? 'border border-grey-300 text-grey-600 hover:bg-grey-100 dark:border-grey-700 dark:text-grey-300 dark:hover:bg-grey-800'
                     : 'bg-primary-600 text-white hover:bg-primary-700'">
                   <CloudArrowUpIcon class="w-3.5 h-3.5" />
                   {{ studentFiles[student.id] ? 'Change' : 'Upload PDF' }}
@@ -641,8 +641,8 @@
           </div>
         </div>
 
-        <div v-if="batchError" class="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p class="text-sm text-red-700">{{ batchError }}</p>
+        <div v-if="batchError" class="bg-red-50 border border-red-200 rounded-xl p-4 dark:bg-red-950 dark:border-red-800">
+          <p class="text-sm text-red-700 dark:text-red-300">{{ batchError }}</p>
         </div>
 
         <button @click="startGrading" :disabled="assignedCount === 0 || batchLoading"
@@ -662,43 +662,43 @@
       <div class="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-6 items-start">
 
         <!-- Sidebar queue -->
-        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden xl:sticky xl:top-24">
-          <div class="px-5 py-4 border-b border-grey-200">
-            <h3 class="text-sm font-semibold text-grey-900">Grading Queue</h3>
-            <p class="text-xs text-grey-500 mt-0.5">{{ completedCount }} / {{ sessions.length }} done</p>
+        <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden xl:sticky xl:top-24 dark:bg-grey-900 dark:border-grey-800">
+          <div class="px-5 py-4 border-b border-grey-200 dark:border-grey-800">
+            <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Grading Queue</h3>
+            <p class="text-xs text-grey-500 mt-0.5 dark:text-grey-400">{{ completedCount }} / {{ sessions.length }} done</p>
             <!-- Progress bar -->
-            <div class="mt-3 h-1.5 bg-grey-100 rounded-full overflow-hidden">
+            <div class="mt-3 h-1.5 bg-grey-100 rounded-full overflow-hidden dark:bg-grey-800">
               <div class="h-full bg-gradient-to-r from-violet-500 to-primary-500 rounded-full transition-all"
                 :style="{ width: `${sessions.length > 0 ? (completedCount / sessions.length) * 100 : 0}%` }">
               </div>
             </div>
           </div>
-          <div class="divide-y divide-grey-100 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          <div class="divide-y divide-grey-100 max-h-[60vh] overflow-y-auto custom-scrollbar dark:divide-grey-800">
             <div v-for="sess in sessions" :key="sess.session_id"
               class="px-4 py-3 flex items-center gap-3 transition"
-              :class="currentSessionId === sess.session_id ? 'bg-primary-50' : ''">
+              :class="currentSessionId === sess.session_id ? 'bg-primary-50 dark:bg-primary-950/40' : ''">
               <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                 :class="sess.status === 'approved'
-                  ? 'bg-emerald-100 text-emerald-700'
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
                   : sess.status === 'cancelled'
-                    ? 'bg-grey-100 text-grey-400'
+                    ? 'bg-grey-100 text-grey-400 dark:bg-grey-800 dark:text-grey-500'
                     : currentSessionId === sess.session_id
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-grey-100 text-grey-400'">
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300'
+                      : 'bg-grey-100 text-grey-400 dark:bg-grey-800 dark:text-grey-500'">
                 <CheckIcon v-if="sess.status === 'approved'" class="w-4 h-4" />
                 <XMarkIcon v-else-if="sess.status === 'cancelled'" class="w-4 h-4" />
                 <span v-else>{{ sess.queue_position + 1 }}</span>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-grey-900 truncate">{{ sess.student_name }}</p>
+                <p class="text-xs font-semibold text-grey-900 truncate dark:text-grey-50">{{ sess.student_name }}</p>
                 <p class="text-xs mt-0.5 capitalize"
                   :class="sess.status === 'approved'
-                    ? 'text-emerald-600'
+                    ? 'text-emerald-600 dark:text-emerald-300'
                     : sess.status === 'cancelled'
-                      ? 'text-grey-400'
+                      ? 'text-grey-400 dark:text-grey-500'
                       : currentSessionId === sess.session_id
-                        ? 'text-primary-600'
-                        : 'text-grey-400'">
+                        ? 'text-primary-600 dark:text-primary-300'
+                        : 'text-grey-400 dark:text-grey-500'">
                   {{ currentSessionId === sess.session_id && gradingLoading
                     ? (isReviewing ? 'reviewing…' : 'grading…')
                     : sess.status }}
@@ -715,69 +715,69 @@
 
         <!-- Main grading panel -->
         <div class="space-y-4">
-          <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden">
+          <div class="bg-white rounded-2xl border border-grey-200 overflow-hidden dark:bg-grey-900 dark:border-grey-800">
             <!-- Panel header -->
-            <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-grey-200 flex items-center justify-between dark:border-grey-800">
               <div>
-                <h2 class="text-lg font-semibold text-grey-900">{{ currentStudentName || 'Loading…' }}</h2>
-                <p class="text-sm text-grey-500 mt-0.5">{{ examTitle }}</p>
+                <h2 class="text-lg font-semibold text-grey-900 dark:text-grey-50">{{ currentStudentName || 'Loading…' }}</h2>
+                <p class="text-sm text-grey-500 dark:text-grey-400 mt-0.5">{{ examTitle }}</p>
               </div>
-              <div v-if="gradingLoading && !isReviewing" class="flex items-center gap-2 text-primary-600">
+              <div v-if="gradingLoading && !isReviewing" class="flex items-center gap-2 text-primary-600 dark:text-primary-300">
                 <span class="inline-block h-2.5 w-2.5 rounded-full bg-primary-500 animate-pulse"></span>
                 <span class="text-sm font-medium">Grading…</span>
               </div>
-              <div v-else-if="isReviewing" class="flex items-center gap-2 text-amber-600">
+              <div v-else-if="isReviewing" class="flex items-center gap-2 text-amber-600 dark:text-amber-300">
                 <ClipboardDocumentCheckIcon class="w-4 h-4" />
                 <span class="text-sm font-medium">Review required</span>
               </div>
             </div>
 
             <!-- Agent narrative -->
-            <div v-if="gradingContent && !isReviewing" class="px-6 py-4 border-b border-grey-100">
-              <p class="text-sm text-grey-600 whitespace-pre-wrap leading-relaxed">{{ gradingContent }}</p>
+            <div v-if="gradingContent && !isReviewing" class="px-6 py-4 border-b border-grey-100 dark:border-grey-800">
+              <p class="text-sm text-grey-600 dark:text-grey-300 whitespace-pre-wrap leading-relaxed">{{ gradingContent }}</p>
             </div>
 
             <!-- Tool events -->
             <div v-if="gradingToolEvents.length && !isReviewing"
-              class="px-6 py-3 border-b border-grey-100 flex flex-wrap gap-2">
+              class="px-6 py-3 border-b border-grey-100 dark:border-grey-800 flex flex-wrap gap-2">
               <span v-for="(ev, i) in gradingToolEvents" :key="i"
                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
                 :class="ev.type === 'tool_call'
-                  ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                  : 'bg-teal-50 text-teal-700 border border-teal-200'">
+                  ? 'bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800'
+                  : 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800'">
                 <WrenchScrewdriverIcon class="w-3 h-3" />
                 {{ ev.name }}
               </span>
             </div>
 
             <!-- Thinking panel -->
-            <div v-if="gradingThinking && !isReviewing" class="px-6 py-4 border-b border-grey-100">
-              <details class="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <summary class="cursor-pointer text-sm font-medium text-amber-800 select-none flex items-center gap-2">
+            <div v-if="gradingThinking && !isReviewing" class="px-6 py-4 border-b border-grey-100 dark:border-grey-800">
+              <details class="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:bg-amber-950 dark:border-amber-800">
+                <summary class="cursor-pointer text-sm font-medium text-amber-800 dark:text-amber-200 select-none flex items-center gap-2">
                   <span>🧠</span> Reasoning — click to expand
                 </summary>
-                <pre class="mt-2 whitespace-pre-wrap text-xs text-amber-900 font-mono max-h-40 overflow-y-auto custom-scrollbar leading-relaxed">{{ gradingThinking }}</pre>
+                <pre class="mt-2 whitespace-pre-wrap text-xs text-amber-900 dark:text-amber-100 font-mono max-h-40 overflow-y-auto custom-scrollbar leading-relaxed">{{ gradingThinking }}</pre>
               </details>
             </div>
 
             <!-- Question results -->
             <div v-if="questionResults.length > 0" class="px-6 py-5 space-y-3">
-              <h4 class="text-xs font-semibold uppercase tracking-wider text-grey-500">Question Breakdown</h4>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400">Question Breakdown</h4>
               <div v-for="qr in questionResults" :key="qr.question_number"
                 class="rounded-xl border p-4 space-y-2"
                 :class="qr.awarded_points >= qr.max_points
-                  ? 'border-emerald-200 bg-emerald-50'
+                  ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-950 dark:border-emerald-800'
                   : qr.awarded_points === 0
-                    ? 'border-red-200 bg-red-50'
-                    : 'border-amber-200 bg-amber-50'">
+                    ? 'border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800'
+                    : 'border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800'">
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-sm font-semibold text-grey-900">{{ qr.label }}</span>
+                  <span class="text-sm font-semibold text-grey-900 dark:text-grey-50">{{ qr.label }}</span>
                   <div class="flex items-center gap-2">
                     <template v-if="isReviewing">
                       <input
                         v-model.number="reviewDecisions[qr.question_number]"
                         type="number" :min="0" :max="qr.max_points" :step="0.25"
-                        class="w-16 px-2 py-1 text-center border border-grey-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-16 px-2 py-1 text-center border border-grey-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-100"
                       />
                     </template>
                     <template v-else>
@@ -790,21 +790,21 @@
                         {{ qr.awarded_points }}
                       </span>
                     </template>
-                    <span class="text-xs text-grey-500">/ {{ qr.max_points }} pts</span>
+                    <span class="text-xs text-grey-500 dark:text-grey-400">/ {{ qr.max_points }} pts</span>
                   </div>
                 </div>
-                <p class="text-xs text-grey-600 leading-relaxed">{{ qr.reasoning }}</p>
+                <p class="text-xs text-grey-600 leading-relaxed dark:text-grey-300">{{ qr.reasoning }}</p>
               </div>
 
               <!-- Total score when reviewing -->
-              <div v-if="isReviewing" class="rounded-xl border-2 border-primary-200 bg-primary-50 p-4 mt-2">
+              <div v-if="isReviewing" class="rounded-xl border-2 border-primary-200 bg-primary-50 p-4 mt-2 dark:bg-primary-950 dark:border-primary-800">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-semibold text-primary-900">Total Score</span>
+                  <span class="text-sm font-semibold text-primary-900 dark:text-primary-200">Total Score</span>
                   <div class="text-right">
-                    <p class="text-xl font-bold text-primary-800">
+                    <p class="text-xl font-bold text-primary-800 dark:text-primary-200">
                       {{ reviewTotal.toFixed(1) }} / {{ reviewMax.toFixed(1) }}
                     </p>
-                    <p class="text-xs text-primary-600 mt-0.5">
+                    <p class="text-xs text-primary-600 mt-0.5 dark:text-primary-300">
                       ≈ {{ normalisedReview.toFixed(2) }} / 20
                     </p>
                   </div>
@@ -814,9 +814,9 @@
 
             <!-- Loading skeleton -->
             <div v-if="gradingLoading && questionResults.length === 0 && !gradingError" class="px-6 py-8 space-y-3">
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-3/4"></div>
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-1/2"></div>
-              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-2/3"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-3/4 dark:bg-grey-800"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-1/2 dark:bg-grey-800"></div>
+              <div class="h-4 bg-grey-100 rounded-full animate-pulse w-2/3 dark:bg-grey-800"></div>
             </div>
 
             <!-- Grading error -->

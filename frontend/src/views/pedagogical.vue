@@ -93,7 +93,7 @@
           <!-- Lesson files -->
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-semibold text-grey-500 uppercase tracking-wider">Lesson Files</label>
+              <label class="block text-xs font-semibold text-grey-500 dark:text-grey-50 uppercase tracking-wider">Lesson Files</label>
               <span class="text-xs text-indigo-600 font-medium">{{ agent.selectedFileIds.length }} selected</span>
             </div>
 
@@ -111,7 +111,7 @@
               <label
                 v-for="f in agent.classFiles"
                 :key="f.id"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition bg-white dark:bg-grey-900"
                 :class="agent.selectedFileIds.includes(f.id)
                   ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/20 ring-1 ring-sky-200'
                   : 'border-grey-200 hover:bg-grey-50 dark:border-grey-800 dark:hover:bg-grey-800'"
@@ -120,11 +120,11 @@
                   type="checkbox"
                   :value="f.id"
                   v-model="agent.selectedFileIds"
-                  class="h-4 w-4 rounded border-grey-300 text-indigo-600 focus:ring-indigo-500"
+                  class="h-4 w-4 rounded border-grey-300 text-indigo-600 focus:ring-indigo-500 dark:border-grey-600 dark:bg-grey-900"
                 />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-grey-900 truncate">{{ f.name }}</p>
-                  <p class="text-xs text-grey-500">{{ formatSize(f.size) }}</p>
+                  <p class="text-sm font-medium text-grey-900 dark:text-grey-50 truncate">{{ f.name }}</p>
+                  <p class="text-xs text-grey-500 dark:text-grey-400">{{ formatSize(f.size) }}</p>
                 </div>
                 <span
                   v-if="f.embedded"
@@ -141,7 +141,7 @@
           <!-- Sessions -->
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-semibold text-grey-500 uppercase tracking-wider">Sessions</label>
+              <label class="block text-xs font-semibold text-grey-500 dark:text-grey-50 uppercase tracking-wider">Sessions</label>
               <button
                 @click="createNewSession"
                 :disabled="agent.creatingSession"
@@ -156,7 +156,7 @@
             </div>
             <div
               v-else-if="agent.sessions.length === 0"
-              class="text-sm text-grey-500 border border-dashed border-grey-200 rounded-xl p-3 text-center"
+              class="text-sm text-grey-500 dark:text-grey-400 border border-dashed border-grey-200 dark:border-grey-800 rounded-xl p-3 text-center"
             >
               No sessions yet. Create one to start.
             </div>
@@ -172,8 +172,8 @@
               >
                 <ChatBubbleLeftRightIcon class="w-4 h-4 text-grey-400 flex-shrink-0" />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-grey-900 truncate">{{ s.title }}</p>
-                  <p class="text-xs text-grey-400">{{ formatDate(s.created_at) }}</p>
+                  <p class="text-sm font-medium text-grey-900 dark:text-grey-50 truncate">{{ s.title }}</p>
+                  <p class="text-xs text-grey-400 dark:text-grey-500">{{ formatDate(s.created_at) }}</p>
                 </div>
                 <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition">
                   <button
@@ -253,7 +253,7 @@
       <!-- Active chat -->
       <template v-else>
         <!-- Chat top bar -->
-        <div class="flex items-center gap-3 px-6 py-3 bg-white border-b border-grey-200 flex-shrink-0">
+        <div class="flex items-center gap-3 px-6 py-3 bg-white dark:bg-grey-900 border-b border-grey-200 dark:border-grey-800 flex-shrink-0">
           <button
             @click="exitChat"
             class="p-1.5 rounded-lg hover:bg-grey-100 text-grey-500 transition"
@@ -265,8 +265,8 @@
             <AcademicCapIcon class="w-4 h-4 text-indigo-600" />
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-grey-900 truncate">{{ agent.activeSession.title }}</p>
-            <p class="text-xs text-grey-500">
+            <p class="text-sm font-semibold text-grey-900 dark:text-grey-50 truncate">{{ agent.activeSession.title }}</p>
+            <p class="text-xs text-grey-500 dark:text-grey-400">
               <span v-if="agent.selectedFileIds.length > 0">
                 {{ agent.selectedFileIds.length }} file{{ agent.selectedFileIds.length !== 1 ? 's' : '' }} attached
               </span>
@@ -367,14 +367,14 @@
         </div>
 
         <!-- Input bar -->
-        <div class="px-5 py-4 border-t border-grey-200 bg-white flex-shrink-0">
+        <div class="px-5 py-4 border-t border-grey-200 bg-white dark:bg-grey-900 dark:border-grey-800 flex-shrink-0">
           <div class="flex gap-3 items-end">
             <textarea
               v-model="agent.prompt"
               id="pedagogical-prompt"
               rows="2"
               @keydown.enter.exact.prevent="sendMessage"
-              class="flex-1 px-4 py-3 border border-grey-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none leading-relaxed bg-grey-50 focus:bg-white transition"
+              class="flex-1 px-4 py-3 border border-grey-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none leading-relaxed bg-grey-50 focus:bg-white transition dark:bg-grey-950 dark:border-grey-700 dark:text-grey-100 dark:placeholder-grey-500 dark:focus:bg-grey-900"
               placeholder="Ask about the selected lessons… (Enter to send, Shift+Enter for new line)"
               :disabled="agent.isStreaming"
             ></textarea>

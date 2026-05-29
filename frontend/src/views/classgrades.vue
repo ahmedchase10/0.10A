@@ -1,32 +1,32 @@
 <template>
-  <div class="h-full overflow-y-auto custom-scrollbar bg-slate-950 text-slate-100">
+  <div class="h-full overflow-y-auto custom-scrollbar bg-grey-50 text-grey-900 dark:bg-slate-950 dark:text-slate-100">
     <!-- Header -->
-    <div class="bg-slate-900/95 border-b border-slate-800 px-8 py-6">
-      <div class="flex items-center gap-3 text-sm text-slate-400 mb-4">
+    <div class="bg-white border-b border-grey-200 px-8 py-6 dark:bg-slate-900/95 dark:border-slate-800">
+      <div class="flex items-center gap-3 text-sm text-grey-600 dark:text-slate-400 mb-4">
         <router-link :to="`/class/${classId}`" class="hover:text-primary-600 transition flex items-center gap-1">
           <ChevronLeftIcon class="w-4 h-4" />
           Back to Class
         </router-link>
         <span>/</span>
-        <span class="text-slate-100 font-medium">Grades</span>
+        <span class="text-grey-900 dark:text-slate-100 font-medium">Grades</span>
       </div>
 
       <div class="flex items-start justify-between">
         <div>
-          <h1 class="text-3xl font-bold text-slate-100 mb-1">Grades</h1>
+          <h1 class="text-3xl font-bold text-grey-900 dark:text-slate-100 mb-1">Grades</h1>
           <p class="text-slate-400">{{ classData?.name }} — {{ classData?.subject }}</p>
         </div>
         <div class="flex items-center gap-3">
           <router-link
             :to="`/grading?classId=${classId}`"
-            class="flex items-center gap-2 px-4 py-2.5 border border-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition"
+            class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
           >
             <ClipboardDocumentListIcon class="w-4 h-4" />
             Open Grading Agent
           </router-link>
           <button
             @click="showAddExamTypeModal = true"
-            class="flex items-center gap-2 px-4 py-2.5 border border-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-800 transition"
+            class="flex items-center gap-2 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
           >
             <TagIcon class="w-4 h-4" />
             Add Exam Type
@@ -45,47 +45,47 @@
     <div class="p-8">
       <!-- Stats Row -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
+        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5 dark:bg-slate-900 dark:border-slate-800">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
               <UserGroupIcon class="w-5 h-5 text-primary-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-slate-100">{{ students.length }}</div>
-              <div class="text-xs text-slate-400">Students</div>
+              <div class="text-xl font-bold text-grey-900 dark:text-slate-100">{{ students.length }}</div>
+              <div class="text-xs text-grey-600 dark:text-slate-400">Students</div>
             </div>
           </div>
         </div>
-        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
+        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5 dark:bg-slate-900 dark:border-slate-800">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
               <ClipboardDocumentListIcon class="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-slate-100">{{ examTypes.length }}</div>
-              <div class="text-xs text-slate-400">Exam Types</div>
+              <div class="text-xl font-bold text-grey-900 dark:text-slate-100">{{ examTypes.length }}</div>
+              <div class="text-xs text-grey-600 dark:text-slate-400">Exam Types</div>
             </div>
           </div>
         </div>
-        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
+        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5 dark:bg-slate-900 dark:border-slate-800">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
-              <CheckBadgeIcon class="w-5 h-5 text-success-600" />
+            <div class="w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center dark:bg-slate-800">
+              <CheckBadgeIcon class="w-5 h-5 text-success-600 dark:text-slate-300" />
             </div>
             <div>
-              <div class="text-xl font-bold text-slate-100">{{ classAverage }}</div>
-              <div class="text-xs text-slate-400">Class Average</div>
+              <div class="text-xl font-bold text-grey-900 dark:text-slate-100">{{ classAverage }}</div>
+              <div class="text-xs text-grey-600 dark:text-slate-400">Class Average</div>
             </div>
           </div>
         </div>
-        <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-5">
+        <div class="bg-white rounded-xl shadow-sm border border-grey-200 p-5 dark:bg-slate-900 dark:border-slate-800">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
               <ChartBarIcon class="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <div class="text-xl font-bold text-slate-100">{{ gradesFilled }}</div>
-              <div class="text-xs text-slate-400">Grades Entered</div>
+              <div class="text-xl font-bold text-grey-900 dark:text-slate-100">{{ gradesFilled }}</div>
+              <div class="text-xs text-grey-600 dark:text-slate-400">Grades Entered</div>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@
             'px-4 py-1.5 rounded-full text-sm font-medium transition border',
             filterExamTypeId === null
               ? 'bg-primary-600 text-white border-primary-600'
-            : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-primary-400'
+            : 'bg-white text-grey-700 border-grey-300 hover:border-primary-400 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:border-primary-400'
           ]"
         >
           All
@@ -112,7 +112,7 @@
             'px-4 py-1.5 rounded-full text-sm font-medium transition border capitalize',
             filterExamTypeId === et.id
               ? 'bg-primary-600 text-white border-primary-600'
-            : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-primary-400'
+            : 'bg-white text-grey-700 border-grey-300 hover:border-primary-400 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700 dark:hover:border-primary-400'
           ]"
         >
           {{ et.name }}
@@ -120,7 +120,7 @@
       </div>
 
       <!-- Grades Table -->
-      <div class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-grey-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         <!-- Loading -->
         <div v-if="loading" class="p-16 flex items-center justify-center">
           <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
@@ -128,9 +128,9 @@
 
         <!-- No exam types -->
         <div v-else-if="examTypes.length === 0" class="p-16 text-center">
-          <ClipboardDocumentListIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-slate-100 mb-2">No exam types yet</h3>
-          <p class="text-slate-400 mb-6">Create exam types (e.g. "Quiz 1", "Midterm") to start entering grades.</p>
+          <ClipboardDocumentListIcon class="w-14 h-14 text-grey-300 dark:text-slate-500 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 dark:text-slate-100 mb-2">No exam types yet</h3>
+          <p class="text-grey-600 dark:text-slate-400 mb-6">Create exam types (e.g. "Quiz 1", "Midterm") to start entering grades.</p>
           <button
             @click="showAddExamTypeModal = true"
             class="inline-flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition"
@@ -142,23 +142,23 @@
 
         <!-- No students -->
         <div v-else-if="students.length === 0" class="p-16 text-center">
-          <UserGroupIcon class="w-14 h-14 text-grey-300 mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-slate-100 mb-2">No students in this class</h3>
-          <p class="text-slate-400">Add students to start tracking grades.</p>
+          <UserGroupIcon class="w-14 h-14 text-grey-300 dark:text-slate-500 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-grey-900 dark:text-slate-100 mb-2">No students in this class</h3>
+          <p class="text-grey-600 dark:text-slate-400">Add students to start tracking grades.</p>
         </div>
 
         <!-- Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead class="bg-slate-900 border-b border-slate-800">
+            <thead class="bg-grey-50 border-b border-grey-200 dark:bg-slate-900 dark:border-slate-800">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-900 z-10 min-w-[180px]">
+                <th class="px-6 py-3 text-left text-xs font-semibold text-grey-600 uppercase tracking-wider sticky left-0 bg-grey-50 dark:text-slate-400 dark:bg-slate-900 z-10 min-w-[180px]">
                   Student
                 </th>
                 <th
                   v-for="et in visibleExamTypes"
                   :key="et.id"
-                  class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[120px] group"
+                  class="px-4 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider dark:text-slate-400 min-w-[120px] group"
                 >
                   <div class="flex items-center justify-center gap-1">
                     <span class="capitalize">{{ et.name }}</span>
@@ -170,26 +170,26 @@
                       <XMarkIcon class="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div class="text-grey-400 font-normal normal-case text-[10px] mt-0.5">/ 20</div>
+                  <div class="text-grey-400 dark:text-slate-500 font-normal normal-case text-[10px] mt-0.5">/ 20</div>
                 </th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider min-w-[90px]">
+                <th class="px-4 py-3 text-center text-xs font-semibold text-grey-600 uppercase tracking-wider dark:text-slate-400 min-w-[90px]">
                   Average
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-grey-100">
+            <tbody class="divide-y divide-grey-100 dark:divide-slate-800">
               <tr
                 v-for="student in students"
                 :key="student.id"
-                class="hover:bg-slate-800/60 transition"
+                class="hover:bg-grey-50 dark:hover:bg-slate-800/60 transition"
               >
                 <!-- Student Name -->
-                <td class="px-6 py-3 sticky left-0 bg-slate-900 hover:bg-slate-800/60 z-10">
+                <td class="px-6 py-3 sticky left-0 bg-white hover:bg-grey-50 dark:bg-slate-900 dark:hover:bg-slate-800/60 z-10">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                       {{ student.name.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="font-medium text-slate-100 truncate max-w-[130px]" :title="student.name">{{ student.name }}</span>
+                    <span class="font-medium text-grey-900 dark:text-slate-100 truncate max-w-[130px]" :title="student.name">{{ student.name }}</span>
                   </div>
                 </td>
 
@@ -216,7 +216,7 @@
                       <button
                         v-else
                         @click="startEdit(student, et)"
-                        class="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-dashed border-grey-300 text-grey-400 hover:border-primary-400 hover:text-primary-500 transition opacity-0 group-hover/cell:opacity-100"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-dashed border-grey-300 text-grey-400 hover:border-primary-400 hover:text-primary-500 dark:border-slate-700 dark:text-slate-500 dark:hover:border-primary-400 dark:hover:text-primary-300 transition opacity-0 group-hover/cell:opacity-100"
                         title="Add grade"
                       >
                         <PlusIcon class="w-3.5 h-3.5" />
@@ -317,32 +317,32 @@
           <div class="flex min-h-full items-center justify-center p-4">
             <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
               leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-sm bg-white rounded-2xl shadow-xl">
-                <div class="p-6 border-b border-grey-200">
-                  <DialogTitle class="text-lg font-semibold text-grey-900">Add Exam Type</DialogTitle>
-                  <p class="text-sm text-grey-600 mt-1">e.g. "Quiz 1", "Midterm", "Final Exam"</p>
+              <DialogPanel class="w-full max-w-sm bg-white rounded-2xl shadow-xl dark:bg-slate-900 dark:border dark:border-slate-800">
+                <div class="p-6 border-b border-grey-200 dark:border-slate-800">
+                  <DialogTitle class="text-lg font-semibold text-grey-900 dark:text-slate-100">Add Exam Type</DialogTitle>
+                  <p class="text-sm text-grey-600 dark:text-slate-400 mt-1">e.g. "Quiz 1", "Midterm", "Final Exam"</p>
                 </div>
                 <form class="p-6 space-y-4" @submit.prevent="submitAddExamType">
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Name *</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-slate-300 mb-2">Name *</label>
                     <input
                       v-model="newExamTypeName"
                       type="text"
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                       placeholder="Quiz 1"
                       @keydown.enter.prevent.stop="submitAddExamType"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Category *</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-slate-300 mb-2">Category *</label>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <label
                         v-for="option in examTypeCategoryOptions"
                         :key="option.value"
                         class="relative flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition"
                         :class="newExamTypeCategory === option.value
-                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
-                          : 'border-grey-200 bg-white hover:border-primary-300 hover:bg-grey-50'"
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200 dark:bg-primary-900/20 dark:border-primary-400'
+                          : 'border-grey-200 bg-white hover:border-primary-300 hover:bg-grey-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-800'"
                       >
                         <input
                           v-model="newExamTypeCategory"
@@ -353,29 +353,29 @@
                         />
                         <span
                           class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition"
-                          :class="newExamTypeCategory === option.value
+                            :class="newExamTypeCategory === option.value
                             ? 'border-primary-600 bg-primary-600'
-                            : 'border-grey-300 bg-white'"
+                            : 'border-grey-300 bg-white dark:border-slate-600 dark:bg-slate-950'"
                         >
                           <span
-                            class="h-2.5 w-2.5 rounded-full bg-white transition-opacity"
+                            class="h-2.5 w-2.5 rounded-full bg-white dark:bg-slate-100 transition-opacity"
                             :class="newExamTypeCategory === option.value ? 'opacity-100' : 'opacity-0'"
                           ></span>
                         </span>
                         <div>
-                          <p class="text-sm font-semibold text-grey-900">{{ option.label }}</p>
+                          <p class="text-sm font-semibold text-grey-900 dark:text-slate-100">{{ option.label }}</p>
                         </div>
                       </label>
                     </div>
                   </div>
-                  <div v-if="examTypeError" class="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p class="text-sm text-red-700">{{ examTypeError }}</p>
+                  <div v-if="examTypeError" class="bg-red-50 border border-red-200 rounded-lg p-3 dark:bg-red-900/20 dark:border-red-800">
+                    <p class="text-sm text-red-700 dark:text-red-300">{{ examTypeError }}</p>
                   </div>
                   <div class="flex gap-3 pt-2">
                     <button
                       type="button"
                       @click="showAddExamTypeModal = false"
-                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 transition"
+                      class="flex-1 px-4 py-2.5 border border-grey-300 text-grey-700 rounded-lg font-medium hover:bg-grey-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
                     >
                       Cancel
                     </button>
@@ -406,26 +406,26 @@
           <div class="flex min-h-full items-center justify-center p-4">
             <TransitionChild enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
               leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-              <DialogPanel class="w-full max-w-sm bg-white rounded-2xl shadow-xl">
-                <div class="p-6 border-b border-grey-200">
-                  <DialogTitle class="text-lg font-semibold text-grey-900">Add / Update Grade</DialogTitle>
+              <DialogPanel class="w-full max-w-sm bg-white rounded-2xl shadow-xl dark:bg-slate-900 dark:border dark:border-slate-800">
+                <div class="p-6 border-b border-grey-200 dark:border-slate-800">
+                  <DialogTitle class="text-lg font-semibold text-grey-900 dark:text-slate-100">Add / Update Grade</DialogTitle>
                 </div>
                 <form class="p-6 space-y-4" @submit.prevent="submitGradeModal">
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Student *</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-slate-300 mb-2">Student *</label>
                     <select
                       v-model="gradeForm.student_id"
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     >
                       <option :value="null" disabled>Select student</option>
                       <option v-for="s in students" :key="s.id" :value="s.id">{{ s.name }}</option>
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Exam Type *</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-slate-300 mb-2">Exam Type *</label>
                     <select
                       v-model="gradeForm.exam_type_id"
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                     >
                       <option :value="null" disabled>Select exam type</option>
                       <option v-for="et in examTypes" :key="et.id" :value="et.id">{{ et.name }}</option>

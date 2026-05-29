@@ -193,11 +193,11 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Class *</label>
+                  <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Class *</label>
                   <select
                     v-model="draft.classId"
                     disabled
-                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg bg-grey-100 text-grey-700 cursor-not-allowed"
+                    class="w-full px-4 py-2.5 border border-grey-300 rounded-lg bg-grey-100 text-grey-700 cursor-not-allowed dark:bg-grey-950 dark:border-grey-700 dark:text-grey-300"
                   >
                     <option :value="null" disabled>Select a class</option>
                     <option v-for="cls in classes" :key="cls.id" :value="cls.id">{{ cls.name }}</option>
@@ -207,7 +207,7 @@
 
               <div>
                 <div class="flex items-center justify-between gap-3 mb-2">
-                  <label class="block text-sm font-medium text-grey-700">Lesson PDFs *</label>
+                  <label class="block text-sm font-medium text-grey-700 dark:text-grey-50">Lesson PDFs *</label>
                   <button
                     v-if="selectedDocsHavePendingOverview && draft.classId"
                     @click="retryOverview"
@@ -266,7 +266,7 @@
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-grey-700 mb-2">Topics</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Topics</label>
                   <textarea
                     v-model="draft.topicsText"
                     rows="4"
@@ -279,7 +279,7 @@
                 <div class="space-y-4">
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Questions *</label>
+                      <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Questions *</label>
                       <input
                         v-model.number="draft.questionCount"
                         type="number"
@@ -289,7 +289,7 @@
                       />
                     </div>
                     <div>
-                      <label class="block text-sm font-medium text-grey-700 mb-2">Total Points *</label>
+                      <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Total Points *</label>
                       <input
                         v-model.number="draft.totalPoints"
                         type="number"
@@ -301,10 +301,10 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-grey-700 mb-2">Language</label>
+                    <label class="block text-sm font-medium text-grey-700 dark:text-grey-300 mb-2">Language</label>
                     <select
                       v-model="draft.language"
-                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                      class="w-full px-4 py-2.5 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 dark:bg-grey-950 dark:border-grey-700 dark:text-grey-100"
                     >
                       <option v-for="option in languageOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -314,18 +314,18 @@
                 </div>
               </div>
 
-              <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
+              <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4 dark:bg-grey-900 dark:border-grey-800">
                 <div class="flex items-start justify-between gap-4">
                   <div>
-                    <h3 class="text-sm font-semibold text-grey-900">Difficulty Distribution</h3>
-                    <p class="text-xs text-grey-500 mt-1">Use the slider for quick changes or switch to manual entry to type exact percentages.</p>
+                    <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Difficulty Distribution</h3>
+                    <p class="text-xs text-grey-500 mt-1 dark:text-grey-400">Use the slider for quick changes or switch to manual entry to type exact percentages.</p>
                   </div>
-                  <div class="flex rounded-lg border border-grey-200 bg-white p-1 text-xs font-medium text-grey-600">
+                  <div class="flex rounded-lg border border-grey-200 bg-white p-1 text-xs font-medium text-grey-600 dark:border-grey-700 dark:bg-grey-900 dark:text-grey-300">
                     <button
                       type="button"
                       @click="setDifficultyInputMode('slider')"
                       class="rounded-md px-3 py-1.5 transition"
-                      :class="difficultyInputMode === 'slider' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50'"
+                      :class="difficultyInputMode === 'slider' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50 dark:hover:bg-grey-800'"
                     >
                       Slider
                     </button>
@@ -333,7 +333,7 @@
                       type="button"
                       @click="setDifficultyInputMode('manual')"
                       class="rounded-md px-3 py-1.5 transition"
-                      :class="difficultyInputMode === 'manual' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50'"
+                      :class="difficultyInputMode === 'manual' ? 'bg-primary-600 text-white shadow-sm' : 'hover:bg-grey-50 dark:hover:bg-grey-800'"
                     >
                       Manual
                     </button>
@@ -346,7 +346,7 @@
                     class="relative h-12 select-none touch-none"
                     @pointerdown="onDifficultyTrackPointerDown"
                   >
-                    <div class="absolute top-4 left-0 right-0 h-4 rounded-full overflow-hidden border border-grey-200 bg-white">
+                    <div class="absolute top-4 left-0 right-0 h-4 rounded-full overflow-hidden border border-grey-200 bg-white dark:border-grey-700 dark:bg-grey-950">
                       <div class="absolute inset-0" :style="difficultyGradientStyle"></div>
                     </div>
 
@@ -363,8 +363,8 @@
                       :aria-valuenow="difficultyAnchors.easyEnd"
                     >
                       <div class="flex flex-col items-center gap-1">
-                        <div class="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 shadow"></div>
-                        <span class="text-[10px] font-semibold text-emerald-700 bg-white/95 px-1.5 py-0.5 rounded-full shadow-sm">Easy</span>
+                        <div class="w-5 h-5 rounded-full bg-white border-2 border-emerald-500 shadow dark:bg-grey-900"></div>
+                        <span class="text-[10px] font-semibold text-emerald-700 bg-white/95 px-1.5 py-0.5 rounded-full shadow-sm dark:bg-grey-900 dark:text-emerald-300">Easy</span>
                       </div>
                     </div>
 
@@ -381,104 +381,104 @@
                       :aria-valuenow="difficultyAnchors.mediumEnd"
                     >
                       <div class="flex flex-col items-center gap-1">
-                        <div class="w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow"></div>
-                        <span class="text-[10px] font-semibold text-amber-700 bg-white/95 px-1.5 py-0.5 rounded-full shadow-sm">Medium</span>
+                        <div class="w-5 h-5 rounded-full bg-white border-2 border-amber-500 shadow dark:bg-grey-900"></div>
+                        <span class="text-[10px] font-semibold text-amber-700 bg-white/95 px-1.5 py-0.5 rounded-full shadow-sm dark:bg-grey-900 dark:text-amber-300">Medium</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="grid grid-cols-3 gap-3 text-sm">
-                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Easy</p>
-                      <p class="font-semibold text-emerald-900">{{ difficultySplit.easy }}%</p>
+                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 dark:bg-emerald-950 dark:border-emerald-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Easy</p>
+                      <p class="font-semibold text-emerald-900 dark:text-emerald-100">{{ difficultySplit.easy }}%</p>
                     </div>
-                    <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Medium</p>
-                      <p class="font-semibold text-amber-900">{{ difficultySplit.medium }}%</p>
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 dark:bg-amber-950 dark:border-amber-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Medium</p>
+                      <p class="font-semibold text-amber-900 dark:text-amber-100">{{ difficultySplit.medium }}%</p>
                     </div>
-                    <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-red-700">Hard</p>
-                      <p class="font-semibold text-red-900">{{ difficultySplit.hard }}%</p>
+                    <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2 dark:bg-red-950 dark:border-red-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">Hard</p>
+                      <p class="font-semibold text-red-900 dark:text-red-100">{{ difficultySplit.hard }}%</p>
                     </div>
                   </div>
                 </div>
 
                 <div v-else class="space-y-4">
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div class="rounded-lg border border-emerald-200 bg-white p-3">
-                      <label class="block text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2">Easy %</label>
+                    <div class="rounded-lg border border-emerald-200 bg-white p-3 dark:border-emerald-900 dark:bg-grey-900">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2 dark:text-emerald-300">Easy %</label>
                       <input
                         v-model.number="manualDifficulty.easy"
                         type="number"
                         min="0"
                         max="99"
                         step="1"
-                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 dark:bg-grey-900 dark:border-grey-700 dark:text-grey-100"
                       />
                     </div>
-                    <div class="rounded-lg border border-amber-200 bg-white p-3">
-                      <label class="block text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2">Medium %</label>
+                    <div class="rounded-lg border border-amber-200 bg-white p-3 dark:border-amber-900 dark:bg-grey-900">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2 dark:text-amber-300">Medium %</label>
                       <input
                         v-model.number="manualDifficulty.medium"
                         type="number"
                         min="1"
                         max="99"
                         step="1"
-                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 dark:bg-grey-900 dark:border-grey-700 dark:text-grey-100"
                       />
                     </div>
-                    <div class="rounded-lg border border-red-200 bg-white p-3">
-                      <label class="block text-xs font-semibold uppercase tracking-wider text-red-700 mb-2">Hard %</label>
+                    <div class="rounded-lg border border-red-200 bg-white p-3 dark:border-red-900 dark:bg-grey-900">
+                      <label class="block text-xs font-semibold uppercase tracking-wider text-red-700 mb-2 dark:text-red-300">Hard %</label>
                       <input
                         v-model.number="manualDifficulty.hard"
                         type="number"
                         min="0"
                         max="99"
                         step="1"
-                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        class="w-full rounded-lg border border-grey-300 px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-grey-900 dark:bg-grey-900 dark:border-grey-700 dark:text-grey-100"
                       />
                     </div>
                   </div>
 
-                  <div class="flex items-center justify-between gap-3 rounded-lg border border-grey-200 bg-white px-4 py-3 text-sm">
+                  <div class="flex items-center justify-between gap-3 rounded-lg border border-grey-200 bg-white px-4 py-3 text-sm dark:border-grey-700 dark:bg-grey-900">
                     <div>
-                      <p class="font-medium text-grey-900">Manual total: {{ manualDifficultyTotal }}%</p>
-                      <p class="text-xs text-grey-500 mt-1">The values must add up to 100 before they can be applied.</p>
+                      <p class="font-medium text-grey-900 dark:text-grey-50">Manual total: {{ manualDifficultyTotal }}%</p>
+                      <p class="text-xs text-grey-500 mt-1 dark:text-grey-400">The values must add up to 100 before they can be applied.</p>
                     </div>
                     <button
                       type="button"
                       @click="applyManualDifficultyDistribution"
                       class="px-4 py-2 rounded-lg font-medium transition"
-                      :class="manualDifficultyIsValid ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-grey-200 text-grey-500 cursor-not-allowed'"
+                      :class="manualDifficultyIsValid ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-grey-200 text-grey-500 cursor-not-allowed dark:bg-grey-800 dark:text-grey-500'"
                       :disabled="!manualDifficultyIsValid"
                     >
                       Apply values
                     </button>
                   </div>
 
-                  <div v-if="difficultyInputError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div v-if="difficultyInputError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
                     {{ difficultyInputError }}
                   </div>
 
                   <div class="grid grid-cols-3 gap-3 text-sm">
-                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Current Easy</p>
-                      <p class="font-semibold text-emerald-900">{{ difficultySplit.easy }}%</p>
+                    <div class="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 dark:bg-emerald-950 dark:border-emerald-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Current Easy</p>
+                      <p class="font-semibold text-emerald-900 dark:text-emerald-100">{{ difficultySplit.easy }}%</p>
                     </div>
-                    <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">Current Medium</p>
-                      <p class="font-semibold text-amber-900">{{ difficultySplit.medium }}%</p>
+                    <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 dark:bg-amber-950 dark:border-amber-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">Current Medium</p>
+                      <p class="font-semibold text-amber-900 dark:text-amber-100">{{ difficultySplit.medium }}%</p>
                     </div>
-                    <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
-                      <p class="text-xs font-semibold uppercase tracking-wider text-red-700">Current Hard</p>
-                      <p class="font-semibold text-red-900">{{ difficultySplit.hard }}%</p>
+                    <div class="rounded-lg bg-red-50 border border-red-200 px-3 py-2 dark:bg-red-950 dark:border-red-800">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">Current Hard</p>
+                      <p class="font-semibold text-red-900 dark:text-red-100">{{ difficultySplit.hard }}%</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-grey-700 mb-3">Exercise Types</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-3">Exercise Types</label>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <label
                     v-for="option in exerciseTypeOptions"
@@ -497,7 +497,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">Optional Teacher Instructions</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Optional Teacher Instructions</label>
                 <textarea
                   v-model="draft.notes"
                   rows="5"
@@ -507,7 +507,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">Generation Prompt</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Generation Prompt</label>
                 <textarea
                   v-model="draft.prompt"
                   rows="3"
@@ -538,7 +538,7 @@
               <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
                 <div class="flex items-start justify-between gap-4">
                   <div>
-                    <h3 class="text-sm font-semibold text-grey-900">Session Setup</h3>
+                    <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Session Setup</h3>
                     <p class="text-xs text-grey-500 mt-1">These values come from the saved backend session and stay compatible with the creator route.</p>
                   </div>
                   <span
@@ -551,31 +551,31 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-grey-700">
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Documents</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400 mb-1">Documents</p>
                     <p>{{ summarizeDocNames(activeSession?.doc_ids || []) }}</p>
                   </div>
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Language</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400 mb-1">Language</p>
                     <p>{{ activeSession?.preferences?.language || 'French' }}</p>
                   </div>
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Question Count</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400 mb-1">Question Count</p>
                     <p>{{ activeSession?.preferences?.question_count ?? '-' }}</p>
                   </div>
                   <div class="rounded-lg border border-grey-200 bg-white p-3">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Total Points</p>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400 mb-1">Total Points</p>
                     <p>{{ activeSession?.preferences?.total_points ?? '-' }}</p>
                   </div>
                 </div>
 
                 <div class="rounded-lg border border-grey-200 bg-white p-3 text-sm text-grey-700">
-                  <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 mb-1">Teacher Instructions</p>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-grey-500 dark:text-grey-400 mb-1">Teacher Instructions</p>
                   <p class="whitespace-pre-wrap">{{ activeSession?.preferences?.notes || 'None provided.' }}</p>
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">Refinement Prompt</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Refinement Prompt</label>
                 <textarea
                   v-model="refinement.prompt"
                   rows="4"
@@ -585,7 +585,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">Optional Teacher Instructions</label>
+                <label class="block text-sm font-medium text-grey-700 dark:text-grey-50 mb-2">Optional Teacher Instructions</label>
                 <textarea
                   v-model="refinement.notes"
                   rows="4"
@@ -616,7 +616,7 @@
             <div class="rounded-xl border border-grey-200 bg-grey-50/70 p-4 space-y-4">
               <div class="flex items-center justify-between gap-3">
                 <div>
-                  <h3 class="text-sm font-semibold text-grey-900">Live Agent Activity</h3>
+                  <h3 class="text-sm font-semibold text-grey-900 dark:text-grey-50">Live Agent Activity</h3>
                   <p class="text-xs text-grey-500 mt-1">Streaming events from the creator and evaluator loop.</p>
                 </div>
                 <span v-if="stream.isStreaming" class="inline-flex items-center gap-2 text-sm text-primary-600">
@@ -658,11 +658,11 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm overflow-hidden">
-          <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-grey-200">
+        <div class="bg-white rounded-2xl border border-grey-200 shadow-sm overflow-hidden dark:bg-grey-900 dark:border-grey-800">
+          <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-grey-200 dark:border-grey-800">
             <div>
-              <h2 class="text-xl font-semibold text-grey-900">Preview</h2>
-              <p class="text-sm text-grey-600 mt-1">Latest exam draft rendered from streamed `exam_json`.</p>
+              <h2 class="text-xl font-semibold text-grey-900 dark:text-grey-50">Preview</h2>
+              <p class="text-sm text-grey-600 mt-1 dark:text-grey-400">Latest exam draft rendered from streamed `exam_json`.</p>
             </div>
             <button
               @click="downloadPreviewPdf"
@@ -674,34 +674,34 @@
             </button>
           </div>
 
-          <div class="h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar bg-grey-50/60">
+          <div class="h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar bg-grey-50/60 dark:bg-grey-950">
             <div v-if="!previewExam" class="h-full flex flex-col items-center justify-center px-8 text-center">
-              <DocumentMagnifyingGlassIcon class="w-16 h-16 text-grey-300 mb-4" />
-              <h3 class="text-lg font-medium text-grey-900 mb-2">No exam preview yet</h3>
-              <p class="text-grey-600 max-w-md">Generate a new session or open an existing one to see the exam preview here before exporting it.</p>
+              <DocumentMagnifyingGlassIcon class="w-16 h-16 text-grey-300 mb-4 dark:text-grey-600" />
+              <h3 class="text-lg font-medium text-grey-900 dark:text-grey-50 mb-2">No exam preview yet</h3>
+              <p class="text-grey-600 dark:text-grey-400 max-w-md">Generate a new session or open an existing one to see the exam preview here before exporting it.</p>
             </div>
 
             <div v-else class="max-w-4xl mx-auto p-6 lg:p-10">
-              <div class="bg-white rounded-2xl shadow-sm border border-grey-200 min-h-full p-8 space-y-8">
-                <div class="border-b border-grey-200 pb-6">
+              <div class="bg-white rounded-2xl shadow-sm border border-grey-200 min-h-full p-8 space-y-8 dark:bg-grey-900 dark:border-grey-800">
+                <div class="border-b border-grey-200 pb-6 dark:border-grey-800">
                   <div class="flex items-start justify-between gap-4">
                     <div>
-                      <p class="text-xs uppercase tracking-[0.2em] text-grey-500 font-semibold">Generated Exam</p>
-                      <h3 class="text-3xl font-bold text-grey-900 mt-2">{{ previewTitle }}</h3>
+                      <p class="text-xs uppercase tracking-[0.2em] text-grey-500 font-semibold dark:text-grey-400">Generated Exam</p>
+                      <h3 class="text-3xl font-bold text-grey-900 mt-2 dark:text-grey-50">{{ previewTitle }}</h3>
                     </div>
-                    <div class="text-right text-sm text-grey-600">
+                    <div class="text-right text-sm text-grey-600 dark:text-grey-400">
                       <p>{{ previewQuestionCount }} question{{ previewQuestionCount !== 1 ? 's' : '' }}</p>
                       <p>{{ previewTotalPoints }} total points</p>
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-sm text-grey-700">
-                    <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                      <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold mb-2">Topics</p>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-sm text-grey-700 dark:text-grey-300">
+                    <div class="rounded-xl bg-grey-50 border border-grey-200 p-4 dark:bg-grey-950 dark:border-grey-800">
+                      <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold mb-2 dark:text-grey-400">Topics</p>
                       <p>{{ previewTopics }}</p>
                     </div>
-                    <div class="rounded-xl bg-grey-50 border border-grey-200 p-4">
-                      <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold mb-2">Teacher Instructions</p>
+                    <div class="rounded-xl bg-grey-50 border border-grey-200 p-4 dark:bg-grey-950 dark:border-grey-800">
+                      <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold mb-2 dark:text-grey-400">Teacher Instructions</p>
                       <p class="whitespace-pre-wrap">{{ previewNotes }}</p>
                     </div>
                   </div>
@@ -711,24 +711,24 @@
                   <article
                     v-for="(question, index) in previewExam.questions"
                     :key="question.id || index"
-                    class="rounded-2xl border border-grey-200 p-5"
+                    class="rounded-2xl border border-grey-200 p-5 dark:border-grey-800"
                   >
                     <div class="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold">Question {{ index + 1 }}</p>
-                        <h4 class="text-lg font-semibold text-grey-900 mt-1">{{ question.text }}</h4>
+                        <p class="text-xs uppercase tracking-wider text-grey-500 font-semibold dark:text-grey-400">Question {{ index + 1 }}</p>
+                        <h4 class="text-lg font-semibold text-grey-900 mt-1 dark:text-grey-50">{{ question.text }}</h4>
                       </div>
-                      <div class="text-right text-sm text-grey-600">
-                        <p class="font-medium text-grey-900">{{ formatPoints(question.max_points) }}</p>
+                      <div class="text-right text-sm text-grey-600 dark:text-grey-400">
+                        <p class="font-medium text-grey-900 dark:text-grey-50">{{ formatPoints(question.max_points) }}</p>
                         <p class="capitalize">{{ question.difficulty || 'Unspecified' }}</p>
                       </div>
                     </div>
 
                     <div class="flex flex-wrap gap-2 mb-4">
-                      <span class="px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium uppercase">
+                      <span class="px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium uppercase dark:bg-primary-950 dark:text-primary-300">
                         {{ question.type || 'question' }}
                       </span>
-                      <span class="px-2.5 py-1 rounded-full bg-grey-100 text-grey-700 text-xs font-medium">
+                      <span class="px-2.5 py-1 rounded-full bg-grey-100 text-grey-700 text-xs font-medium dark:bg-grey-800 dark:text-grey-300">
                         {{ resolveDocName(question.source_doc_id) }}
                       </span>
                     </div>
@@ -737,20 +737,20 @@
                       <li
                         v-for="(option, optionIndex) in question.options"
                         :key="optionIndex"
-                        class="rounded-lg border border-grey-200 bg-grey-50 px-3 py-2 text-sm text-grey-800"
+                        class="rounded-lg border border-grey-200 bg-grey-50 px-3 py-2 text-sm text-grey-800 dark:bg-grey-950 dark:border-grey-800 dark:text-grey-200"
                       >
                         {{ option }}
                       </li>
                     </ul>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
-                      <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
-                        <p class="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-2">Suggested Answer</p>
-                        <p class="whitespace-pre-wrap text-emerald-950">{{ question.suggested_answer || 'No answer provided.' }}</p>
+                      <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-4 dark:bg-emerald-950 dark:border-emerald-800">
+                        <p class="text-xs uppercase tracking-wider text-emerald-700 font-semibold mb-2 dark:text-emerald-300">Suggested Answer</p>
+                        <p class="whitespace-pre-wrap text-emerald-950 dark:text-emerald-100">{{ question.suggested_answer || 'No answer provided.' }}</p>
                       </div>
-                      <div class="rounded-xl bg-sky-50 border border-sky-200 p-4">
-                        <p class="text-xs uppercase tracking-wider text-sky-700 font-semibold mb-2">Source Hint</p>
-                        <p class="whitespace-pre-wrap text-sky-950">{{ question.source_hint || 'No source hint provided.' }}</p>
+                      <div class="rounded-xl bg-sky-50 border border-sky-200 p-4 dark:bg-sky-950 dark:border-sky-800">
+                        <p class="text-xs uppercase tracking-wider text-sky-700 font-semibold mb-2 dark:text-sky-300">Source Hint</p>
+                        <p class="whitespace-pre-wrap text-sky-950 dark:text-sky-100">{{ question.source_hint || 'No source hint provided.' }}</p>
                       </div>
                     </div>
                   </article>
